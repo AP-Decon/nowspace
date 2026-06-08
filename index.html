@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOWSPACE :: TRM_v0.6</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        /* === ZONE: CSS_VARIABLES === */
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+
+        :root {
+            --bg-color: #050509;
+            --main-cyan: #00ffff;
+            --bright-magenta: #ff00ff;
+            --dark-magenta: #550055;
+            --text-glow: 0 0 2px #00ffff;
+            --magenta-glow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 4px #ff00ff;
+        }
+
+        /* === ZONE: CSS_CORE_UI === */
+        * { box-sizing: border-box; }
+
+        body { 
+            font-family: 'Fira Code', monospace; background-color: var(--bg-color); 
+            color: var(--main-cyan); padding: 2vw; margin: 0;
+            text-shadow: var(--text-glow); letter-spacing: -0.5px;
+        }
+
+        h1 { color: #fff; font-size: 1.5rem; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-top: 0;}
+        h3 { color: var(--bright-magenta); text-shadow: var(--magenta-glow); font-size: 1rem; font-weight: 700; margin-top: 5px;}
+        
+        .panel { 
+            border: 1px solid var(--main-cyan); padding: 15px; margin-bottom: 20px; 
+            position: relative; background: rgba(0, 255, 255, 0.03);
+            box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
+        }
+
+        input, textarea { 
+            background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--dark-magenta); 
+            font-family: inherit; padding: 8px; width: 100%; margin-bottom: 10px;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--bright-magenta); box-shadow: var(--magenta-glow); }
+
+        button { 
+            font-family: inherit; font-weight: bold; text-transform: uppercase; cursor: pointer; 
+            padding: 8px 15px; background: transparent; color: var(--bright-magenta); 
+            border: 2px solid var(--bright-magenta); text-shadow: var(--magenta-glow); transition: all 0.2s ease;
+        }
+        button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(--magenta-glow); text-shadow: none; }
+        button:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; text-shadow: none;}
+        
+        .id-display { color: var(--bright-magenta); font-weight: bold; background: #000; padding: 2px 5px; text-shadow: var(--magenta-glow);}
+
+        /* === ZONE: CSS_HELPER_BOX === */
+        .helper-box {
+            border: 1px dashed var(--main-cyan); background: rgba(0,0,0,0.8);
+            padding: 10px; margin-bottom: 15px; font-size: 0.85rem;
+        }
+        .helper-box h4 { margin: 0 0 5px 0; color: #fff; text-shadow: none; }
+        .helper-box p { color: #aaa; text-shadow: none; margin-top: 0; }
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); }
+        .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); text-shadow: none; }
+
+        /* === ZONE: CSS_VISITOR_VIEW === */
+        #visitor-view { display: none; margin-top: 20px;}
+        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
+        
+        #datastream-output { height: 200px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; }
+        .wall-post { margin-bottom: 8px; border-bottom: 1px solid #111; padding-bottom: 4px;}
+        .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
+    </style>
+
+    <style id="custom-injected-css"></style>
+</head>
+<body>
+
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h1>// NOWSPACE :: TRM_v0.6</h1>
+        <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
+    </div>
+
+    <div class="panel" id="host-setup-panel">
+        <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
+        
+        <label>System Alias:</label>
+        <input type="text" id="my-alias" value="NODE-ALPHA">
+        
+        <label>Profile Datastream:</label>
+        <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
+        
+        <label>Profile Audio (Direct MP3/WAV URL):</label>
+        <input type="text" id="my-audio" placeholder="https://example.com/song.mp3" value="https://actions.google.com/sounds/v1/science_fiction/cybernetic_loop.ogg">
+        
+        <label>Custom CSS Injection:</label>
+        <textarea id="my-css" rows="4" placeholder="body { background: url('...'); }">/* Make the visitor header neon green */
+#render-profile-header { 
+    border-color: #00ff00; 
+    box-shadow: 0 0 20px #00ff00; 
+}</textarea>
+
+        <div class="helper-box">
+            <h4>[ ? // NEED A CUSTOM LAYOUT? ]</h4>
+            <p>Copy the prompt below, paste it into an AI like Gemini, and tell it what aesthetic you want. Paste the CSS it gives you into the box above.</p>
+            <button id="btn-copy-prompt" class="btn-small" onclick="copyPrompt()">[ COPY_PROMPT_TO_CLIPBOARD ]</button>
+        </div>
+        
+        <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
+        <p id="my-id-display" style="display:none; font-size:0.8rem; text-shadow: none; margin-top:15px;">Your Unique Access Hash: <span class="id-display" id="my-id"></span></p>
+    </div>
+
+    <div class="panel" id="visitor-connect-panel">
+        <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
+        <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
+        <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
+    </div>
+
+    <div id="visitor-view">
+        <div id="audio-container"></div>
+        <div id="render-profile-header">
+            <h2 id="render-alias" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
+            <p id="datarender-bio"></p>
+        </div>
+        <div class="panel" id="datastream-container">
+            <h3>[ 03 // THE_WALL ]</h3>
+            <div id="datastream-output"></div>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="wall-input-buffer" placeholder="Type packet data...">
+                <button onclick="sendWallPacket()">TRANSMIT</button>
+            </div>
+        </div>
+        <button onclick="window.location.reload()" style="margin-top:10px; border-color: #555; color: #999;">>> TERMINATE_CONNECTION <<</button>
+    </div>
+
+    <script>
+        // === ZONE: JS_GLOBAL_STATE ===
+        let peer = null;
+        let activeConn = null; 
+        let wallData = [];     
+        let currentRole = null; 
+
+        const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
+        const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
+        const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
+        const statusDisplay = document.getElementById('connection-status');
+
+        // NEW: Google STUN Servers to bypass home router firewalls
+        const peerConfig = {
+            config: {
+                'iceServers': [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' }
+                ]
+            }
+        };
+
+        // === ZONE: JS_BOOT ===
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const targetNode = urlParams.get('node');
+            
+            if (targetNode) {
+                document.getElementById('friend-id').value = targetNode;
+                visitFriend();
+            }
+        };
+
+        // === ZONE: JS_AI_PROMPT_LOGIC ===
+        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node. I need you to act as my Webmaster and write a custom CSS block to completely change the aesthetic of my visitor page. 
+
+Here are the strict technical constraints:
+1. Only output raw CSS. Do not include HTML or <style> tags.
+2. The main wrapper for the page is #visitor-view. 
+3. The top banner is #render-profile-header. Inside it is a bio <p id="datarender-bio"> and a username <h2 id="render-alias">.
+4. The comment wall is inside #datastream-container. 
+5. The actual wall posts are divs with the class .wall-post.
+6. Use highly stylized UI elements, custom Google Fonts (via @import), glowing effects, or background images via direct URLs if they fit the theme. 
+
+I want you to completely overwrite the default cyberpunk look. 
+
+Here is the exact aesthetic I want you to build: 
+[TYPE YOUR VIBE HERE]`;
+
+        function copyPrompt() {
+            navigator.clipboard.writeText(aiPromptTemplate).then(() => {
+                const btn = document.getElementById('btn-copy-prompt');
+                btn.innerText = ">> COPIED! <<";
+                btn.style.color = "#000";
+                btn.style.backgroundColor = "var(--main-cyan)";
+                setTimeout(() => {
+                    btn.innerText = "[ COPY_PROMPT_TO_CLIPBOARD ]";
+                    btn.style.color = "var(--main-cyan)";
+                    btn.style.backgroundColor = "transparent";
+                }, 2000);
+            });
+        }
+
+        // === ZONE: JS_HOST_LOGIC ===
+        function startHosting() {
+            currentRole = 'HOST';
+            document.getElementById('btn-go-online').disabled = true;
+            document.getElementById('btn-go-online').innerText = "INITIALIZING...";
+            
+            // Pass the STUN config here
+            peer = new Peer(peerConfig); 
+
+            peer.on('open', (id) => {
+                statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]";
+                statusDisplay.style.color = "var(--main-cyan)";
+                document.getElementById('my-id').innerText = id;
+                document.getElementById('my-id-display').style.display = 'block';
+
+                const currentUrl = window.location.href.split('?')[0]; 
+                const magicLink = `${currentUrl}?node=${id}`;
+                
+                const linkDiv = document.createElement('div');
+                linkDiv.style.marginTop = "15px";
+                linkDiv.innerHTML = `
+                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
+                    <input type="text" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer;" title="Click to select">
+                `;
+                document.getElementById('host-setup-panel').appendChild(linkDiv);
+            });
+
+            peer.on('connection', (conn) => {
+                activeConn = conn; 
+                activeConn.on('data', handleIncomingP2PPacket);
+
+                conn.on('open', () => {
+                    const profilePackage = {
+                        type: MSG_TYPE_PROFILE,
+                        alias: document.getElementById('my-alias').value,
+                        bio: document.getElementById('my-bio').value,
+                        css: document.getElementById('my-css').value,
+                        audio: document.getElementById('my-audio').value,
+                        currentWall: wallData
+                    };
+                    conn.send(profilePackage);
+                });
+            });
+        }
+
+        // === ZONE: JS_VISITOR_LOGIC ===
+        function visitFriend() {
+            currentRole = 'VISITOR';
+            
+            // Pass the STUN config here
+            if (!peer) peer = new Peer(peerConfig); 
+            
+            const friendId = document.getElementById('friend-id').value;
+            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
+            
+            activeConn = peer.connect(friendId);
+            
+            document.getElementById('host-setup-panel').style.display = 'none';
+            document.getElementById('visitor-connect-panel').style.display = 'none';
+            document.getElementById('visitor-view').style.display = 'block';
+
+            let connectionTimeout = setTimeout(() => {
+                if(statusDisplay.innerText.includes("ESTABLISHING")) {
+                    statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
+                    statusDisplay.style.color = "red";
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The host is currently offline or unreachable.</p>";
+                    document.getElementById('datastream-container').style.display = 'none';
+                }
+            }, 5000);
+
+            activeConn.on('open', () => {
+                clearTimeout(connectionTimeout); 
+                statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]";
+                statusDisplay.style.color = "var(--main-cyan)";
+            });
+
+            activeConn.on('data', handleIncomingP2PPacket);
+            
+            activeConn.on('close', () => {
+                statusDisplay.innerText = "[ STATUS: LINK_LOST // HOST_OFFLINE ]";
+                statusDisplay.style.color = "#555";
+                document.getElementById('render-profile-header').innerHTML = "<h2>[ NODE_OFFLINE ]</h2><p>Connection terminated by host.</p>";
+                document.getElementById('custom-injected-css').innerText = ""; 
+                document.getElementById('datastream-container').style.display = 'none';
+                document.getElementById('audio-container').innerHTML = ""; 
+            });
+        }
+
+        // === ZONE: JS_PACKET_HANDLER ===
+        function handleIncomingP2PPacket(packet) {
+            switch(packet.type) {
+                case MSG_TYPE_PROFILE:
+                    document.getElementById('render-alias').innerText = packet.alias;
+                    document.getElementById('datarender-bio').innerText = packet.bio;
+                    
+                    if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
+                    if(packet.audio) {
+                        document.getElementById('audio-container').innerHTML = `<audio src="${packet.audio}" autoplay loop volume="0.5" style="display:none;"></audio>`;
+                    }
+
+                    wallData = packet.currentWall;
+                    renderWall();
+                    break;
+
+                case MSG_TYPE_WALL_POST:
+                    if (currentRole === 'HOST') {
+                        wallData.push({
+                            sender: activeConn.peer.substring(0,6),
+                            text: packet.text,
+                            timestamp: new Date().toLocaleTimeString()
+                        });
+                        activeConn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                    }
+                    break;
+
+                case MSG_TYPE_WALL_UPDATE:
+                    if (currentRole === 'VISITOR') {
+                        wallData = packet.updatedWall;
+                        renderWall();
+                    }
+                    break;
+            }
+        }
+
+        // === ZONE: JS_WALL_UI ===
+        function sendWallPacket() {
+            const inputField = document.getElementById('wall-input-buffer');
+            if (!inputField.value || !activeConn) return;
+            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value });
+            inputField.value = ''; 
+        }
+
+        function renderWall() {
+            const output = document.getElementById('datastream-output');
+            output.innerHTML = ''; 
+            wallData.forEach(post => {
+                const postEl = document.createElement('div');
+                postEl.className = 'wall-post';
+                postEl.innerHTML = `<span style="color:#555; text-shadow:none;">[${post.timestamp}]</span> <span class="wall-post-sender">${post.sender}:</span> <span style="color:#ccc; text-shadow:none;">${post.text}</span>`;
+                output.appendChild(postEl);
+            });
+        }
+        
+        document.getElementById('wall-input-buffer').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendWallPacket();
+        });
+    </script>
+</body>
+</html>
