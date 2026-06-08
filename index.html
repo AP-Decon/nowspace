@@ -358,14 +358,14 @@
             document.getElementById('visitor-connect-panel').style.display = 'none';
             document.getElementById('visitor-view').style.display = 'block';
 
-            let connectionTimeout = setTimeout(() => {
+           let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
                     statusDisplay.style.color = "red";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The host is currently offline or unreachable.</p>";
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK_TIMEOUT ]</h2><p>The host is currently offline, or the P2P network took too long to respond.</p>";
                     document.getElementById('datastream-container').style.display = 'none';
                 }
-            }, 5000);
+            }, 15000); // Increased from 5 to 15 seconds
 
             activeConn.on('open', () => {
                 clearTimeout(connectionTimeout); 
