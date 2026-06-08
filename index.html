@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.7</title>
+    <title>NOWSPACE :: TRM_v0.8</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -76,7 +76,7 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.7</h1>
+        <h1>// NOWSPACE :: TRM_v0.8</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -147,7 +147,6 @@
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const statusDisplay = document.getElementById('connection-status');
 
-        // Google STUN Servers to bypass home router firewalls
         const peerConfig = {
             config: {
                 'iceServers': [
@@ -158,8 +157,33 @@
             }
         };
 
+        // NEW: Function to save host settings to browser LocalStorage
+        function saveLocalData() {
+            if (currentRole !== 'HOST') return;
+            const data = {
+                alias: document.getElementById('my-alias').value,
+                customId: document.getElementById('my-custom-id').value,
+                bio: document.getElementById('my-bio').value,
+                audio: document.getElementById('my-audio').value,
+                css: document.getElementById('my-css').value,
+                wall: wallData
+            };
+            localStorage.setItem('nowspace_save', JSON.stringify(data));
+        }
+
         // === ZONE: JS_BOOT ===
         window.onload = () => {
+            // NEW: Auto-load persistent data if it exists
+            const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
+            if (savedData) {
+                if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
+                if (savedData.customId) document.getElementById('my-custom-id').value = savedData.customId;
+                if (savedData.bio) document.getElementById('my-bio').value = savedData.bio;
+                if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
+                if (savedData.css) document.getElementById('my-css').value = savedData.css;
+                if (savedData.wall) wallData = savedData.wall;
+            }
+
             const urlParams = new URLSearchParams(window.location.search);
             const targetNode = urlParams.get('node');
             
@@ -199,16 +223,32 @@ Here is the exact aesthetic I want you to build:
             });
         }
 
+        // NEW: Function to copy Magic Link to clipboard
+        function copyMagicLink() {
+            const linkInput = document.getElementById('magic-link-input');
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const btn = document.getElementById('btn-copy-magic');
+                btn.innerText = "COPIED!";
+                btn.style.backgroundColor = "#0f0";
+                btn.style.color = "#000";
+                setTimeout(() => {
+                    btn.innerText = "COPY";
+                    btn.style.backgroundColor = "transparent";
+                    btn.style.color = "#0f0";
+                }, 2000);
+            });
+        }
+
         // === ZONE: JS_HOST_LOGIC ===
         function startHosting() {
             currentRole = 'HOST';
             document.getElementById('btn-go-online').disabled = true;
             document.getElementById('btn-go-online').innerText = "INITIALIZING...";
             
-            // Check if the user typed a custom ID and format it for a URL
+            saveLocalData(); // Save inputs as soon as they go online
+
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             
-            // Apply custom ID if present, otherwise use random
             if (customIdInput) {
                 peer = new Peer(customIdInput, peerConfig);
             } else {
@@ -224,16 +264,19 @@ Here is the exact aesthetic I want you to build:
                 const currentUrl = window.location.href.split('?')[0]; 
                 const magicLink = `${currentUrl}?node=${id}`;
                 
+                // NEW: Updated Share Link UI with dedicated Copy button
                 const linkDiv = document.createElement('div');
                 linkDiv.style.marginTop = "15px";
                 linkDiv.innerHTML = `
                     <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
-                    <input type="text" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer;" title="Click to select">
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="magic-link-input" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer; flex-grow:1; margin-bottom:0;" title="Click to select">
+                        <button id="btn-copy-magic" onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button>
+                    </div>
                 `;
                 document.getElementById('host-setup-panel').appendChild(linkDiv);
             });
 
-            // Prevent crashing if a custom ID is already actively online
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
                     alert("ERROR: That Access Hash is already currently online. Pick another one!");
@@ -264,7 +307,6 @@ Here is the exact aesthetic I want you to build:
         function visitFriend() {
             currentRole = 'VISITOR';
             
-            // Pass the STUN config here
             if (!peer) peer = new Peer(peerConfig); 
             
             const friendId = document.getElementById('friend-id').value;
@@ -326,6 +368,7 @@ Here is the exact aesthetic I want you to build:
                             text: packet.text,
                             timestamp: new Date().toLocaleTimeString()
                         });
+                        saveLocalData(); // Save the wall update to Host's LocalStorage
                         activeConn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
                     }
                     break;
