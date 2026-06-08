@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.91</title>
+    <title>NOWSPACE :: TRM_v0.92</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -78,7 +78,7 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.91</h1>
+        <h1>// NOWSPACE :: TRM_v0.92</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -95,7 +95,7 @@
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
         <label>Profile Audio (Direct MP3 URL):</label>
-        <input type="text" id="my-audio" placeholder="https://example.com/song.mp3" value="https://actions.google.com/sounds/v1/science_fiction/cybernetic_loop.ogg">
+        <input type="text" id="my-audio" placeholder="https://example.com/song.mp3" value="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3">
         
         <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="3" placeholder="body { background: url('...'); }">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
@@ -168,11 +168,16 @@
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const statusDisplay = document.getElementById('connection-status');
 
+        // UPGRADED: Expanded global STUN array to maximize router penetration
         const peerConfig = {
             config: {
                 'iceServers': [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' },
+                    { urls: 'stun:stun2.l.google.com:19302' },
+                    { urls: 'stun:stun3.l.google.com:19302' },
+                    { urls: 'stun:stun4.l.google.com:19302' },
+                    { urls: 'stun:global.stun.twilio.com:3478' }
                 ]
             }
         };
@@ -258,7 +263,7 @@
             });
         }
 
-        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node... (Use the standard prompt constraints we discussed)`;
+        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node...`;
         function copyPrompt() { navigator.clipboard.writeText(aiPromptTemplate); alert("Prompt copied! Paste it into your AI."); }
 
         // === ZONE: JS_SMOOTH_DISCONNECT ===
@@ -322,6 +327,7 @@
             });
 
             peer.on('error', (err) => {
+                console.error("Host Error Detected:", err.type);
                 if (err.type === 'unavailable-id') {
                     alert("ERROR: That Access Hash is already currently online. Pick another one!");
                     disconnectNode();
@@ -344,7 +350,7 @@
             });
         }
 
-       // === ZONE: JS_VISITOR_LOGIC ===
+        // === ZONE: JS_VISITOR_LOGIC ===
         function visitFriend() {
             currentRole = 'VISITOR';
             const friendId = document.getElementById('friend-id').value.trim();
@@ -355,11 +361,13 @@
             document.getElementById('visitor-view').style.display = 'block';
             statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
 
-            // Wait for our own engine to boot before dialing
             if (!peer) {
                 peer = new Peer(peerConfig);
                 peer.on('open', () => {
                     executeConnection(friendId);
+                });
+                peer.on('error', (err) => {
+                    console.error("Visitor Engine Error:", err.type);
                 });
             } else {
                 executeConnection(friendId);
@@ -368,16 +376,18 @@
 
         function executeConnection(friendId) {
             statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
-            activeConn = peer.connect(friendId);
+            activeConn = peer.connect(friendId, {
+                reliable: true
+            });
 
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
                     statusDisplay.style.color = "red";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The host is currently offline or unreachable.</p>";
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The P2P network handshake timed out. Check that the host is actively online.</p>";
                     document.getElementById('datastream-container').style.display = 'none';
                 }
-            }, 15000); // 15 Second Timeout
+            }, 15000); 
 
             activeConn.on('open', () => {
                 clearTimeout(connectionTimeout); 
@@ -395,6 +405,7 @@
                 document.getElementById('audio-container').innerHTML = ""; 
             });
         }
+
         // === ZONE: JS_PACKET_HANDLER ===
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
@@ -403,7 +414,7 @@
                     document.getElementById('datarender-bio').innerText = packet.bio;
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) {
-                        document.getElementById('audio-container').innerHTML = `<audio src="${packet.audio}" autoplay loop volume="0.5" style="display:none;"></audio>`;
+                        document.getElementById('audio-container').innerHTML = `<audio src="${packet.audio}" autoplay loop volume="0.4" style="display:none;"></audio>`;
                     }
                     wallData = packet.currentWall;
                     renderWall();
