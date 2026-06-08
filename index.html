@@ -344,28 +344,40 @@
             });
         }
 
-        // === ZONE: JS_VISITOR_LOGIC ===
+       // === ZONE: JS_VISITOR_LOGIC ===
         function visitFriend() {
             currentRole = 'VISITOR';
-            if (!peer) peer = new Peer(peerConfig); 
-            
-            const friendId = document.getElementById('friend-id').value;
-            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
-            
-            activeConn = peer.connect(friendId);
-            
+            const friendId = document.getElementById('friend-id').value.trim();
+            if (!friendId) return;
+
             document.getElementById('host-setup-panel').style.display = 'none';
             document.getElementById('visitor-connect-panel').style.display = 'none';
             document.getElementById('visitor-view').style.display = 'block';
+            statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
 
-           let connectionTimeout = setTimeout(() => {
+            // Wait for our own engine to boot before dialing
+            if (!peer) {
+                peer = new Peer(peerConfig);
+                peer.on('open', () => {
+                    executeConnection(friendId);
+                });
+            } else {
+                executeConnection(friendId);
+            }
+        }
+
+        function executeConnection(friendId) {
+            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
+            activeConn = peer.connect(friendId);
+
+            let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
                     statusDisplay.style.color = "red";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK_TIMEOUT ]</h2><p>The host is currently offline, or the P2P network took too long to respond.</p>";
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The host is currently offline or unreachable.</p>";
                     document.getElementById('datastream-container').style.display = 'none';
                 }
-            }, 15000); // Increased from 5 to 15 seconds
+            }, 15000); // 15 Second Timeout
 
             activeConn.on('open', () => {
                 clearTimeout(connectionTimeout); 
@@ -383,7 +395,6 @@
                 document.getElementById('audio-container').innerHTML = ""; 
             });
         }
-
         // === ZONE: JS_PACKET_HANDLER ===
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
