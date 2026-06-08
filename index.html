@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.9</title>
+    <title>NOWSPACE :: TRM_v0.91</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -78,7 +78,7 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.9</h1>
+        <h1>// NOWSPACE :: TRM_v0.91</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -126,8 +126,11 @@
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         
         <div style="margin-bottom: 20px; border-left: 2px solid var(--dark-magenta); padding-left: 10px;">
-            <h4 style="margin: 0 0 5px 0; color: var(--main-cyan); text-shadow:none;">[ THE_TOP_8 // SAVED_NODES ]</h4>
-            <div id="top8-list" style="margin-bottom: 10px;"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 style="margin: 0 0 5px 0; color: var(--main-cyan); text-shadow:none;">[ THE_TOP_8 // SAVED_NODES ]</h4>
+                <button class="btn-small" onclick="clearTop8()" style="border-color:#555; color:#999;">[ CLEAR ]</button>
+            </div>
+            <div id="top8-list" style="margin-bottom: 10px; margin-top:5px;"></div>
             <button class="btn-small" onclick="addToTop8()">+ ADD SAVED HASH</button>
         </div>
 
@@ -196,6 +199,14 @@
             }
         }
 
+        function clearTop8() {
+            if(confirm("Are you sure you want to clear your saved Top 8 network ring?")) {
+                localStorage.removeItem('nowspace_top8');
+                top8 = [];
+                renderTop8();
+            }
+        }
+
         function saveLocalData() {
             if (currentRole !== 'HOST') return;
             const data = {
@@ -220,7 +231,7 @@
                 if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
-                renderWall(); // Render restored wall for the Host view
+                renderWall(); 
             }
 
             const urlParams = new URLSearchParams(window.location.search);
@@ -231,33 +242,48 @@
             }
         };
 
+        // === ZONE: JS_UTILITIES ===
+        function copyMagicLink() {
+            const linkInput = document.getElementById('magic-link-input');
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                const btn = document.getElementById('btn-copy-magic');
+                btn.innerText = "COPIED!";
+                btn.style.backgroundColor = "#0f0";
+                btn.style.color = "#000";
+                setTimeout(() => {
+                    btn.innerText = "COPY";
+                    btn.style.backgroundColor = "transparent";
+                    btn.style.color = "#0f0";
+                }, 2000);
+            });
+        }
+
+        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node... (Use the standard prompt constraints we discussed)`;
+        function copyPrompt() { navigator.clipboard.writeText(aiPromptTemplate); alert("Prompt copied! Paste it into your AI."); }
+
         // === ZONE: JS_SMOOTH_DISCONNECT ===
         function disconnectNode() {
-            if (peer) peer.destroy(); // Completely kill the P2P engine
+            if (peer) peer.destroy(); 
             peer = null;
             activeConn = null;
             currentRole = null;
 
-            // Reset UI Visibility
             document.getElementById('visitor-view').style.display = 'none';
             document.getElementById('host-live-wall-panel').style.display = 'none';
             document.getElementById('host-setup-panel').style.display = 'block';
             document.getElementById('visitor-connect-panel').style.display = 'block';
             
-            // Clean up Host UI
             document.getElementById('btn-go-online').disabled = false;
             document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
             document.getElementById('my-id-display').style.display = 'none';
             document.getElementById('magic-link-container').innerHTML = '';
 
-            // Clean up Visitor UI
             document.getElementById('audio-container').innerHTML = ""; 
             document.getElementById('custom-injected-css').innerText = ""; 
             
             statusDisplay.innerText = "[ STATUS: OFFLINE ]";
             statusDisplay.style.color = "#555";
             
-            // Strip the URL parameter so refreshing doesn't auto-connect again
             window.history.pushState({}, document.title, window.location.pathname);
         }
 
@@ -278,7 +304,6 @@
                 document.getElementById('my-id').innerText = id;
                 document.getElementById('my-id-display').style.display = 'block';
 
-                // Unhide the live wall for the host
                 document.getElementById('host-live-wall-panel').style.display = 'block';
                 renderWall();
 
@@ -290,6 +315,7 @@
                         <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
                         <div style="display:flex; gap:10px;">
                             <input type="text" id="magic-link-input" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer; flex-grow:1; margin-bottom:0;" title="Click to select">
+                            <button id="btn-copy-magic" onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0; box-shadow:none;">COPY</button>
                         </div>
                     </div>
                 `;
@@ -382,7 +408,6 @@
                         });
                         saveLocalData(); 
                         renderWall(); 
-                        // Broadcast update to ALL connected visitors
                         for (let peerId in peer.connections) {
                             peer.connections[peerId].forEach(conn => {
                                 conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
@@ -407,7 +432,7 @@
             activeConn.send({ 
                 type: MSG_TYPE_WALL_POST, 
                 text: inputField.value,
-                sender: peer.id.substring(0,6) // Send our ID so host knows who we are
+                sender: peer.id.substring(0,6) 
             });
             inputField.value = ''; 
         }
@@ -422,7 +447,6 @@
             });
             saveLocalData();
             renderWall();
-            // Broadcast to all visitors
             for (let peerId in peer.connections) {
                 peer.connections[peerId].forEach(conn => {
                     conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
@@ -443,9 +467,6 @@
 
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
         document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
-
-        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node... (Use the standard prompt constraints we discussed)`;
-        function copyPrompt() { navigator.clipboard.writeText(aiPromptTemplate); alert("Prompt copied! Paste it into your AI."); }
     </script>
 </body>
 </html>
