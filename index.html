@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.8</title>
+    <title>NOWSPACE :: TRM_v0.9</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -52,23 +52,25 @@
         
         .id-display { color: var(--bright-magenta); font-weight: bold; background: #000; padding: 2px 5px; text-shadow: var(--magenta-glow);}
 
-        /* === ZONE: CSS_HELPER_BOX === */
+        /* === ZONE: CSS_COMPONENTS === */
         .helper-box {
             border: 1px dashed var(--main-cyan); background: rgba(0,0,0,0.8);
             padding: 10px; margin-bottom: 15px; font-size: 0.85rem;
         }
         .helper-box h4 { margin: 0 0 5px 0; color: #fff; text-shadow: none; }
         .helper-box p { color: #aaa; text-shadow: none; margin-top: 0; }
-        .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); }
-        .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); text-shadow: none; }
-
-        /* === ZONE: CSS_VISITOR_VIEW === */
-        #visitor-view { display: none; margin-top: 20px;}
-        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
         
-        #datastream-output { height: 200px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; }
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
+        .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
+
+        /* THE WALL */
+        .datastream-output { height: 200px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.3);}
         .wall-post { margin-bottom: 8px; border-bottom: 1px solid #111; padding-bottom: 4px;}
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
+        
+        #visitor-view { display: none; margin-top: 20px;}
+        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
+        #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
     </style>
 
     <style id="custom-injected-css"></style>
@@ -76,7 +78,7 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.8</h1>
+        <h1>// NOWSPACE :: TRM_v0.9</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -92,29 +94,44 @@
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
-        <label>Profile Audio (Direct MP3/WAV URL):</label>
+        <label>Profile Audio (Direct MP3 URL):</label>
         <input type="text" id="my-audio" placeholder="https://example.com/song.mp3" value="https://actions.google.com/sounds/v1/science_fiction/cybernetic_loop.ogg">
         
         <label>Custom CSS Injection:</label>
-        <textarea id="my-css" rows="4" placeholder="body { background: url('...'); }">/* Make the visitor header neon green */
-#render-profile-header { 
-    border-color: #00ff00; 
-    box-shadow: 0 0 20px #00ff00; 
-}</textarea>
+        <textarea id="my-css" rows="3" placeholder="body { background: url('...'); }">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
 
         <div class="helper-box">
             <h4>[ ? // NEED A CUSTOM LAYOUT? ]</h4>
             <p>Copy the prompt below, paste it into an AI like Gemini, and tell it what aesthetic you want. Paste the CSS it gives you into the box above.</p>
-            <button id="btn-copy-prompt" class="btn-small" onclick="copyPrompt()">[ COPY_PROMPT_TO_CLIPBOARD ]</button>
+            <button id="btn-copy-prompt" class="btn-small" onclick="copyPrompt()">[ COPY AI PROMPT ]</button>
         </div>
         
         <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
         <p id="my-id-display" style="display:none; font-size:0.8rem; text-shadow: none; margin-top:15px;">Your Unique Access Hash: <span class="id-display" id="my-id"></span></p>
+        <div id="magic-link-container"></div>
+    </div>
+
+    <div class="panel" id="host-live-wall-panel">
+        <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
+        <p style="font-size:0.8rem; color:#aaa; text-shadow:none;">Monitor incoming connections and reply to your wall.</p>
+        <div id="host-datastream-output" class="datastream-output"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="host-wall-input" placeholder="Broadcast a message to visitors...">
+            <button onclick="hostSendWallPacket()">TRANSMIT</button>
+        </div>
+        <button onclick="disconnectNode()" style="margin-top:15px; border-color:#555; color:#999;">>> TAKE_NODE_OFFLINE <<</button>
     </div>
 
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
-        <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
+        
+        <div style="margin-bottom: 20px; border-left: 2px solid var(--dark-magenta); padding-left: 10px;">
+            <h4 style="margin: 0 0 5px 0; color: var(--main-cyan); text-shadow:none;">[ THE_TOP_8 // SAVED_NODES ]</h4>
+            <div id="top8-list" style="margin-bottom: 10px;"></div>
+            <button class="btn-small" onclick="addToTop8()">+ ADD SAVED HASH</button>
+        </div>
+
+        <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
@@ -124,15 +141,15 @@
             <h2 id="render-alias" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
             <p id="datarender-bio"></p>
         </div>
-        <div class="panel" id="datastream-container">
+        <div class="panel" id="datastream-container" style="margin-top:20px;">
             <h3>[ 03 // THE_WALL ]</h3>
-            <div id="datastream-output"></div>
+            <div id="datastream-output" class="datastream-output"></div>
             <div style="display: flex; gap: 10px;">
                 <input type="text" id="wall-input-buffer" placeholder="Type packet data...">
-                <button onclick="sendWallPacket()">TRANSMIT</button>
+                <button onclick="visitorSendWallPacket()">TRANSMIT</button>
             </div>
         </div>
-        <button onclick="window.location.reload()" style="margin-top:10px; border-color: #555; color: #999;">>> TERMINATE_CONNECTION <<</button>
+        <button onclick="disconnectNode()" style="margin-top:10px; border-color: #555; color: #999;">>> DISCONNECT_AND_RETURN <<</button>
     </div>
 
     <script>
@@ -141,6 +158,7 @@
         let activeConn = null; 
         let wallData = [];     
         let currentRole = null; 
+        let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -151,13 +169,33 @@
             config: {
                 'iceServers': [
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' }
+                    { urls: 'stun:stun1.l.google.com:19302' }
                 ]
             }
         };
 
-        // NEW: Function to save host settings to browser LocalStorage
+        // === ZONE: JS_TOP_8_LOGIC ===
+        function renderTop8() {
+            const container = document.getElementById('top8-list');
+            container.innerHTML = '';
+            if (top8.length === 0) {
+                container.innerHTML = '<span style="font-size:0.8rem; color:#555;">No nodes saved in your network ring yet.</span>';
+                return;
+            }
+            top8.forEach(id => {
+                container.innerHTML += `<button onclick="document.getElementById('friend-id').value='${id}'; visitFriend();" class="btn-small" style="margin-right:5px; margin-bottom:5px;">[ ${id.toUpperCase()} ]</button>`;
+            });
+        }
+
+        function addToTop8() {
+            const id = prompt("Enter the exact Access Hash of your friend (e.g., Alan):");
+            if (id && !top8.includes(id)) {
+                top8.push(id.trim().replace(/\s+/g, '-'));
+                localStorage.setItem('nowspace_top8', JSON.stringify(top8));
+                renderTop8();
+            }
+        }
+
         function saveLocalData() {
             if (currentRole !== 'HOST') return;
             const data = {
@@ -173,7 +211,7 @@
 
         // === ZONE: JS_BOOT ===
         window.onload = () => {
-            // NEW: Auto-load persistent data if it exists
+            renderTop8();
             const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
@@ -182,61 +220,45 @@
                 if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
+                renderWall(); // Render restored wall for the Host view
             }
 
             const urlParams = new URLSearchParams(window.location.search);
             const targetNode = urlParams.get('node');
-            
             if (targetNode) {
                 document.getElementById('friend-id').value = targetNode;
                 visitFriend();
             }
         };
 
-        // === ZONE: JS_AI_PROMPT_LOGIC ===
-        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node. I need you to act as my Webmaster and write a custom CSS block to completely change the aesthetic of my visitor page. 
+        // === ZONE: JS_SMOOTH_DISCONNECT ===
+        function disconnectNode() {
+            if (peer) peer.destroy(); // Completely kill the P2P engine
+            peer = null;
+            activeConn = null;
+            currentRole = null;
 
-Here are the strict technical constraints:
-1. Only output raw CSS. Do not include HTML or <style> tags.
-2. The main wrapper for the page is #visitor-view. 
-3. The top banner is #render-profile-header. Inside it is a bio <p id="datarender-bio"> and a username <h2 id="render-alias">.
-4. The comment wall is inside #datastream-container. 
-5. The actual wall posts are divs with the class .wall-post.
-6. Use highly stylized UI elements, custom Google Fonts (via @import), glowing effects, or background images via direct URLs if they fit the theme. 
+            // Reset UI Visibility
+            document.getElementById('visitor-view').style.display = 'none';
+            document.getElementById('host-live-wall-panel').style.display = 'none';
+            document.getElementById('host-setup-panel').style.display = 'block';
+            document.getElementById('visitor-connect-panel').style.display = 'block';
+            
+            // Clean up Host UI
+            document.getElementById('btn-go-online').disabled = false;
+            document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
+            document.getElementById('my-id-display').style.display = 'none';
+            document.getElementById('magic-link-container').innerHTML = '';
 
-I want you to completely overwrite the default cyberpunk look. 
-
-Here is the exact aesthetic I want you to build: 
-[TYPE YOUR VIBE HERE]`;
-
-        function copyPrompt() {
-            navigator.clipboard.writeText(aiPromptTemplate).then(() => {
-                const btn = document.getElementById('btn-copy-prompt');
-                btn.innerText = ">> COPIED! <<";
-                btn.style.color = "#000";
-                btn.style.backgroundColor = "var(--main-cyan)";
-                setTimeout(() => {
-                    btn.innerText = "[ COPY_PROMPT_TO_CLIPBOARD ]";
-                    btn.style.color = "var(--main-cyan)";
-                    btn.style.backgroundColor = "transparent";
-                }, 2000);
-            });
-        }
-
-        // NEW: Function to copy Magic Link to clipboard
-        function copyMagicLink() {
-            const linkInput = document.getElementById('magic-link-input');
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                const btn = document.getElementById('btn-copy-magic');
-                btn.innerText = "COPIED!";
-                btn.style.backgroundColor = "#0f0";
-                btn.style.color = "#000";
-                setTimeout(() => {
-                    btn.innerText = "COPY";
-                    btn.style.backgroundColor = "transparent";
-                    btn.style.color = "#0f0";
-                }, 2000);
-            });
+            // Clean up Visitor UI
+            document.getElementById('audio-container').innerHTML = ""; 
+            document.getElementById('custom-injected-css').innerText = ""; 
+            
+            statusDisplay.innerText = "[ STATUS: OFFLINE ]";
+            statusDisplay.style.color = "#555";
+            
+            // Strip the URL parameter so refreshing doesn't auto-connect again
+            window.history.pushState({}, document.title, window.location.pathname);
         }
 
         // === ZONE: JS_HOST_LOGIC ===
@@ -245,15 +267,10 @@ Here is the exact aesthetic I want you to build:
             document.getElementById('btn-go-online').disabled = true;
             document.getElementById('btn-go-online').innerText = "INITIALIZING...";
             
-            saveLocalData(); // Save inputs as soon as they go online
-
+            saveLocalData(); 
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             
-            if (customIdInput) {
-                peer = new Peer(customIdInput, peerConfig);
-            } else {
-                peer = new Peer(peerConfig); 
-            }
+            peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
             peer.on('open', (id) => {
                 statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]";
@@ -261,34 +278,32 @@ Here is the exact aesthetic I want you to build:
                 document.getElementById('my-id').innerText = id;
                 document.getElementById('my-id-display').style.display = 'block';
 
+                // Unhide the live wall for the host
+                document.getElementById('host-live-wall-panel').style.display = 'block';
+                renderWall();
+
                 const currentUrl = window.location.href.split('?')[0]; 
                 const magicLink = `${currentUrl}?node=${id}`;
                 
-                // NEW: Updated Share Link UI with dedicated Copy button
-                const linkDiv = document.createElement('div');
-                linkDiv.style.marginTop = "15px";
-                linkDiv.innerHTML = `
-                    <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
-                    <div style="display:flex; gap:10px;">
-                        <input type="text" id="magic-link-input" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer; flex-grow:1; margin-bottom:0;" title="Click to select">
-                        <button id="btn-copy-magic" onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button>
+                document.getElementById('magic-link-container').innerHTML = `
+                    <div style="margin-top:15px;">
+                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="magic-link-input" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer; flex-grow:1; margin-bottom:0;" title="Click to select">
+                        </div>
                     </div>
                 `;
-                document.getElementById('host-setup-panel').appendChild(linkDiv);
             });
 
             peer.on('error', (err) => {
                 if (err.type === 'unavailable-id') {
                     alert("ERROR: That Access Hash is already currently online. Pick another one!");
-                    document.getElementById('btn-go-online').disabled = false;
-                    document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
+                    disconnectNode();
                 }
             });
 
             peer.on('connection', (conn) => {
-                activeConn = conn; 
-                activeConn.on('data', handleIncomingP2PPacket);
-
+                conn.on('data', handleIncomingP2PPacket);
                 conn.on('open', () => {
                     const profilePackage = {
                         type: MSG_TYPE_PROFILE,
@@ -306,7 +321,6 @@ Here is the exact aesthetic I want you to build:
         // === ZONE: JS_VISITOR_LOGIC ===
         function visitFriend() {
             currentRole = 'VISITOR';
-            
             if (!peer) peer = new Peer(peerConfig); 
             
             const friendId = document.getElementById('friend-id').value;
@@ -334,7 +348,6 @@ Here is the exact aesthetic I want you to build:
             });
 
             activeConn.on('data', handleIncomingP2PPacket);
-            
             activeConn.on('close', () => {
                 statusDisplay.innerText = "[ STATUS: LINK_LOST // HOST_OFFLINE ]";
                 statusDisplay.style.color = "#555";
@@ -351,25 +364,30 @@ Here is the exact aesthetic I want you to build:
                 case MSG_TYPE_PROFILE:
                     document.getElementById('render-alias').innerText = packet.alias;
                     document.getElementById('datarender-bio').innerText = packet.bio;
-                    
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) {
                         document.getElementById('audio-container').innerHTML = `<audio src="${packet.audio}" autoplay loop volume="0.5" style="display:none;"></audio>`;
                     }
-
                     wallData = packet.currentWall;
                     renderWall();
+                    document.getElementById('datastream-container').style.display = 'block';
                     break;
 
                 case MSG_TYPE_WALL_POST:
                     if (currentRole === 'HOST') {
                         wallData.push({
-                            sender: activeConn.peer.substring(0,6),
+                            sender: packet.sender,
                             text: packet.text,
                             timestamp: new Date().toLocaleTimeString()
                         });
-                        saveLocalData(); // Save the wall update to Host's LocalStorage
-                        activeConn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                        saveLocalData(); 
+                        renderWall(); 
+                        // Broadcast update to ALL connected visitors
+                        for (let peerId in peer.connections) {
+                            peer.connections[peerId].forEach(conn => {
+                                conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                            });
+                        }
                     }
                     break;
 
@@ -383,27 +401,51 @@ Here is the exact aesthetic I want you to build:
         }
 
         // === ZONE: JS_WALL_UI ===
-        function sendWallPacket() {
+        function visitorSendWallPacket() {
             const inputField = document.getElementById('wall-input-buffer');
             if (!inputField.value || !activeConn) return;
-            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value });
+            activeConn.send({ 
+                type: MSG_TYPE_WALL_POST, 
+                text: inputField.value,
+                sender: peer.id.substring(0,6) // Send our ID so host knows who we are
+            });
             inputField.value = ''; 
         }
 
-        function renderWall() {
-            const output = document.getElementById('datastream-output');
-            output.innerHTML = ''; 
-            wallData.forEach(post => {
-                const postEl = document.createElement('div');
-                postEl.className = 'wall-post';
-                postEl.innerHTML = `<span style="color:#555; text-shadow:none;">[${post.timestamp}]</span> <span class="wall-post-sender">${post.sender}:</span> <span style="color:#ccc; text-shadow:none;">${post.text}</span>`;
-                output.appendChild(postEl);
+        function hostSendWallPacket() {
+            const inputField = document.getElementById('host-wall-input');
+            if (!inputField.value) return;
+            wallData.push({
+                sender: "[HOST] " + document.getElementById('my-alias').value.substring(0,8),
+                text: inputField.value,
+                timestamp: new Date().toLocaleTimeString()
             });
+            saveLocalData();
+            renderWall();
+            // Broadcast to all visitors
+            for (let peerId in peer.connections) {
+                peer.connections[peerId].forEach(conn => {
+                    conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                });
+            }
+            inputField.value = '';
         }
-        
-        document.getElementById('wall-input-buffer').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendWallPacket();
-        });
+
+        function renderWall() {
+            const html = wallData.map(post => `<div class="wall-post"><span style="color:#555; text-shadow:none;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.sender.includes('[HOST]') ? 'var(--bright-magenta)' : 'var(--main-cyan)'}">${post.sender}:</span> <span style="color:#ccc; text-shadow:none;">${post.text}</span></div>`).join('');
+            
+            const visitorOutput = document.getElementById('datastream-output');
+            const hostOutput = document.getElementById('host-datastream-output');
+            
+            if(visitorOutput) visitorOutput.innerHTML = html;
+            if(hostOutput) hostOutput.innerHTML = html;
+        }
+
+        document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
+        document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+
+        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node... (Use the standard prompt constraints we discussed)`;
+        function copyPrompt() { navigator.clipboard.writeText(aiPromptTemplate); alert("Prompt copied! Paste it into your AI."); }
     </script>
 </body>
 </html>
