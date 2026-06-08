@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.6</title>
+    <title>NOWSPACE :: TRM_v0.7</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -76,15 +76,18 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.6</h1>
+        <h1>// NOWSPACE :: TRM_v0.7</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         
-        <label>System Alias:</label>
+        <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
+        
+        <label>Custom Access Hash (For your URL):</label>
+        <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name (e.g., Alan)">
         
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
@@ -144,7 +147,7 @@
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const statusDisplay = document.getElementById('connection-status');
 
-        // NEW: Google STUN Servers to bypass home router firewalls
+        // Google STUN Servers to bypass home router firewalls
         const peerConfig = {
             config: {
                 'iceServers': [
@@ -202,8 +205,15 @@ Here is the exact aesthetic I want you to build:
             document.getElementById('btn-go-online').disabled = true;
             document.getElementById('btn-go-online').innerText = "INITIALIZING...";
             
-            // Pass the STUN config here
-            peer = new Peer(peerConfig); 
+            // Check if the user typed a custom ID and format it for a URL
+            const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
+            
+            // Apply custom ID if present, otherwise use random
+            if (customIdInput) {
+                peer = new Peer(customIdInput, peerConfig);
+            } else {
+                peer = new Peer(peerConfig); 
+            }
 
             peer.on('open', (id) => {
                 statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]";
@@ -221,6 +231,15 @@ Here is the exact aesthetic I want you to build:
                     <input type="text" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer;" title="Click to select">
                 `;
                 document.getElementById('host-setup-panel').appendChild(linkDiv);
+            });
+
+            // Prevent crashing if a custom ID is already actively online
+            peer.on('error', (err) => {
+                if (err.type === 'unavailable-id') {
+                    alert("ERROR: That Access Hash is already currently online. Pick another one!");
+                    document.getElementById('btn-go-online').disabled = false;
+                    document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
+                }
             });
 
             peer.on('connection', (conn) => {
