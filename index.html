@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.92</title>
+    <title>NOWSPACE :: TRM_v0.93</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -70,6 +70,7 @@
         
         #visitor-view { display: none; margin-top: 20px;}
         #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
+        #audio-container { margin-bottom: 15px; background: #000; display: inline-block; width: 100%; max-width: 500px;}
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
     </style>
 
@@ -78,7 +79,7 @@
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.92</h1>
+        <h1>// NOWSPACE :: TRM_v0.93</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -94,8 +95,8 @@
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
-        <label>Profile Audio (Direct MP3 URL):</label>
-        <input type="text" id="my-audio" placeholder="https://example.com/song.mp3" value="https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3">
+        <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
+        <textarea id="my-audio" rows="2" placeholder="Paste your HTML iframe embed code here..."><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
         <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="3" placeholder="body { background: url('...'); }">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
@@ -168,7 +169,6 @@
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const statusDisplay = document.getElementById('connection-status');
 
-        // UPGRADED: Expanded global STUN array to maximize router penetration
         const peerConfig = {
             config: {
                 'iceServers': [
@@ -327,7 +327,7 @@
             });
 
             peer.on('error', (err) => {
-                console.error("Host Error Detected:", err.type);
+                console.error("Host Error:", err.type);
                 if (err.type === 'unavailable-id') {
                     alert("ERROR: That Access Hash is already currently online. Pick another one!");
                     disconnectNode();
@@ -342,7 +342,7 @@
                         alias: document.getElementById('my-alias').value,
                         bio: document.getElementById('my-bio').value,
                         css: document.getElementById('my-css').value,
-                        audio: document.getElementById('my-audio').value,
+                        audio: document.getElementById('my-audio').value, // This now passes the raw iframe string
                         currentWall: wallData
                     };
                     conn.send(profilePackage);
@@ -363,12 +363,7 @@
 
             if (!peer) {
                 peer = new Peer(peerConfig);
-                peer.on('open', () => {
-                    executeConnection(friendId);
-                });
-                peer.on('error', (err) => {
-                    console.error("Visitor Engine Error:", err.type);
-                });
+                peer.on('open', () => { executeConnection(friendId); });
             } else {
                 executeConnection(friendId);
             }
@@ -376,9 +371,7 @@
 
         function executeConnection(friendId) {
             statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
-            activeConn = peer.connect(friendId, {
-                reliable: true
-            });
+            activeConn = peer.connect(friendId, { reliable: true });
 
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
@@ -413,9 +406,12 @@
                     document.getElementById('render-alias').innerText = packet.alias;
                     document.getElementById('datarender-bio').innerText = packet.bio;
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
+                    
+                    // SAFELY INJECT AUDIO IFRAME
                     if(packet.audio) {
-                        document.getElementById('audio-container').innerHTML = `<audio src="${packet.audio}" autoplay loop volume="0.4" style="display:none;"></audio>`;
+                        document.getElementById('audio-container').innerHTML = packet.audio;
                     }
+                    
                     wallData = packet.currentWall;
                     renderWall();
                     document.getElementById('datastream-container').style.display = 'block';
