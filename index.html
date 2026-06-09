@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.03</title>
+    <title>NOWSPACE :: TRM_v1.04</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -16,6 +16,7 @@
             --dark-magenta: #550055;
             --text-glow: 0 0 2px #00ffff;
             --magenta-glow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 4px #ff00ff;
+            --alert-red: #ff003c;
         }
 
         /* === ZONE: CSS_CORE_UI === */
@@ -25,20 +26,16 @@
             font-family: 'Fira Code', monospace; background-color: var(--bg-color); 
             color: var(--main-cyan); padding: 2vw; margin: 0;
             text-shadow: var(--text-glow); letter-spacing: -0.5px;
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center;
+            background-size: cover; background-attachment: fixed; background-position: center;
         }
 
         h1 { color: #fff; font-size: 1.5rem; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-top: 0;}
         h3 { color: var(--bright-magenta); text-shadow: var(--magenta-glow); font-size: 1rem; font-weight: 700; margin-top: 5px;}
         
-        /* FIXED: Added explicit solid backgrounds and higher z-indexing to keep elements in front */
         .panel { 
             border: 1px solid var(--main-cyan); padding: 15px; margin-bottom: 20px; 
-            position: relative; background: #050509 !important; /* Forces dark background behind text */
-            box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
-            z-index: 20;
+            position: relative; background: #050509 !important; 
+            box-shadow: inset 0 0 15px rgba(0,255,255,0.1); z-index: 20;
         }
 
         input, textarea { 
@@ -58,9 +55,14 @@
         
         .id-display { color: var(--bright-magenta); font-weight: bold; background: #000; padding: 2px 5px; text-shadow: var(--magenta-glow);}
 
+        .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
+        .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
+        .btn-alert { border-color: var(--alert-red); color: var(--alert-red); }
+        .btn-alert:hover { background: var(--alert-red); color: #000; box-shadow: 0 0 5px var(--alert-red); }
+
         /* MULTIMEDIA GALLERY GRID */
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
-        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; }
+        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
         /* WALL ELEMENTS */
@@ -77,21 +79,25 @@
         .top8-item { border: 1px solid var(--dark-magenta); background: #000; padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; }
         .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
 
-        #visitor-view { display: relative; z-index: 10; display: none; margin-top: 20px;}
+        #visitor-view { position: relative; z-index: 10; display: none; margin-top: 20px;}
         #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #050509 !important; position: relative; z-index: 20;}
         
-        /* FIXED: Explicit styling for iframe container visibility */
         #audio-container { margin-bottom: 15px; background: #000000 !important; display: block; width: 100%; max-width: 500px; height: 36px; border: 1px solid var(--main-cyan); position: relative; z-index: 30; overflow: hidden; }
         #audio-container iframe { width: 100%; height: 100%; border: none; display: block; position: relative; z-index: 35; }
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
+        
+        #host-visitor-log { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #0f0; height: 100px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; margin-bottom: 10px; }
     </style>
     <style id="custom-injected-css"></style>
 </head>
 <body>
 
-    <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40;">
-        <h1>// NOWSPACE :: TRM_v1.03</h1>
-        <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
+        <h1 style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.04</h1>
+        <div style="display: flex; gap: 15px; align-items: center;">
+            <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
+            <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
+        </div>
     </div>
 
     <div class="panel" id="host-setup-panel">
@@ -124,7 +130,7 @@ body {
     border-color: #ff00ff; 
     box-shadow: 0 0 20px #ff00ff; 
 }</textarea>
-        <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ RESET TEMPLATE DEFAULT ]</button>
+        <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ FACTORY RESET / WIPE CACHE ]</button>
 
         <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
@@ -140,12 +146,19 @@ body {
 
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
+        
+        <div style="border: 1px solid #333; margin-bottom: 15px; background: #000; padding: 5px;">
+            <h4 style="margin: 0 0 5px 5px; font-size: 0.75rem; color: #555;">> ACCESS_RECORDS</h4>
+            <div id="host-visitor-log">> System initialized. Monitoring for incoming handshakes...<br></div>
+            <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
+        </div>
+
         <div id="host-datastream-output" class="datastream-output"></div>
         <div style="display: flex; gap: 10px;">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
+            <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
         </div>
-        <button onclick="disconnectNode()" style="margin-top:15px; border-color:#555; color:#999;">>> TAKE_NODE_OFFLINE <<</button>
     </div>
 
     <div class="panel" id="visitor-connect-panel">
@@ -185,7 +198,6 @@ body {
                 <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
             </label>
         </div>
-        <button onclick="disconnectNode()" style="margin-top:10px; border-color: #555; color: #999;">>> DISCONNECT_AND_RETURN <<</button>
     </div>
 
     <script>
@@ -197,6 +209,7 @@ body {
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const statusDisplay = document.getElementById('connection-status');
+        const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
         const peerConfig = {
             config: {
@@ -210,7 +223,7 @@ body {
         };
 
         function resetDefaultTemplate() {
-            if(confirm("Wipe saved browser data and reset layout?")) {
+            if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
                 localStorage.removeItem('nowspace_save'); window.location.reload();
             }
         }
@@ -235,14 +248,13 @@ body {
         }
         function clearTop8() { if(confirm("Purge local network ring configs?")) { localStorage.removeItem('nowspace_top8'); top8 = []; renderTop8(); } }
 
-        // GALLERY GRID INJECTION 
         function buildVisitorGallery(urlsString) {
             const grid = document.getElementById('render-gallery-grid'); const panel = document.getElementById('visitor-gallery-panel'); grid.innerHTML = '';
             if(!urlsString || urlsString.trim() === '') { panel.style.display = 'none'; return; }
             const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
             if(urls.length === 0) { panel.style.display = 'none'; return; }
             panel.style.display = 'block';
-            urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame"><img src="${url}" onclick="window.open('${url}', '_blank')"></div>`; });
+            urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${url}', '_blank')"><img src="${url}"></div>`; });
         }
 
         function saveLocalData() {
@@ -304,6 +316,8 @@ body {
             document.getElementById('audio-container').innerHTML = ""; 
             document.getElementById('render-gallery-grid').innerHTML = "";
             document.getElementById('visitor-gallery-panel').style.display = "none";
+            globalDisconnectBtn.style.display = 'none';
+            
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
             statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
@@ -320,6 +334,7 @@ body {
 
             peer.on('open', (id) => {
                 statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)";
+                globalDisconnectBtn.style.display = 'block';
                 document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
                 document.getElementById('host-live-wall-panel').style.display = 'block'; renderWall();
                 const currentUrl = window.location.href.split('?')[0]; const magicLink = `${currentUrl}?node=${id}`;
@@ -333,7 +348,13 @@ body {
                 `;
             });
 
+            // NEW: VISITOR LOGGING MECHANIC
             peer.on('connection', (conn) => {
+                const logPanel = document.getElementById('host-visitor-log');
+                const timestamp = new Date().toLocaleTimeString();
+                logPanel.innerHTML += `> [${timestamp}] SECURE HANDSHAKE: <b>${conn.peer.substring(0,8)}...</b> linked to node.<br>`;
+                logPanel.scrollTop = logPanel.scrollHeight;
+
                 conn.on('data', handleIncomingP2PPacket);
                 conn.on('open', () => {
                     const profilePackage = {
@@ -352,6 +373,7 @@ body {
             currentRole = 'VISITOR'; const friendId = document.getElementById('friend-id').value.trim(); if (!friendId) return;
             document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
             document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
+            globalDisconnectBtn.style.display = 'block';
             if (!peer) { peer = new Peer(peerConfig); peer.on('open', () => { executeConnection(friendId); }); } else { executeConnection(friendId); }
         }
 
@@ -404,6 +426,15 @@ body {
             saveLocalData(); renderWall();
             for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
             inputField.value = '';
+        }
+
+        // NEW: HOST CLEAR WALL MECHANIC
+        function hostClearWall() {
+            if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
+                wallData = [];
+                saveLocalData(); renderWall();
+                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
+            }
         }
 
         document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
