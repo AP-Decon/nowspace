@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.0</title>
+    <title>NOWSPACE :: TRM_v1.01</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -25,6 +25,10 @@
             font-family: 'Fira Code', monospace; background-color: var(--bg-color); 
             color: var(--main-cyan); padding: 2vw; margin: 0;
             text-shadow: var(--text-glow); letter-spacing: -0.5px;
+            /* Default fallback rules if custom CSS is cleared */
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
         }
 
         h1 { color: #fff; font-size: 1.5rem; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-top: 0;}
@@ -32,12 +36,13 @@
         
         .panel { 
             border: 1px solid var(--main-cyan); padding: 15px; margin-bottom: 20px; 
-            position: relative; background: rgba(0, 255, 255, 0.03);
+            position: relative; background: rgba(5, 5, 9, 0.85);
             box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
+            backdrop-filter: blur(3px);
         }
 
         input, textarea { 
-            background: rgba(0,0,0,0.5); color: #fff; border: 1px solid var(--dark-magenta); 
+            background: rgba(0,0,0,0.75); color: #fff; border: 1px solid var(--dark-magenta); 
             font-family: inherit; padding: 8px; width: 100%; margin-bottom: 10px;
         }
         input:focus, textarea:focus { outline: none; border-color: var(--bright-magenta); box-shadow: var(--magenta-glow); }
@@ -62,23 +67,23 @@
         .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
 
         /* MULTIMEDIA WALL ELEMENTS */
-        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.3);}
-        .wall-post { margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 8px; animation: scanline 0.5s ease-out;}
-        .wall-post img, .wall-post gif { max-width: 200px; max-height: 200px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
+        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.5);}
+        .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
+        .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
         /* PRIVATE CHAT BLUR EFFECT */
         .private-packet { background: rgba(255,0,255,0.05); border-left: 2px dashed var(--bright-magenta) !important; padding-left: 10px; }
         .blurred-text { filter: blur(5px); user-select: none; color: #ff00ff !important; transition: filter 0.3s ease; }
-        .blurred-text:hover { filter: blur(0px); } /* Hosts can hover to reveal or view privately */
+        .blurred-text:hover { filter: blur(0px); }
 
         /* TOP 8 GRID DESIGN */
         .top8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-        .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.6); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.75); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
         .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
 
         #visitor-view { display: none; margin-top: 20px;}
-        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
+        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: rgba(0,0,0,0.85); position: relative; z-index: 10;}
         #audio-container { margin-bottom: 15px; background: #000; display: inline-block; width: 100%; max-width: 500px;}
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
     </style>
@@ -86,11 +91,13 @@
 </head>
 <body>
 
+    <!-- === ZONE: HTML_HEADER === -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v1.0</h1>
+        <h1>// NOWSPACE :: TRM_v1.01</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
+    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         
@@ -106,9 +113,21 @@
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
         <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
-        <label>Custom CSS Injection:</label>
-        <textarea id="my-css" rows="3">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
+        <label>Custom CSS Injection (GIF Background set here):</label>
+        <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
+body { 
+    background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif');
+    background-size: cover;
+    background-attachment: fixed;
+    background-position: center;
+}
+#render-profile-header { 
+    border-color: #ff00ff; 
+    box-shadow: 0 0 20px #ff00ff; 
+}</textarea>
+        <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ RESET TEMPLATE DEFAULT ]</button>
 
+        <!-- HOST TOP 8 MANAGER -->
         <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
             <div id="host-top8-display" style="font-size:0.8rem; margin-bottom:10px; color:#aaa;"></div>
@@ -121,6 +140,7 @@
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- HOST LIVE CONTROLLER -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <p style="font-size:0.8rem; color:#aaa; text-shadow:none;">Monitor incoming connections, view encrypted payloads, and reply.</p>
@@ -132,12 +152,14 @@
         <button onclick="disconnectNode()" style="margin-top:15px; border-color:#555; color:#999;">>> TAKE_NODE_OFFLINE <<</button>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -145,6 +167,7 @@
             <p id="datarender-bio"></p>
         </div>
 
+        <!-- VISUAL NETWORK RING CONTAINER -->
         <div class="panel" id="visitor-top8-panel" style="margin-top:20px;">
             <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
             <div class="top8-grid" id="render-top8-grid"></div>
@@ -189,6 +212,14 @@
                 ]
             }
         };
+
+        // NEW: Utility function to wipe local cache and snap the user back to the raw template defaults
+        function resetDefaultTemplate() {
+            if(confirm("Wipe saved browser data and reset layout to the default Neon Grid GIF?")) {
+                localStorage.removeItem('nowspace_save');
+                window.location.reload();
+            }
+        }
 
         // === ZONE: JS_TOP_8_LOGIC ===
         function renderTop8() {
@@ -250,6 +281,8 @@
         // === ZONE: JS_BOOT ===
         window.onload = () => {
             renderTop8();
+            
+            // Check for saved local updates
             const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
@@ -260,6 +293,10 @@
                 if (savedData.wall) wallData = savedData.wall;
                 renderWall(); 
             }
+            
+            // Always run a validation injection pass on launch to ensure whatever is currently in the CSS box renders
+            const currentCSS = document.getElementById('my-css').value;
+            document.getElementById('custom-injected-css').innerText = currentCSS;
 
             const urlParams = new URLSearchParams(window.location.search);
             const targetNode = urlParams.get('node');
@@ -279,9 +316,7 @@
             });
         }
 
-        // REGEX DETECTOR: Scans string for image extensions and creates real elements
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
-            // Find links ending in common media file types
             const mediaRegex = /(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp))/gi;
             let formattedText = text.replace(mediaRegex, `<img src="$1" onerror="this.style.display='none';" />`);
             
@@ -306,7 +341,10 @@
             document.getElementById('my-id-display').style.display = 'none';
             document.getElementById('magic-link-container').innerHTML = '';
             document.getElementById('audio-container').innerHTML = ""; 
-            document.getElementById('custom-injected-css').innerText = ""; 
+            
+            // Reset background back to local setup view settings
+            const currentCSS = document.getElementById('my-css').value;
+            document.getElementById('custom-injected-css').innerText = currentCSS;
             
             statusDisplay.innerText = "[ STATUS: OFFLINE ]";
             statusDisplay.style.color = "#555";
@@ -320,6 +358,9 @@
             document.getElementById('btn-go-online').innerText = "INITIALIZING...";
             
             saveLocalData(); 
+            const currentCSS = document.getElementById('my-css').value;
+            document.getElementById('custom-injected-css').innerText = currentCSS;
+
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
@@ -357,7 +398,7 @@
                         bio: document.getElementById('my-bio').value,
                         css: document.getElementById('my-css').value,
                         audio: document.getElementById('my-audio').value,
-                        top8: top8, // Share our Top 8 network map
+                        top8: top8, 
                         currentWall: wallData
                     };
                     conn.send(profilePackage);
@@ -477,11 +518,14 @@
             inputField.value = '';
         }
 
+        document.getElementById('my-css').addEventListener('input', (e) => {
+            document.getElementById('custom-injected-css').innerText = e.target.value;
+        });
+
         function renderWall() {
             const visitorOutput = document.getElementById('datastream-output');
             const hostOutput = document.getElementById('host-datastream-output');
             
-            // Build Visitor Output (Blurs private text completely)
             if(visitorOutput) {
                 visitorOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
@@ -492,7 +536,6 @@
                 `).join('');
             }
 
-            // Build Host Output (Shows everything cleanly in the dashboard)
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
