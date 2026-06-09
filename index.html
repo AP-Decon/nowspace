@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v0.93</title>
+    <title>NOWSPACE :: TRM_v1.0</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -57,29 +57,37 @@
             border: 1px dashed var(--main-cyan); background: rgba(0,0,0,0.8);
             padding: 10px; margin-bottom: 15px; font-size: 0.85rem;
         }
-        .helper-box h4 { margin: 0 0 5px 0; color: #fff; text-shadow: none; }
-        .helper-box p { color: #aaa; text-shadow: none; margin-top: 0; }
         
         .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
         .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
 
-        /* THE WALL */
-        .datastream-output { height: 200px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.3);}
-        .wall-post { margin-bottom: 8px; border-bottom: 1px solid #111; padding-bottom: 4px;}
+        /* MULTIMEDIA WALL ELEMENTS */
+        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.3);}
+        .wall-post { margin-bottom: 12px; border-bottom: 1px solid #111; padding-bottom: 8px; animation: scanline 0.5s ease-out;}
+        .wall-post img, .wall-post gif { max-width: 200px; max-height: 200px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
+        /* PRIVATE CHAT BLUR EFFECT */
+        .private-packet { background: rgba(255,0,255,0.05); border-left: 2px dashed var(--bright-magenta) !important; padding-left: 10px; }
+        .blurred-text { filter: blur(5px); user-select: none; color: #ff00ff !important; transition: filter 0.3s ease; }
+        .blurred-text:hover { filter: blur(0px); } /* Hosts can hover to reveal or view privately */
+
+        /* TOP 8 GRID DESIGN */
+        .top8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
+        .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.6); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
+
         #visitor-view { display: none; margin-top: 20px;}
         #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #000; position: relative; z-index: 10;}
         #audio-container { margin-bottom: 15px; background: #000; display: inline-block; width: 100%; max-width: 500px;}
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
     </style>
-
     <style id="custom-injected-css"></style>
 </head>
 <body>
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v0.93</h1>
+        <h1>// NOWSPACE :: TRM_v1.0</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -96,15 +104,16 @@
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
-        <textarea id="my-audio" rows="2" placeholder="Paste your HTML iframe embed code here..."><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
+        <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
         <label>Custom CSS Injection:</label>
-        <textarea id="my-css" rows="3" placeholder="body { background: url('...'); }">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
+        <textarea id="my-css" rows="3">#render-profile-header { border-color: #00ff00; box-shadow: 0 0 20px #00ff00; }</textarea>
 
-        <div class="helper-box">
-            <h4>[ ? // NEED A CUSTOM LAYOUT? ]</h4>
-            <p>Copy the prompt below, paste it into an AI like Gemini, and tell it what aesthetic you want. Paste the CSS it gives you into the box above.</p>
-            <button id="btn-copy-prompt" class="btn-small" onclick="copyPrompt()">[ COPY AI PROMPT ]</button>
+        <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
+            <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
+            <div id="host-top8-display" style="font-size:0.8rem; margin-bottom:10px; color:#aaa;"></div>
+            <button class="btn-small" onclick="addToTop8()">+ ADD TARGET NODE</button>
+            <button class="btn-small" onclick="clearTop8()" style="border-color:#555; color:#999;">[ WIPE RING ]</button>
         </div>
         
         <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
@@ -114,10 +123,10 @@
 
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
-        <p style="font-size:0.8rem; color:#aaa; text-shadow:none;">Monitor incoming connections and reply to your wall.</p>
+        <p style="font-size:0.8rem; color:#aaa; text-shadow:none;">Monitor incoming connections, view encrypted payloads, and reply.</p>
         <div id="host-datastream-output" class="datastream-output"></div>
         <div style="display: flex; gap: 10px;">
-            <input type="text" id="host-wall-input" placeholder="Broadcast a message to visitors...">
+            <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
         </div>
         <button onclick="disconnectNode()" style="margin-top:15px; border-color:#555; color:#999;">>> TAKE_NODE_OFFLINE <<</button>
@@ -125,16 +134,6 @@
 
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
-        
-        <div style="margin-bottom: 20px; border-left: 2px solid var(--dark-magenta); padding-left: 10px;">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h4 style="margin: 0 0 5px 0; color: var(--main-cyan); text-shadow:none;">[ THE_TOP_8 // SAVED_NODES ]</h4>
-                <button class="btn-small" onclick="clearTop8()" style="border-color:#555; color:#999;">[ CLEAR ]</button>
-            </div>
-            <div id="top8-list" style="margin-bottom: 10px; margin-top:5px;"></div>
-            <button class="btn-small" onclick="addToTop8()">+ ADD SAVED HASH</button>
-        </div>
-
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
@@ -145,13 +144,24 @@
             <h2 id="render-alias" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
             <p id="datarender-bio"></p>
         </div>
+
+        <div class="panel" id="visitor-top8-panel" style="margin-top:20px;">
+            <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
+            <div class="top8-grid" id="render-top8-grid"></div>
+        </div>
+
         <div class="panel" id="datastream-container" style="margin-top:20px;">
-            <h3>[ 03 // THE_WALL ]</h3>
+            <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             <div id="datastream-output" class="datastream-output"></div>
-            <div style="display: flex; gap: 10px;">
-                <input type="text" id="wall-input-buffer" placeholder="Type packet data...">
+            
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
+                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct .gif/.png link to post pictures" style="margin-bottom:0;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
             </div>
+            
+            <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
+                <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
+            </label>
         </div>
         <button onclick="disconnectNode()" style="margin-top:10px; border-color: #555; color: #999;">>> DISCONNECT_AND_RETURN <<</button>
     </div>
@@ -175,28 +185,40 @@
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
                     { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:stun3.l.google.com:19302' },
-                    { urls: 'stun:stun4.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
+                    { urls: 'global.stun.twilio.com:3478' }
                 ]
             }
         };
 
         // === ZONE: JS_TOP_8_LOGIC ===
         function renderTop8() {
-            const container = document.getElementById('top8-list');
-            container.innerHTML = '';
-            if (top8.length === 0) {
-                container.innerHTML = '<span style="font-size:0.8rem; color:#555;">No nodes saved in your network ring yet.</span>';
+            const hostDisplay = document.getElementById('host-top8-display');
+            if(hostDisplay) {
+                hostDisplay.innerHTML = top8.length === 0 ? "No peers linked yet." : top8.map(id => `[ ${id.toUpperCase()} ]`).join(' | ');
+            }
+        }
+
+        function buildVisitorTop8Grid(hostTop8Array) {
+            const grid = document.getElementById('render-top8-grid');
+            grid.innerHTML = '';
+            if (!hostTop8Array || hostTop8Array.length === 0) {
+                document.getElementById('visitor-top8-panel').style.display = 'none';
                 return;
             }
-            top8.forEach(id => {
-                container.innerHTML += `<button onclick="document.getElementById('friend-id').value='${id}'; visitFriend();" class="btn-small" style="margin-right:5px; margin-bottom:5px;">[ ${id.toUpperCase()} ]</button>`;
+            document.getElementById('visitor-top8-panel').style.display = 'block';
+            hostTop8Array.forEach(id => {
+                grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`;
             });
         }
 
+        function jumpToNewNode(targetId) {
+            document.getElementById('friend-id').value = targetId;
+            disconnectNode();
+            visitFriend();
+        }
+
         function addToTop8() {
-            const id = prompt("Enter the exact Access Hash of your friend (e.g., Alan):");
+            const id = prompt("Enter the precise Access Hash of the target node:");
             if (id && !top8.includes(id)) {
                 top8.push(id.trim().replace(/\s+/g, '-'));
                 localStorage.setItem('nowspace_top8', JSON.stringify(top8));
@@ -205,7 +227,7 @@
         }
 
         function clearTop8() {
-            if(confirm("Are you sure you want to clear your saved Top 8 network ring?")) {
+            if(confirm("Purge local network ring configs?")) {
                 localStorage.removeItem('nowspace_top8');
                 top8 = [];
                 renderTop8();
@@ -253,25 +275,26 @@
             navigator.clipboard.writeText(linkInput.value).then(() => {
                 const btn = document.getElementById('btn-copy-magic');
                 btn.innerText = "COPIED!";
-                btn.style.backgroundColor = "#0f0";
-                btn.style.color = "#000";
-                setTimeout(() => {
-                    btn.innerText = "COPY";
-                    btn.style.backgroundColor = "transparent";
-                    btn.style.color = "#0f0";
-                }, 2000);
+                setTimeout(() => { btn.innerText = "COPY"; }, 2000);
             });
         }
 
-        const aiPromptTemplate = `I am hosting a peer-to-peer, single-file HTML social network node...`;
-        function copyPrompt() { navigator.clipboard.writeText(aiPromptTemplate); alert("Prompt copied! Paste it into your AI."); }
+        // REGEX DETECTOR: Scans string for image extensions and creates real elements
+        function formatWallMessage(text, isPrivate, hideFromPublicView) {
+            // Find links ending in common media file types
+            const mediaRegex = /(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp))/gi;
+            let formattedText = text.replace(mediaRegex, `<img src="$1" onerror="this.style.display='none';" />`);
+            
+            if (isPrivate && hideFromPublicView) {
+                return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`;
+            }
+            return formattedText;
+        }
 
         // === ZONE: JS_SMOOTH_DISCONNECT ===
         function disconnectNode() {
             if (peer) peer.destroy(); 
-            peer = null;
-            activeConn = null;
-            currentRole = null;
+            peer = null; activeConn = null; currentRole = null;
 
             document.getElementById('visitor-view').style.display = 'none';
             document.getElementById('host-live-wall-panel').style.display = 'none';
@@ -282,13 +305,11 @@
             document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
             document.getElementById('my-id-display').style.display = 'none';
             document.getElementById('magic-link-container').innerHTML = '';
-
             document.getElementById('audio-container').innerHTML = ""; 
             document.getElementById('custom-injected-css').innerText = ""; 
             
             statusDisplay.innerText = "[ STATUS: OFFLINE ]";
             statusDisplay.style.color = "#555";
-            
             window.history.pushState({}, document.title, window.location.pathname);
         }
 
@@ -300,7 +321,6 @@
             
             saveLocalData(); 
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
-            
             peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
             peer.on('open', (id) => {
@@ -308,7 +328,6 @@
                 statusDisplay.style.color = "var(--main-cyan)";
                 document.getElementById('my-id').innerText = id;
                 document.getElementById('my-id-display').style.display = 'block';
-
                 document.getElementById('host-live-wall-panel').style.display = 'block';
                 renderWall();
 
@@ -317,21 +336,16 @@
                 
                 document.getElementById('magic-link-container').innerHTML = `
                     <div style="margin-top:15px;">
-                        <p style="font-size:0.8rem; color:#aaa; margin-bottom:5px; text-shadow:none;">[ SHARE_THIS_LINK_TO_INVITE_VISITORS ]</p>
                         <div style="display:flex; gap:10px;">
-                            <input type="text" id="magic-link-input" value="${magicLink}" readonly onclick="this.select()" style="border-color:#0f0; color:#0f0; cursor:pointer; flex-grow:1; margin-bottom:0;" title="Click to select">
-                            <button id="btn-copy-magic" onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0; box-shadow:none;">COPY</button>
+                            <input type="text" id="magic-link-input" value="${magicLink}" readonly style="border-color:#0f0; color:#0f0; flex-grow:1; margin-bottom:0;">
+                            <button id="btn-copy-magic" onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button>
                         </div>
                     </div>
                 `;
             });
 
             peer.on('error', (err) => {
-                console.error("Host Error:", err.type);
-                if (err.type === 'unavailable-id') {
-                    alert("ERROR: That Access Hash is already currently online. Pick another one!");
-                    disconnectNode();
-                }
+                if (err.type === 'unavailable-id') { alert("ERROR: Access Hash online elsewhere."); disconnectNode(); }
             });
 
             peer.on('connection', (conn) => {
@@ -342,7 +356,8 @@
                         alias: document.getElementById('my-alias').value,
                         bio: document.getElementById('my-bio').value,
                         css: document.getElementById('my-css').value,
-                        audio: document.getElementById('my-audio').value, // This now passes the raw iframe string
+                        audio: document.getElementById('my-audio').value,
+                        top8: top8, // Share our Top 8 network map
                         currentWall: wallData
                     };
                     conn.send(profilePackage);
@@ -376,27 +391,17 @@
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
-                    statusDisplay.style.color = "red";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2><p>The P2P network handshake timed out. Check that the host is actively online.</p>";
-                    document.getElementById('datastream-container').style.display = 'none';
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2>";
                 }
             }, 15000); 
 
             activeConn.on('open', () => {
                 clearTimeout(connectionTimeout); 
                 statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]";
-                statusDisplay.style.color = "var(--main-cyan)";
             });
 
             activeConn.on('data', handleIncomingP2PPacket);
-            activeConn.on('close', () => {
-                statusDisplay.innerText = "[ STATUS: LINK_LOST // HOST_OFFLINE ]";
-                statusDisplay.style.color = "#555";
-                document.getElementById('render-profile-header').innerHTML = "<h2>[ NODE_OFFLINE ]</h2><p>Connection terminated by host.</p>";
-                document.getElementById('custom-injected-css').innerText = ""; 
-                document.getElementById('datastream-container').style.display = 'none';
-                document.getElementById('audio-container').innerHTML = ""; 
-            });
+            activeConn.on('close', () => { disconnectNode(); });
         }
 
         // === ZONE: JS_PACKET_HANDLER ===
@@ -406,15 +411,11 @@
                     document.getElementById('render-alias').innerText = packet.alias;
                     document.getElementById('datarender-bio').innerText = packet.bio;
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
+                    if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
                     
-                    // SAFELY INJECT AUDIO IFRAME
-                    if(packet.audio) {
-                        document.getElementById('audio-container').innerHTML = packet.audio;
-                    }
-                    
+                    buildVisitorTop8Grid(packet.top8);
                     wallData = packet.currentWall;
                     renderWall();
-                    document.getElementById('datastream-container').style.display = 'block';
                     break;
 
                 case MSG_TYPE_WALL_POST:
@@ -422,10 +423,10 @@
                         wallData.push({
                             sender: packet.sender,
                             text: packet.text,
+                            isPrivate: packet.isPrivate,
                             timestamp: new Date().toLocaleTimeString()
                         });
-                        saveLocalData(); 
-                        renderWall(); 
+                        saveLocalData(); renderWall(); 
                         for (let peerId in peer.connections) {
                             peer.connections[peerId].forEach(conn => {
                                 conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
@@ -446,25 +447,28 @@
         // === ZONE: JS_WALL_UI ===
         function visitorSendWallPacket() {
             const inputField = document.getElementById('wall-input-buffer');
+            const privateToggle = document.getElementById('private-packet-toggle');
             if (!inputField.value || !activeConn) return;
+            
             activeConn.send({ 
                 type: MSG_TYPE_WALL_POST, 
                 text: inputField.value,
+                isPrivate: privateToggle.checked,
                 sender: peer.id.substring(0,6) 
             });
-            inputField.value = ''; 
+            inputField.value = ''; privateToggle.checked = false;
         }
 
         function hostSendWallPacket() {
             const inputField = document.getElementById('host-wall-input');
             if (!inputField.value) return;
             wallData.push({
-                sender: "[HOST] " + document.getElementById('my-alias').value.substring(0,8),
+                sender: "[HOST]",
                 text: inputField.value,
+                isPrivate: false,
                 timestamp: new Date().toLocaleTimeString()
             });
-            saveLocalData();
-            renderWall();
+            saveLocalData(); renderWall();
             for (let peerId in peer.connections) {
                 peer.connections[peerId].forEach(conn => {
                     conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
@@ -474,13 +478,30 @@
         }
 
         function renderWall() {
-            const html = wallData.map(post => `<div class="wall-post"><span style="color:#555; text-shadow:none;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.sender.includes('[HOST]') ? 'var(--bright-magenta)' : 'var(--main-cyan)'}">${post.sender}:</span> <span style="color:#ccc; text-shadow:none;">${post.text}</span></div>`).join('');
-            
             const visitorOutput = document.getElementById('datastream-output');
             const hostOutput = document.getElementById('host-datastream-output');
             
-            if(visitorOutput) visitorOutput.innerHTML = html;
-            if(hostOutput) hostOutput.innerHTML = html;
+            // Build Visitor Output (Blurs private text completely)
+            if(visitorOutput) {
+                visitorOutput.innerHTML = wallData.map(post => `
+                    <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
+                        <span style="color:#555;">[${post.timestamp}]</span> 
+                        <span class="wall-post-sender">${post.sender}:</span> 
+                        <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
+                    </div>
+                `).join('');
+            }
+
+            // Build Host Output (Shows everything cleanly in the dashboard)
+            if(hostOutput) {
+                hostOutput.innerHTML = wallData.map(post => `
+                    <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
+                        <span style="color:#555;">[${post.timestamp}]</span> 
+                        <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
+                        <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
+                    </div>
+                `).join('');
+            }
         }
 
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
