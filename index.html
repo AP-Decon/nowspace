@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.01</title>
+    <title>NOWSPACE :: TRM_v1.02</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -25,7 +25,6 @@
             font-family: 'Fira Code', monospace; background-color: var(--bg-color); 
             color: var(--main-cyan); padding: 2vw; margin: 0;
             text-shadow: var(--text-glow); letter-spacing: -0.5px;
-            /* Default fallback rules if custom CSS is cleared */
             background-size: cover;
             background-attachment: fixed;
             background-position: center;
@@ -66,18 +65,22 @@
         .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
         .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
 
-        /* MULTIMEDIA WALL ELEMENTS */
+        /* MULTIMEDIA GALLERY GRID */
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; }
+        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; }
+        .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s; }
+        .gallery-frame img:hover { transform: scale(1.1); cursor: zoom-in; }
+
+        /* WALL ELEMENTS */
         .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.5);}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
-        /* PRIVATE CHAT BLUR EFFECT */
         .private-packet { background: rgba(255,0,255,0.05); border-left: 2px dashed var(--bright-magenta) !important; padding-left: 10px; }
         .blurred-text { filter: blur(5px); user-select: none; color: #ff00ff !important; transition: filter 0.3s ease; }
         .blurred-text:hover { filter: blur(0px); }
 
-        /* TOP 8 GRID DESIGN */
         .top8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
         .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.75); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
         .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
@@ -93,7 +96,7 @@
 
     <!-- === ZONE: HTML_HEADER === -->
     <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v1.01</h1>
+        <h1>// NOWSPACE :: TRM_v1.02</h1>
         <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
@@ -113,7 +116,11 @@
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
         <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
-        <label>Custom CSS Injection (GIF Background set here):</label>
+        <!-- NEW: HOST GALLERY ITEM INPUT -->
+        <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
+        <textarea id="my-gallery" rows="3" placeholder="https://example.com/pic1.gif&#10;https://example.com/pic2.png">https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZidXNyeGNuM3J5M3l0YmY0cjI4M3g0YmF4MTBvNmR6bXp3ZzZ3dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TQwYr9eH3rJqOli/giphy.gif&#10;https://media.giphy.com/media/dD8HpoAtfO89y/giphy.gif</textarea>
+
+        <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
 body { 
     background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif');
@@ -167,6 +174,12 @@ body {
             <p id="datarender-bio"></p>
         </div>
 
+        <!-- NEW: VISITOR PICTURE GALLERY FRAME CONTAINER -->
+        <div class="panel" id="visitor-gallery-panel" style="margin-top:20px; display: none;">
+            <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
+            <div class="gallery-grid" id="render-gallery-grid"></div>
+        </div>
+
         <!-- VISUAL NETWORK RING CONTAINER -->
         <div class="panel" id="visitor-top8-panel" style="margin-top:20px;">
             <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
@@ -213,9 +226,8 @@ body {
             }
         };
 
-        // NEW: Utility function to wipe local cache and snap the user back to the raw template defaults
         function resetDefaultTemplate() {
-            if(confirm("Wipe saved browser data and reset layout to the default Neon Grid GIF?")) {
+            if(confirm("Wipe saved browser data and reset layout?")) {
                 localStorage.removeItem('nowspace_save');
                 window.location.reload();
             }
@@ -265,6 +277,29 @@ body {
             }
         }
 
+        // NEW: RENDER VISITOR PHOTO FRAME GRID
+        function buildVisitorGallery(urlsString) {
+            const grid = document.getElementById('render-gallery-grid');
+            const panel = document.getElementById('visitor-gallery-panel');
+            grid.innerHTML = '';
+            
+            if(!urlsString || urlsString.trim() === '') {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
+            if(urls.length === 0) {
+                panel.style.display = 'none';
+                return;
+            }
+            
+            panel.style.display = 'block';
+            urls.forEach(url => {
+                grid.innerHTML += `<div class="gallery-frame"><img src="${url}" onclick="window.open('${url}', '_blank')" onerror="this.parentElement.style.display='none';"></div>`;
+            });
+        }
+
         function saveLocalData() {
             if (currentRole !== 'HOST') return;
             const data = {
@@ -272,6 +307,7 @@ body {
                 customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value,
                 audio: document.getElementById('my-audio').value,
+                gallery: document.getElementById('my-gallery').value, // Saved locally
                 css: document.getElementById('my-css').value,
                 wall: wallData
             };
@@ -282,19 +318,18 @@ body {
         window.onload = () => {
             renderTop8();
             
-            // Check for saved local updates
             const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
                 if (savedData.customId) document.getElementById('my-custom-id').value = savedData.customId;
                 if (savedData.bio) document.getElementById('my-bio').value = savedData.bio;
                 if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
+                if (savedData.gallery) document.getElementById('my-gallery').value = savedData.gallery; // Restored locally
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
                 renderWall(); 
             }
             
-            // Always run a validation injection pass on launch to ensure whatever is currently in the CSS box renders
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
 
@@ -341,8 +376,9 @@ body {
             document.getElementById('my-id-display').style.display = 'none';
             document.getElementById('magic-link-container').innerHTML = '';
             document.getElementById('audio-container').innerHTML = ""; 
+            document.getElementById('render-gallery-grid').innerHTML = "";
+            document.getElementById('visitor-gallery-panel').style.display = "none";
             
-            // Reset background back to local setup view settings
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
             
@@ -398,6 +434,7 @@ body {
                         bio: document.getElementById('my-bio').value,
                         css: document.getElementById('my-css').value,
                         audio: document.getElementById('my-audio').value,
+                        gallery: document.getElementById('my-gallery').value, // Passed to visitor packet
                         top8: top8, 
                         currentWall: wallData
                     };
@@ -454,6 +491,7 @@ body {
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
                     
+                    buildVisitorGallery(packet.gallery); // Render picture frames
                     buildVisitorTop8Grid(packet.top8);
                     wallData = packet.currentWall;
                     renderWall();
