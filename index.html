@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.02</title>
+    <title>NOWSPACE :: TRM_v1.03</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -33,46 +33,38 @@
         h1 { color: #fff; font-size: 1.5rem; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-top: 0;}
         h3 { color: var(--bright-magenta); text-shadow: var(--magenta-glow); font-size: 1rem; font-weight: 700; margin-top: 5px;}
         
+        /* FIXED: Added explicit solid backgrounds and higher z-indexing to keep elements in front */
         .panel { 
             border: 1px solid var(--main-cyan); padding: 15px; margin-bottom: 20px; 
-            position: relative; background: rgba(5, 5, 9, 0.85);
+            position: relative; background: #050509 !important; /* Forces dark background behind text */
             box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
-            backdrop-filter: blur(3px);
+            z-index: 20;
         }
 
         input, textarea { 
-            background: rgba(0,0,0,0.75); color: #fff; border: 1px solid var(--dark-magenta); 
+            background: #000000 !important; color: #fff; border: 1px solid var(--dark-magenta); 
             font-family: inherit; padding: 8px; width: 100%; margin-bottom: 10px;
+            position: relative; z-index: 25;
         }
         input:focus, textarea:focus { outline: none; border-color: var(--bright-magenta); box-shadow: var(--magenta-glow); }
 
         button { 
             font-family: inherit; font-weight: bold; text-transform: uppercase; cursor: pointer; 
-            padding: 8px 15px; background: transparent; color: var(--bright-magenta); 
+            padding: 8px 15px; background: #000; color: var(--bright-magenta); 
             border: 2px solid var(--bright-magenta); text-shadow: var(--magenta-glow); transition: all 0.2s ease;
+            position: relative; z-index: 25;
         }
         button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(--magenta-glow); text-shadow: none; }
-        button:disabled { border-color: #555; color: #555; cursor: not-allowed; box-shadow: none; text-shadow: none;}
         
         .id-display { color: var(--bright-magenta); font-weight: bold; background: #000; padding: 2px 5px; text-shadow: var(--magenta-glow);}
 
-        /* === ZONE: CSS_COMPONENTS === */
-        .helper-box {
-            border: 1px dashed var(--main-cyan); background: rgba(0,0,0,0.8);
-            padding: 10px; margin-bottom: 15px; font-size: 0.85rem;
-        }
-        
-        .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
-        .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
-
         /* MULTIMEDIA GALLERY GRID */
-        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; }
-        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; }
-        .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.3s; }
-        .gallery-frame img:hover { transform: scale(1.1); cursor: zoom-in; }
+        .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
+        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; }
+        .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
         /* WALL ELEMENTS */
-        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: rgba(0,0,0,0.5);}
+        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: #000000 !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
@@ -82,25 +74,26 @@
         .blurred-text:hover { filter: blur(0px); }
 
         .top8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-        .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.75); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
+        .top8-item { border: 1px solid var(--dark-magenta); background: #000; padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; }
         .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
 
-        #visitor-view { display: none; margin-top: 20px;}
-        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: rgba(0,0,0,0.85); position: relative; z-index: 10;}
-        #audio-container { margin-bottom: 15px; background: #000; display: inline-block; width: 100%; max-width: 500px;}
+        #visitor-view { display: relative; z-index: 10; display: none; margin-top: 20px;}
+        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #050509 !important; position: relative; z-index: 20;}
+        
+        /* FIXED: Explicit styling for iframe container visibility */
+        #audio-container { margin-bottom: 15px; background: #000000 !important; display: block; width: 100%; max-width: 500px; height: 36px; border: 1px solid var(--main-cyan); position: relative; z-index: 30; overflow: hidden; }
+        #audio-container iframe { width: 100%; height: 100%; border: none; display: block; position: relative; z-index: 35; }
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
     </style>
     <style id="custom-injected-css"></style>
 </head>
 <body>
 
-    <!-- === ZONE: HTML_HEADER === -->
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h1>// NOWSPACE :: TRM_v1.02</h1>
-        <div id="connection-status" style="font-size:0.8rem; color: #555; text-shadow: none;">[ STATUS: OFFLINE ]</div>
+    <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40;">
+        <h1>// NOWSPACE :: TRM_v1.03</h1>
+        <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
     </div>
 
-    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         
@@ -114,11 +107,10 @@
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
-        <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16" width="500" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
+        <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16&playlist=1" width="100%" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
-        <!-- NEW: HOST GALLERY ITEM INPUT -->
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
-        <textarea id="my-gallery" rows="3" placeholder="https://example.com/pic1.gif&#10;https://example.com/pic2.png">https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZidXNyeGNuM3J5M3l0YmY0cjI4M3g0YmF4MTBvNmR6bXp3ZzZ3dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TQwYr9eH3rJqOli/giphy.gif&#10;https://media.giphy.com/media/dD8HpoAtfO89y/giphy.gif</textarea>
+        <textarea id="my-gallery" rows="3" placeholder="URLs go here...">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZidXNyeGNuM3J5M3l0YmY0cjI4M3g0YmF4MTBvNmR6bXp3ZzZ3dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TQwYr9eH3rJqOli/giphy.gif&#10;https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
 
         <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
@@ -134,7 +126,6 @@ body {
 }</textarea>
         <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ RESET TEMPLATE DEFAULT ]</button>
 
-        <!-- HOST TOP 8 MANAGER -->
         <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
             <div id="host-top8-display" style="font-size:0.8rem; margin-bottom:10px; color:#aaa;"></div>
@@ -147,10 +138,8 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- HOST LIVE CONTROLLER -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
-        <p style="font-size:0.8rem; color:#aaa; text-shadow:none;">Monitor incoming connections, view encrypted payloads, and reply.</p>
         <div id="host-datastream-output" class="datastream-output"></div>
         <div style="display: flex; gap: 10px;">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
@@ -159,28 +148,25 @@ body {
         <button onclick="disconnectNode()" style="margin-top:15px; border-color:#555; color:#999;">>> TAKE_NODE_OFFLINE <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
+        
         <div id="render-profile-header">
             <h2 id="render-alias" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
             <p id="datarender-bio"></p>
         </div>
 
-        <!-- NEW: VISITOR PICTURE GALLERY FRAME CONTAINER -->
         <div class="panel" id="visitor-gallery-panel" style="margin-top:20px; display: none;">
             <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
             <div class="gallery-grid" id="render-gallery-grid"></div>
         </div>
 
-        <!-- VISUAL NETWORK RING CONTAINER -->
         <div class="panel" id="visitor-top8-panel" style="margin-top:20px;">
             <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
             <div class="top8-grid" id="render-top8-grid"></div>
@@ -191,7 +177,7 @@ body {
             <div id="datastream-output" class="datastream-output"></div>
             
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
-                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct .gif/.png link to post pictures" style="margin-bottom:0;">
+                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
             </div>
             
@@ -204,10 +190,7 @@ body {
 
     <script>
         // === ZONE: JS_GLOBAL_STATE ===
-        let peer = null;
-        let activeConn = null; 
-        let wallData = [];     
-        let currentRole = null; 
+        let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
@@ -220,7 +203,6 @@ body {
                 'iceServers': [
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
                     { urls: 'global.stun.twilio.com:3478' }
                 ]
             }
@@ -228,88 +210,46 @@ body {
 
         function resetDefaultTemplate() {
             if(confirm("Wipe saved browser data and reset layout?")) {
-                localStorage.removeItem('nowspace_save');
-                window.location.reload();
+                localStorage.removeItem('nowspace_save'); window.location.reload();
             }
         }
 
         // === ZONE: JS_TOP_8_LOGIC ===
         function renderTop8() {
             const hostDisplay = document.getElementById('host-top8-display');
-            if(hostDisplay) {
-                hostDisplay.innerHTML = top8.length === 0 ? "No peers linked yet." : top8.map(id => `[ ${id.toUpperCase()} ]`).join(' | ');
-            }
+            if(hostDisplay) { hostDisplay.innerHTML = top8.length === 0 ? "No peers linked yet." : top8.map(id => `[ ${id.toUpperCase()} ]`).join(' | '); }
         }
 
         function buildVisitorTop8Grid(hostTop8Array) {
-            const grid = document.getElementById('render-top8-grid');
-            grid.innerHTML = '';
-            if (!hostTop8Array || hostTop8Array.length === 0) {
-                document.getElementById('visitor-top8-panel').style.display = 'none';
-                return;
-            }
+            const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
+            if (!hostTop8Array || hostTop8Array.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
             document.getElementById('visitor-top8-panel').style.display = 'block';
-            hostTop8Array.forEach(id => {
-                grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`;
-            });
+            hostTop8Array.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
         }
 
-        function jumpToNewNode(targetId) {
-            document.getElementById('friend-id').value = targetId;
-            disconnectNode();
-            visitFriend();
-        }
-
+        function jumpToNewNode(targetId) { document.getElementById('friend-id').value = targetId; disconnectNode(); visitFriend(); }
         function addToTop8() {
             const id = prompt("Enter the precise Access Hash of the target node:");
-            if (id && !top8.includes(id)) {
-                top8.push(id.trim().replace(/\s+/g, '-'));
-                localStorage.setItem('nowspace_top8', JSON.stringify(top8));
-                renderTop8();
-            }
+            if (id && !top8.includes(id)) { top8.push(id.trim().replace(/\s+/g, '-')); localStorage.setItem('nowspace_top8', JSON.stringify(top8)); renderTop8(); }
         }
+        function clearTop8() { if(confirm("Purge local network ring configs?")) { localStorage.removeItem('nowspace_top8'); top8 = []; renderTop8(); } }
 
-        function clearTop8() {
-            if(confirm("Purge local network ring configs?")) {
-                localStorage.removeItem('nowspace_top8');
-                top8 = [];
-                renderTop8();
-            }
-        }
-
-        // NEW: RENDER VISITOR PHOTO FRAME GRID
+        // GALLERY GRID INJECTION 
         function buildVisitorGallery(urlsString) {
-            const grid = document.getElementById('render-gallery-grid');
-            const panel = document.getElementById('visitor-gallery-panel');
-            grid.innerHTML = '';
-            
-            if(!urlsString || urlsString.trim() === '') {
-                panel.style.display = 'none';
-                return;
-            }
-            
+            const grid = document.getElementById('render-gallery-grid'); const panel = document.getElementById('visitor-gallery-panel'); grid.innerHTML = '';
+            if(!urlsString || urlsString.trim() === '') { panel.style.display = 'none'; return; }
             const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
-            if(urls.length === 0) {
-                panel.style.display = 'none';
-                return;
-            }
-            
+            if(urls.length === 0) { panel.style.display = 'none'; return; }
             panel.style.display = 'block';
-            urls.forEach(url => {
-                grid.innerHTML += `<div class="gallery-frame"><img src="${url}" onclick="window.open('${url}', '_blank')" onerror="this.parentElement.style.display='none';"></div>`;
-            });
+            urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame"><img src="${url}" onclick="window.open('${url}', '_blank')"></div>`; });
         }
 
         function saveLocalData() {
             if (currentRole !== 'HOST') return;
             const data = {
-                alias: document.getElementById('my-alias').value,
-                customId: document.getElementById('my-custom-id').value,
-                bio: document.getElementById('my-bio').value,
-                audio: document.getElementById('my-audio').value,
-                gallery: document.getElementById('my-gallery').value, // Saved locally
-                css: document.getElementById('my-css').value,
-                wall: wallData
+                alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
+                bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
+                gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, wall: wallData
             };
             localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
@@ -317,60 +257,45 @@ body {
         // === ZONE: JS_BOOT ===
         window.onload = () => {
             renderTop8();
-            
             const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
                 if (savedData.customId) document.getElementById('my-custom-id').value = savedData.customId;
                 if (savedData.bio) document.getElementById('my-bio').value = savedData.bio;
                 if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
-                if (savedData.gallery) document.getElementById('my-gallery').value = savedData.gallery; // Restored locally
+                if (savedData.gallery) document.getElementById('my-gallery').value = savedData.gallery;
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
                 renderWall(); 
             }
-            
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetNode = urlParams.get('node');
-            if (targetNode) {
-                document.getElementById('friend-id').value = targetNode;
-                visitFriend();
-            }
+            const urlParams = new URLSearchParams(window.location.search); const targetNode = urlParams.get('node');
+            if (targetNode) { document.getElementById('friend-id').value = targetNode; visitFriend(); }
         };
 
-        // === ZONE: JS_UTILITIES ===
         function copyMagicLink() {
-            const linkInput = document.getElementById('magic-link-input');
+            const linkInput = document.getElementById('magic-link-input'); linkInput.select();
             navigator.clipboard.writeText(linkInput.value).then(() => {
-                const btn = document.getElementById('btn-copy-magic');
-                btn.innerText = "COPIED!";
-                setTimeout(() => { btn.innerText = "COPY"; }, 2000);
+                const btn = document.getElementById('btn-copy-magic'); btn.innerText = "COPIED!"; setTimeout(() => { btn.innerText = "COPY"; }, 2000);
             });
         }
 
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
             const mediaRegex = /(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp))/gi;
-            let formattedText = text.replace(mediaRegex, `<img src="$1" onerror="this.style.display='none';" />`);
-            
-            if (isPrivate && hideFromPublicView) {
-                return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`;
-            }
+            let formattedText = text.replace(mediaRegex, `<img src="$1" />`);
+            if (isPrivate && hideFromPublicView) { return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`; }
             return formattedText;
         }
 
         // === ZONE: JS_SMOOTH_DISCONNECT ===
         function disconnectNode() {
-            if (peer) peer.destroy(); 
-            peer = null; activeConn = null; currentRole = null;
-
+            if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null;
             document.getElementById('visitor-view').style.display = 'none';
             document.getElementById('host-live-wall-panel').style.display = 'none';
             document.getElementById('host-setup-panel').style.display = 'block';
             document.getElementById('visitor-connect-panel').style.display = 'block';
-            
             document.getElementById('btn-go-online').disabled = false;
             document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
             document.getElementById('my-id-display').style.display = 'none';
@@ -378,39 +303,25 @@ body {
             document.getElementById('audio-container').innerHTML = ""; 
             document.getElementById('render-gallery-grid').innerHTML = "";
             document.getElementById('visitor-gallery-panel').style.display = "none";
-            
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
-            
-            statusDisplay.innerText = "[ STATUS: OFFLINE ]";
-            statusDisplay.style.color = "#555";
+            statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
             window.history.pushState({}, document.title, window.location.pathname);
         }
 
         // === ZONE: JS_HOST_LOGIC ===
         function startHosting() {
-            currentRole = 'HOST';
-            document.getElementById('btn-go-online').disabled = true;
-            document.getElementById('btn-go-online').innerText = "INITIALIZING...";
-            
-            saveLocalData(); 
-            const currentCSS = document.getElementById('my-css').value;
-            document.getElementById('custom-injected-css').innerText = currentCSS;
-
+            currentRole = 'HOST'; document.getElementById('btn-go-online').disabled = true; document.getElementById('btn-go-online').innerText = "INITIALIZING...";
+            saveLocalData();
+            const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
             peer.on('open', (id) => {
-                statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]";
-                statusDisplay.style.color = "var(--main-cyan)";
-                document.getElementById('my-id').innerText = id;
-                document.getElementById('my-id-display').style.display = 'block';
-                document.getElementById('host-live-wall-panel').style.display = 'block';
-                renderWall();
-
-                const currentUrl = window.location.href.split('?')[0]; 
-                const magicLink = `${currentUrl}?node=${id}`;
-                
+                statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)";
+                document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
+                document.getElementById('host-live-wall-panel').style.display = 'block'; renderWall();
+                const currentUrl = window.location.href.split('?')[0]; const magicLink = `${currentUrl}?node=${id}`;
                 document.getElementById('magic-link-container').innerHTML = `
                     <div style="margin-top:15px;">
                         <div style="display:flex; gap:10px;">
@@ -421,22 +332,14 @@ body {
                 `;
             });
 
-            peer.on('error', (err) => {
-                if (err.type === 'unavailable-id') { alert("ERROR: Access Hash online elsewhere."); disconnectNode(); }
-            });
-
             peer.on('connection', (conn) => {
                 conn.on('data', handleIncomingP2PPacket);
                 conn.on('open', () => {
                     const profilePackage = {
-                        type: MSG_TYPE_PROFILE,
-                        alias: document.getElementById('my-alias').value,
-                        bio: document.getElementById('my-bio').value,
-                        css: document.getElementById('my-css').value,
-                        audio: document.getElementById('my-audio').value,
-                        gallery: document.getElementById('my-gallery').value, // Passed to visitor packet
-                        top8: top8, 
-                        currentWall: wallData
+                        type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value,
+                        bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value,
+                        audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value,
+                        top8: top8, currentWall: wallData
                     };
                     conn.send(profilePackage);
                 });
@@ -445,146 +348,84 @@ body {
 
         // === ZONE: JS_VISITOR_LOGIC ===
         function visitFriend() {
-            currentRole = 'VISITOR';
-            const friendId = document.getElementById('friend-id').value.trim();
-            if (!friendId) return;
-
-            document.getElementById('host-setup-panel').style.display = 'none';
-            document.getElementById('visitor-connect-panel').style.display = 'none';
-            document.getElementById('visitor-view').style.display = 'block';
-            statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
-
-            if (!peer) {
-                peer = new Peer(peerConfig);
-                peer.on('open', () => { executeConnection(friendId); });
-            } else {
-                executeConnection(friendId);
-            }
+            currentRole = 'VISITOR'; const friendId = document.getElementById('friend-id').value.trim(); if (!friendId) return;
+            document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
+            document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
+            if (!peer) { peer = new Peer(peerConfig); peer.on('open', () => { executeConnection(friendId); }); } else { executeConnection(friendId); }
         }
 
         function executeConnection(friendId) {
-            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]";
-            activeConn = peer.connect(friendId, { reliable: true });
-
+            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]"; activeConn = peer.connect(friendId, { reliable: true });
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("ESTABLISHING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
                     document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2>";
                 }
             }, 15000); 
-
-            activeConn.on('open', () => {
-                clearTimeout(connectionTimeout); 
-                statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]";
-            });
-
-            activeConn.on('data', handleIncomingP2PPacket);
-            activeConn.on('close', () => { disconnectNode(); });
+            activeConn.on('open', () => { clearTimeout(connectionTimeout); statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; });
+            activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
         }
 
         // === ZONE: JS_PACKET_HANDLER ===
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
                 case MSG_TYPE_PROFILE:
-                    document.getElementById('render-alias').innerText = packet.alias;
-                    document.getElementById('datarender-bio').innerText = packet.bio;
+                    document.getElementById('render-alias').innerText = packet.alias; document.getElementById('datarender-bio').innerText = packet.bio;
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    
-                    buildVisitorGallery(packet.gallery); // Render picture frames
-                    buildVisitorTop8Grid(packet.top8);
-                    wallData = packet.currentWall;
-                    renderWall();
+                    buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8);
+                    wallData = packet.currentWall; renderWall();
                     break;
-
                 case MSG_TYPE_WALL_POST:
                     if (currentRole === 'HOST') {
-                        wallData.push({
-                            sender: packet.sender,
-                            text: packet.text,
-                            isPrivate: packet.isPrivate,
-                            timestamp: new Date().toLocaleTimeString()
-                        });
+                        wallData.push({ sender: packet.sender, text: packet.text, isPrivate: packet.isPrivate, timestamp: new Date().toLocaleTimeString() });
                         saveLocalData(); renderWall(); 
-                        for (let peerId in peer.connections) {
-                            peer.connections[peerId].forEach(conn => {
-                                conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                            });
-                        }
+                        for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
                     }
                     break;
-
                 case MSG_TYPE_WALL_UPDATE:
-                    if (currentRole === 'VISITOR') {
-                        wallData = packet.updatedWall;
-                        renderWall();
-                    }
+                    if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); }
                     break;
             }
         }
 
         // === ZONE: JS_WALL_UI ===
         function visitorSendWallPacket() {
-            const inputField = document.getElementById('wall-input-buffer');
-            const privateToggle = document.getElementById('private-packet-toggle');
+            const inputField = document.getElementById('wall-input-buffer'); const privateToggle = document.getElementById('private-packet-toggle');
             if (!inputField.value || !activeConn) return;
-            
-            activeConn.send({ 
-                type: MSG_TYPE_WALL_POST, 
-                text: inputField.value,
-                isPrivate: privateToggle.checked,
-                sender: peer.id.substring(0,6) 
-            });
+            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: peer.id.substring(0,6) });
             inputField.value = ''; privateToggle.checked = false;
         }
 
         function hostSendWallPacket() {
-            const inputField = document.getElementById('host-wall-input');
-            if (!inputField.value) return;
-            wallData.push({
-                sender: "[HOST]",
-                text: inputField.value,
-                isPrivate: false,
-                timestamp: new Date().toLocaleTimeString()
-            });
+            const inputField = document.getElementById('host-wall-input'); if (!inputField.value) return;
+            wallData.push({ sender: "[HOST]", text: inputField.value, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
             saveLocalData(); renderWall();
-            for (let peerId in peer.connections) {
-                peer.connections[peerId].forEach(conn => {
-                    conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                });
-            }
+            for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
             inputField.value = '';
         }
 
-        document.getElementById('my-css').addEventListener('input', (e) => {
-            document.getElementById('custom-injected-css').innerText = e.target.value;
-        });
+        document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
 
         function renderWall() {
-            const visitorOutput = document.getElementById('datastream-output');
-            const hostOutput = document.getElementById('host-datastream-output');
-            
+            const visitorOutput = document.getElementById('datastream-output'); const hostOutput = document.getElementById('host-datastream-output');
             if(visitorOutput) {
                 visitorOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
-                        <span style="color:#555;">[${post.timestamp}]</span> 
-                        <span class="wall-post-sender">${post.sender}:</span> 
+                        <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender">${post.sender}:</span> 
                         <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
                     </div>
                 `).join('');
             }
-
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
-                        <span style="color:#555;">[${post.timestamp}]</span> 
-                        <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
+                        <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
                         <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
                     </div>
                 `).join('');
             }
         }
-
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
         document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
     </script>
