@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.04</title>
+    <title>NOWSPACE :: TRM_v1.05</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -27,6 +27,25 @@
             color: var(--main-cyan); padding: 2vw; margin: 0;
             text-shadow: var(--text-glow); letter-spacing: -0.5px;
             background-size: cover; background-attachment: fixed; background-position: center;
+        }
+
+        /* NEW: GLOBAL CRT SCANLINE OVERLAY */
+        #crt-scanlines {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            z-index: 9999; pointer-events: none;
+        }
+
+        /* NEW: GLITCH ANIMATION KEYFRAMES */
+        .glitch-text { animation: glitch 2s infinite linear alternate-reverse; position: relative; }
+        @keyframes glitch {
+            0% { text-shadow: 2px 0 var(--bright-magenta), -2px 0 var(--main-cyan); }
+            20% { text-shadow: -2px 0 var(--bright-magenta), 2px 0 var(--main-cyan); transform: translate(1px, -1px); }
+            40% { text-shadow: 2px 0 var(--bright-magenta), -2px 0 var(--main-cyan); transform: translate(-1px, 1px); }
+            60% { text-shadow: -2px 0 var(--bright-magenta), 2px 0 var(--main-cyan); transform: translate(1px, 1px); }
+            80% { text-shadow: 2px 0 var(--bright-magenta), -2px 0 var(--main-cyan); transform: translate(-1px, -1px); }
+            100% { text-shadow: -2px 0 var(--bright-magenta), 2px 0 var(--main-cyan); transform: translate(0); }
         }
 
         h1 { color: #fff; font-size: 1.5rem; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-top: 0;}
@@ -57,15 +76,13 @@
 
         .btn-small { padding: 5px 10px; font-size: 0.8rem; border: 1px solid var(--main-cyan); color: var(--main-cyan); text-shadow: none; box-shadow: none;}
         .btn-small:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
-        .btn-alert { border-color: var(--alert-red); color: var(--alert-red); }
-        .btn-alert:hover { background: var(--alert-red); color: #000; box-shadow: 0 0 5px var(--alert-red); }
+        .btn-alert { border-color: var(--alert-red) !important; color: var(--alert-red) !important; }
+        .btn-alert:hover { background: var(--alert-red) !important; color: #000 !important; box-shadow: 0 0 5px var(--alert-red) !important; }
 
-        /* MULTIMEDIA GALLERY GRID */
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        /* WALL ELEMENTS */
         .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: #000000 !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
@@ -91,9 +108,12 @@
     <style id="custom-injected-css"></style>
 </head>
 <body>
+    <div id="crt-scanlines"></div>
+
+    <audio id="secure-voice-stream" autoplay></audio>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.04</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.05</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -116,7 +136,7 @@
         <textarea id="my-audio" rows="2"><iframe src="https://archive.org/embed/synthwave-dreams-vol.-1-16&playlist=1" width="100%" height="30" frameborder="0" webkitallowfullscreen="true" mozallowfullscreen="true" allowfullscreen></iframe></textarea>
         
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
-        <textarea id="my-gallery" rows="3" placeholder="URLs go here...">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZidXNyeGNuM3J5M3l0YmY0cjI4M3g0YmF4MTBvNmR6bXp3ZzZ3dyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TQwYr9eH3rJqOli/giphy.gif&#10;https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
+        <textarea id="my-gallery" rows="3">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
 
         <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
@@ -126,10 +146,8 @@ body {
     background-attachment: fixed;
     background-position: center;
 }
-#render-profile-header { 
-    border-color: #ff00ff; 
-    box-shadow: 0 0 20px #ff00ff; 
-}</textarea>
+#render-profile-header { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff; }
+</textarea>
         <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ FACTORY RESET / WIPE CACHE ]</button>
 
         <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
@@ -158,6 +176,7 @@ body {
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
+            <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
         </div>
     </div>
 
@@ -171,7 +190,7 @@ body {
         <div id="audio-container"></div>
         
         <div id="render-profile-header">
-            <h2 id="render-alias" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
+            <h2 id="render-alias" class="glitch-text" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
             <p id="datarender-bio"></p>
         </div>
 
@@ -192,6 +211,7 @@ body {
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
+                <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
             </div>
             
             <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
@@ -204,6 +224,10 @@ body {
         // === ZONE: JS_GLOBAL_STATE ===
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
+        
+        // NEW: VOICE COMMS STATE VARIABLES
+        let localStream = null;
+        let currentCall = null;
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -211,15 +235,12 @@ body {
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
-        // === ZONE: NETWORK CONFIGURATION (YOUR KEYS GO HERE) ===
+        // === ZONE: NETWORK CONFIGURATION (PASTE YOUR KEYS HERE) ===
         const peerConfig = {
             config: {
                 'iceServers': [
-                    // Standard STUN Fallbacks
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:global.stun.twilio.com:3478' },
-                    
-                    // METERED TURN SERVERS
                     {
                         urls: "turn:nowspace.metered.live:80",
                         username: "a2c8cb5b5df48328de43a219",
@@ -238,6 +259,54 @@ body {
                 ]
             }
         };
+
+        // === ZONE: SECURE VOICE COMMS LOGIC ===
+        async function toggleVoice() {
+            if (currentCall) {
+                // Shut down active call
+                currentCall.close();
+                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+                currentCall = null;
+                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                return;
+            }
+
+            try {
+                // Request Mic Permission
+                localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                
+                if (currentRole === 'VISITOR' && activeConn) {
+                    // Visitor calls Host
+                    currentCall = peer.call(activeConn.peer, localStream);
+                    handleCallEvent(currentCall);
+                } else if (currentRole === 'HOST') {
+                    // Host calls first connected Visitor
+                    const connectedPeers = Object.keys(peer.connections);
+                    if(connectedPeers.length > 0) {
+                        currentCall = peer.call(connectedPeers[0], localStream);
+                        handleCallEvent(currentCall);
+                    } else {
+                        alert("ERROR: No visitors active to call.");
+                        toggleVoice(); // Auto-shutdown mic
+                    }
+                }
+            } catch(e) {
+                alert("ERROR: Microphone access denied or hardware not found.");
+            }
+        }
+
+        function handleCallEvent(call) {
+            call.on('stream', (remoteStream) => {
+                const audioEl = document.getElementById('secure-voice-stream');
+                audioEl.srcObject = remoteStream;
+            });
+            call.on('close', () => {
+                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+                currentCall = null;
+                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+            });
+        }
 
         function resetDefaultTemplate() {
             if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
@@ -321,6 +390,9 @@ body {
 
         // === ZONE: JS_SMOOTH_DISCONNECT ===
         function disconnectNode() {
+            if (currentCall) { currentCall.close(); }
+            if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            
             if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null;
             document.getElementById('visitor-view').style.display = 'none';
             document.getElementById('host-live-wall-panel').style.display = 'none';
@@ -335,6 +407,8 @@ body {
             document.getElementById('visitor-gallery-panel').style.display = "none";
             globalDisconnectBtn.style.display = 'none';
             
+            document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+
             const currentCSS = document.getElementById('my-css').value;
             document.getElementById('custom-injected-css').innerText = currentCSS;
             statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
@@ -363,6 +437,21 @@ body {
                         </div>
                     </div>
                 `;
+            });
+
+            // NEW: AUTO-ANSWER INCOMING VOICE COMMS
+            peer.on('call', async (call) => {
+                if(confirm("INCOMING VOICE_LINK DETECTED. ACCEPT SECURE COMMS?")) {
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                        document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                        call.answer(localStream);
+                        currentCall = call;
+                        handleCallEvent(call);
+                    } catch(e) { call.close(); alert("ERROR: Could not access microphone."); }
+                } else {
+                    call.close();
+                }
             });
 
             peer.on('connection', (conn) => {
