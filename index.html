@@ -211,13 +211,30 @@ body {
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
+        // === ZONE: NETWORK CONFIGURATION (YOUR KEYS GO HERE) ===
         const peerConfig = {
             config: {
                 'iceServers': [
+                    // Standard STUN Fallbacks
                     { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' },
-                    { urls: 'stun:stun2.l.google.com:19302' },
-                    { urls: 'stun:global.stun.twilio.com:3478' }
+                    { urls: 'stun:global.stun.twilio.com:3478' },
+                    
+                    // METERED TURN SERVERS
+                    {
+                        urls: "turn:nowspace.metered.live:80",
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
+                    },
+                    {
+                        urls: "turn:nowspace.metered.live:443",
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
+                    },
+                    {
+                        urls: "turn:nowspace.metered.live:443?transport=tcp",
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
+                    }
                 ]
             }
         };
@@ -348,7 +365,6 @@ body {
                 `;
             });
 
-            // NEW: VISITOR LOGGING MECHANIC
             peer.on('connection', (conn) => {
                 const logPanel = document.getElementById('host-visitor-log');
                 const timestamp = new Date().toLocaleTimeString();
@@ -428,7 +444,6 @@ body {
             inputField.value = '';
         }
 
-        // NEW: HOST CLEAR WALL MECHANIC
         function hostClearWall() {
             if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
                 wallData = [];
