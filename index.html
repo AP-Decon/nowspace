@@ -491,14 +491,17 @@ body {
             if (!peer) { peer = new Peer(peerConfig); peer.on('open', () => { executeConnection(friendId); }); } else { executeConnection(friendId); }
         }
 
-        function executeConnection(friendId) {
-            statusDisplay.innerText = "[ STATUS: ESTABLISHING_LINK... ]"; activeConn = peer.connect(friendId, { reliable: true });
+function executeConnection(friendId) {
+            statusDisplay.innerText = "[ STATUS: NEGOTIATING_FIREWALL... ]"; activeConn = peer.connect(friendId, { reliable: true });
+            
+            // UPGRADED PATIENCE TIMER FOR CELLULAR RELAYS (40 Seconds)
             let connectionTimeout = setTimeout(() => {
-                if(statusDisplay.innerText.includes("ESTABLISHING")) {
+                if(statusDisplay.innerText.includes("NEGOTIATING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // DEAD_LINK ]</h2>";
+                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // TIMEOUT_OR_DEAD_LINK ]</h2>";
                 }
-            }, 15000); 
+            }, 40000); 
+
             activeConn.on('open', () => { clearTimeout(connectionTimeout); statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; });
             activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
         }
