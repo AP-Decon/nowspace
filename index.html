@@ -258,7 +258,7 @@ body {
                     },
                     {
                         urls: "turn:nowspace.metered.live:443",
-                        username: "Pa2c8cb5b5df48328de43a219",
+                        username: "a2c8cb5b5df48328de43a219",
                         credential: "cn5bJg9evQNfOc/k"
                     },
                     {
@@ -567,4 +567,15 @@ body {
             }
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
-                    <div class="wall-post ${post.isPrivate ? 'private-packet' :
+                    <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
+                        <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
+                        <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
+                    </div>
+                `).join('');
+            }
+        }
+        document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
+        document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+    </script>
+</body>
+</html>
