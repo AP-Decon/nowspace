@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.10</title>
+    <title>NOWSPACE :: TRM_v1.11</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -29,7 +29,6 @@
             background-size: cover; background-attachment: fixed; background-position: center;
         }
 
-        /* GLOBAL CRT SCANLINE OVERLAY */
         #crt-scanlines {
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
             background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
@@ -37,7 +36,6 @@
             z-index: 9999; pointer-events: none;
         }
 
-        /* GLITCH ANIMATION KEYFRAMES */
         .glitch-text { animation: glitch 2s infinite linear alternate-reverse; position: relative; }
         @keyframes glitch {
             0% { text-shadow: 2px 0 var(--bright-magenta), -2px 0 var(--main-cyan); }
@@ -83,7 +81,8 @@
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column-reverse; background: #000000 !important;}
+        /* FIXED: Chat now flows top-to-bottom standard style */
+        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; background: #000000 !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
@@ -99,7 +98,6 @@
         #visitor-view { position: relative; z-index: 10; display: none; margin-top: 20px;}
         #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #050509 !important; position: relative; z-index: 20;}
         
-        /* AUDIO UI CONTROLS - FIXED Z-INDEX */
         #audio-container { 
             margin-bottom: 15px; background: #000000 !important; display: block; 
             width: 100%; max-width: 500px; height: auto; min-height: 45px; 
@@ -110,7 +108,6 @@
             width: 100%; height: 45px; border: none; display: block; 
             position: relative; z-index: 100000; 
         }
-        #secure-voice-stream { display: none !important; }
 
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
         #host-visitor-log { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #0f0; height: 100px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; margin-bottom: 10px; }
@@ -118,40 +115,30 @@
     <style id="custom-injected-css"></style>
 </head>
 <body>
-    <!-- SCANLINE LAYER -->
     <div id="crt-scanlines"></div>
 
-    <!-- HIDDEN AUDIO ENGINE FOR SECURE COMMS -->
-    <audio id="secure-voice-stream" autoplay></audio>
+    <div id="secure-voice-stream-container" style="display:none;"></div>
 
-    <!-- === ZONE: HTML_HEADER === -->
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.10</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.11</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
-        
         <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
-        
         <label>Custom Access Hash (For your URL):</label>
         <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name (e.g., Alan)">
-        
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
-        
-        <!-- THE ORIGINAL SYNTHWAVE MIX YOUTUBE EMBED -->
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
         <textarea id="my-audio" rows="2"><iframe width="100%" height="45" src="https://www.youtube.com/embed/hMxlPYStVVY?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></textarea>
-        
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
-        <textarea id="my-gallery" rows="3">https://kitbash3d.com/cdn/shop/products/CBP_WEB_SET_GALLERY_01.jpg</textarea>
+        <textarea id="my-gallery" rows="3">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
 
         <label>Custom CSS Injection:</label>
         <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
@@ -177,10 +164,8 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
-        
         <div style="border: 1px solid #333; margin-bottom: 15px; background: #000; padding: 5px;">
             <h4 style="margin: 0 0 5px 5px; font-size: 0.75rem; color: #555;">> ACCESS_RECORDS</h4>
             <div id="host-visitor-log">> System initialized. Monitoring for incoming handshakes...<br></div>
@@ -196,32 +181,26 @@ body {
         </div>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
-        
         <div id="render-profile-header">
             <h2 id="render-alias" class="glitch-text" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
             <p id="datarender-bio"></p>
         </div>
-
         <div class="panel" id="visitor-gallery-panel" style="margin-top:20px; display: none;">
             <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
             <div class="gallery-grid" id="render-gallery-grid"></div>
         </div>
-
         <div class="panel" id="visitor-top8-panel" style="margin-top:20px;">
             <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
             <div class="top8-grid" id="render-top8-grid"></div>
         </div>
-
         <div class="panel" id="datastream-container" style="margin-top:20px;">
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             <div id="datastream-output" class="datastream-output"></div>
@@ -231,7 +210,6 @@ body {
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
             </div>
-            
             <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
                 <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
             </label>
@@ -244,7 +222,7 @@ body {
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         
         let localStream = null;
-        let currentCall = null;
+        let activeCalls = []; // MULTI-NODE CALL TRACKER
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -256,44 +234,39 @@ body {
         const peerConfig = {
             config: {
                 'iceServers': [
-                    // Standard STUN Fallbacks (Google & Twilio)
                     { urls: 'stun:stun.l.google.com:19302' },
                     { urls: 'stun:global.stun.twilio.com:3478' },
-                    
-                    // METERED RELAY SERVERS (The Exact Array)
-                    {
-                        urls: "stun:stun.relay.metered.ca:80"
-                    },
+                    { urls: "stun:stun.relay.metered.ca:80" },
                     {
                         urls: "turn:global.relay.metered.ca:80",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:443",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     }
                 ]
             }
         };
 
-        // === ZONE: SECURE VOICE COMMS LOGIC ===
+        // === ZONE: MULTI-PARTY SECURE VOICE COMMS LOGIC ===
         async function toggleVoice() {
-            if (currentCall) {
-                currentCall.close();
+            if (activeCalls.length > 0) {
+                activeCalls.forEach(call => call.close());
+                activeCalls = [];
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                currentCall = null;
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
                 return;
             }
@@ -303,15 +276,20 @@ body {
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
                 
                 if (currentRole === 'VISITOR' && activeConn) {
-                    currentCall = peer.call(activeConn.peer, localStream);
-                    handleCallEvent(currentCall);
+                    let call = peer.call(activeConn.peer, localStream);
+                    activeCalls.push(call);
+                    handleCallEvent(call);
                 } else if (currentRole === 'HOST') {
+                    // HOST BROADCASTS TO EVERYONE
                     const connectedPeers = Object.keys(peer.connections);
                     if(connectedPeers.length > 0) {
-                        currentCall = peer.call(connectedPeers[0], localStream);
-                        handleCallEvent(currentCall);
+                        connectedPeers.forEach(peerId => {
+                            let call = peer.call(peerId, localStream);
+                            activeCalls.push(call);
+                            handleCallEvent(call);
+                        });
                     } else {
-                        alert("ERROR: No visitors active to call.");
+                        alert("ERROR: No active visitors to broadcast to.");
                         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                         document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
                     }
@@ -323,15 +301,42 @@ body {
             }
         }
 
+        // DYNAMIC AUDIO TAG GENERATOR FOR MULTI-NODE
         function handleCallEvent(call) {
             call.on('stream', (remoteStream) => {
-                const audioEl = document.getElementById('secure-voice-stream');
+                let audioEl = document.createElement('audio');
+                audioEl.autoplay = true;
                 audioEl.srcObject = remoteStream;
+                audioEl.id = 'audio-node-' + call.peer;
+                document.getElementById('secure-voice-stream-container').appendChild(audioEl);
             });
             call.on('close', () => {
-                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                currentCall = null;
-                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                let audioEl = document.getElementById('audio-node-' + call.peer);
+                if(audioEl) audioEl.remove();
+                activeCalls = activeCalls.filter(c => c !== call);
+                if(activeCalls.length === 0 && localStream) {
+                    localStream.getTracks().forEach(t => t.stop()); localStream = null;
+                    document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                }
+            });
+        }
+
+        // BI-DIRECTIONAL ANSWERING LOGIC
+        function setupPeerCallListener() {
+            peer.on('call', async (call) => {
+                if(confirm("INCOMING SECURE VOICE_LINK DETECTED. ACCEPT COMMS?")) {
+                    try {
+                        if(!localStream) {
+                            localStream = await navigator.mediaDevices.getUserMedia({audio: true});
+                            document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                        }
+                        call.answer(localStream);
+                        activeCalls.push(call);
+                        handleCallEvent(call);
+                    } catch(e) { call.close(); alert("ERROR: Could not access microphone."); }
+                } else {
+                    call.close();
+                }
             });
         }
 
@@ -415,10 +420,10 @@ body {
             return formattedText;
         }
 
-        // === ZONE: JS_SMOOTH_DISCONNECT ===
         function disconnectNode() {
-            if (currentCall) { currentCall.close(); }
+            if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+            document.getElementById('secure-voice-stream-container').innerHTML = ''; // Clear dynamic audio tags
             
             if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null;
             document.getElementById('visitor-view').style.display = 'none';
@@ -450,6 +455,8 @@ body {
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
+            setupPeerCallListener(); // Allow Host to answer calls
+
             peer.on('open', (id) => {
                 statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)";
                 globalDisconnectBtn.style.display = 'block';
@@ -464,21 +471,6 @@ body {
                         </div>
                     </div>
                 `;
-            });
-
-            // AUTO-ANSWER INCOMING VOICE COMMS
-            peer.on('call', async (call) => {
-                if(confirm("INCOMING VOICE_LINK DETECTED. ACCEPT SECURE COMMS?")) {
-                    try {
-                        localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                        document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
-                        call.answer(localStream);
-                        currentCall = call;
-                        handleCallEvent(call);
-                    } catch(e) { call.close(); alert("ERROR: Could not access microphone."); }
-                } else {
-                    call.close();
-                }
             });
 
             peer.on('connection', (conn) => {
@@ -506,13 +498,12 @@ body {
             document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
             document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
             globalDisconnectBtn.style.display = 'block';
-            if (!peer) { peer = new Peer(peerConfig); peer.on('open', () => { executeConnection(friendId); }); } else { executeConnection(friendId); }
+            if (!peer) { peer = new Peer(peerConfig); setupPeerCallListener(); peer.on('open', () => { executeConnection(friendId); }); } else { setupPeerCallListener(); executeConnection(friendId); }
         }
 
         function executeConnection(friendId) {
             statusDisplay.innerText = "[ STATUS: NEGOTIATING_FIREWALL... ]"; activeConn = peer.connect(friendId, { reliable: true });
             
-            // 40 SECOND PATIENCE TIMER FOR CELLULAR RELAYS
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("NEGOTIATING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
@@ -575,6 +566,8 @@ body {
 
         function renderWall() {
             const visitorOutput = document.getElementById('datastream-output'); const hostOutput = document.getElementById('host-datastream-output');
+            
+            // Generate standard top-to-bottom chat flow
             if(visitorOutput) {
                 visitorOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
@@ -582,6 +575,7 @@ body {
                         <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
                     </div>
                 `).join('');
+                visitorOutput.scrollTop = visitorOutput.scrollHeight; // Auto-scroll to newest message
             }
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
@@ -590,6 +584,7 @@ body {
                         <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
                     </div>
                 `).join('');
+                hostOutput.scrollTop = hostOutput.scrollHeight; // Auto-scroll to newest message
             }
         }
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
