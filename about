@@ -1,0 +1,34 @@
+
+🌐 Welcome to NOWSPACE
+Tired of your group chats living on corporate servers? Take back your data.
+
+NOWSPACE is a serverless, peer-to-peer communication terminal that lives entirely in your web browser. There are no accounts to create, no passwords to remember, and absolutely no central databases tracking your data.
+
+When you boot up NOWSPACE, your browser becomes a private network node. You create a direct, encrypted bridge straight to your friends—bypassing the cloud entirely. It’s not just a chat app; it is a fully customizable digital room that you build, host, and control.
+
+Why use NOWSPACE?
+
+Total Customization: Your node, your rules. Design your own interface with custom CSS, build dynamic picture galleries, and set the vibe with an embedded, looping soundtrack of your choice.
+
+Burn-After-Reading Privacy: Because there is no central server, your chat history only exists while your terminal is active. The second you and your friends close your browser tabs, the conversation disappears forever.
+
+Secure Voice Comms: Instantly hop on encrypted, multi-party voice calls directly through the terminal. No extra software downloads or app installations required.
+
+Cryptographic Security: Built-in "Trust On First Use" (TOFU) security generates a unique hardware fingerprint for your profile. If an imposter tries to steal your display name, the terminal will instantly flag them and warn your friends.
+
+Interactive Soundboards: Keep the chat highly interactive by triggering classic sound effects (or pasting your own custom MP3 links) that play instantly across everyone's screens.
+
+Theme Cartridges: Love your layout? Export your entire profile as a tiny "Cartridge" file to your hard drive, allowing you to instantly load your custom theme and identity from any computer in the world.
+
+Boot up your terminal, share your secure access link, and invite your friends into your world.
+
+[ >> INITIALIZE_NODE << ]
+
+Change the Vibe with AI
+
+Want a completely different aesthetic? Copy the code from your Custom CSS Injection box, paste it into Gemini, and let the AI code the new vibe for you. For the best results, assign the AI a specific persona and set clear visual constraints.
+
+Try a prompt like this:
+
+"Here is the CSS for my web terminal. You are a Retro-Futurist UI Designer. Rewrite this CSS to give it a 'Glitch Art' visual style. Use raw, pixelated fonts, jarring color contrasts, and CSS animations that simulate screen tearing or static noise."
+
