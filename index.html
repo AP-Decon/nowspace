@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.11</title>
+    <title>NOWSPACE :: TRM_v1.12</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -81,7 +81,6 @@
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        /* FIXED: Chat now flows top-to-bottom standard style */
         .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; background: #000000 !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
@@ -120,7 +119,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.11</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.12</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -150,7 +149,13 @@ body {
 }
 #render-profile-header { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff; }
 </textarea>
-        <button class="btn-small" onclick="resetDefaultTemplate()" style="margin-bottom: 15px; border-color: var(--dark-magenta); color: #aaa;">[ FACTORY RESET / WIPE CACHE ]</button>
+        
+        <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
+            <button class="btn-small" onclick="resetDefaultTemplate()" style="border-color: var(--dark-magenta); color: #aaa;">[ FACTORY RESET ]</button>
+            <button class="btn-small" onclick="exportTheme()" style="border-color: #0f0; color: #0f0;">[ 💾 EXPORT THEME ]</button>
+            <button class="btn-small" onclick="document.getElementById('import-file').click()" style="border-color: #0f0; color: #0f0;">[ 📂 IMPORT THEME ]</button>
+            <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
+        </div>
 
         <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
@@ -222,7 +227,7 @@ body {
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         
         let localStream = null;
-        let activeCalls = []; // MULTI-NODE CALL TRACKER
+        let activeCalls = [];
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -239,29 +244,75 @@ body {
                     { urls: "stun:stun.relay.metered.ca:80" },
                     {
                         urls: "turn:global.relay.metered.ca:80",
-                        username: "PASTE_YOUR_USERNAME_HERE",
-                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                        username: "PASTE_YOUR_USERNAME_HERE",
-                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:443",
-                        username: "PASTE_YOUR_USERNAME_HERE",
-                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
                     },
                     {
                         urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                        username: "PASTE_YOUR_USERNAME_HERE",
-                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                        username: "a2c8cb5b5df48328de43a219",
+                        credential: "cn5bJg9evQNfOc/k"
                     }
                 ]
             }
         };
 
-        // === ZONE: MULTI-PARTY SECURE VOICE COMMS LOGIC ===
+        // === ZONE: THEME EXPORT & IMPORT ===
+        function exportTheme() {
+            const data = {
+                alias: document.getElementById('my-alias').value,
+                customId: document.getElementById('my-custom-id').value,
+                bio: document.getElementById('my-bio').value,
+                audio: document.getElementById('my-audio').value,
+                gallery: document.getElementById('my-gallery').value,
+                css: document.getElementById('my-css').value
+            };
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.setAttribute("href", dataStr);
+            const safeAlias = data.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            downloadAnchorNode.setAttribute("download", `nowspace_theme_${safeAlias}.json`);
+            document.body.appendChild(downloadAnchorNode); 
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function importTheme(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if(parsed.alias !== undefined) document.getElementById('my-alias').value = parsed.alias;
+                    if(parsed.customId !== undefined) document.getElementById('my-custom-id').value = parsed.customId;
+                    if(parsed.bio !== undefined) document.getElementById('my-bio').value = parsed.bio;
+                    if(parsed.audio !== undefined) document.getElementById('my-audio').value = parsed.audio;
+                    if(parsed.gallery !== undefined) document.getElementById('my-gallery').value = parsed.gallery;
+                    if(parsed.css !== undefined) {
+                        document.getElementById('my-css').value = parsed.css;
+                        document.getElementById('custom-injected-css').innerText = parsed.css;
+                    }
+                    saveLocalData();
+                    alert("THEME IMPORTED SUCCESSFULLY!");
+                } catch (err) {
+                    alert("ERROR: Invalid or corrupt theme file.");
+                }
+                event.target.value = ''; 
+            };
+            reader.readAsText(file);
+        }
+
+        // === ZONE: SECURE VOICE COMMS LOGIC ===
         async function toggleVoice() {
             if (activeCalls.length > 0) {
                 activeCalls.forEach(call => call.close());
@@ -280,7 +331,6 @@ body {
                     activeCalls.push(call);
                     handleCallEvent(call);
                 } else if (currentRole === 'HOST') {
-                    // HOST BROADCASTS TO EVERYONE
                     const connectedPeers = Object.keys(peer.connections);
                     if(connectedPeers.length > 0) {
                         connectedPeers.forEach(peerId => {
@@ -301,7 +351,6 @@ body {
             }
         }
 
-        // DYNAMIC AUDIO TAG GENERATOR FOR MULTI-NODE
         function handleCallEvent(call) {
             call.on('stream', (remoteStream) => {
                 let audioEl = document.createElement('audio');
@@ -321,7 +370,6 @@ body {
             });
         }
 
-        // BI-DIRECTIONAL ANSWERING LOGIC
         function setupPeerCallListener() {
             peer.on('call', async (call) => {
                 if(confirm("INCOMING SECURE VOICE_LINK DETECTED. ACCEPT COMMS?")) {
@@ -346,7 +394,6 @@ body {
             }
         }
 
-        // === ZONE: JS_TOP_8_LOGIC ===
         function renderTop8() {
             const hostDisplay = document.getElementById('host-top8-display');
             if(hostDisplay) { hostDisplay.innerHTML = top8.length === 0 ? "No peers linked yet." : top8.map(id => `[ ${id.toUpperCase()} ]`).join(' | '); }
@@ -385,7 +432,6 @@ body {
             localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
 
-        // === ZONE: JS_BOOT ===
         window.onload = () => {
             renderTop8();
             const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
@@ -423,7 +469,7 @@ body {
         function disconnectNode() {
             if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-            document.getElementById('secure-voice-stream-container').innerHTML = ''; // Clear dynamic audio tags
+            document.getElementById('secure-voice-stream-container').innerHTML = ''; 
             
             if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null;
             document.getElementById('visitor-view').style.display = 'none';
@@ -447,7 +493,6 @@ body {
             window.history.pushState({}, document.title, window.location.pathname);
         }
 
-        // === ZONE: JS_HOST_LOGIC ===
         function startHosting() {
             currentRole = 'HOST'; document.getElementById('btn-go-online').disabled = true; document.getElementById('btn-go-online').innerText = "INITIALIZING...";
             saveLocalData();
@@ -455,7 +500,7 @@ body {
             const customIdInput = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
             peer = customIdInput ? new Peer(customIdInput, peerConfig) : new Peer(peerConfig); 
 
-            setupPeerCallListener(); // Allow Host to answer calls
+            setupPeerCallListener(); 
 
             peer.on('open', (id) => {
                 statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)";
@@ -492,7 +537,6 @@ body {
             });
         }
 
-        // === ZONE: JS_VISITOR_LOGIC ===
         function visitFriend() {
             currentRole = 'VISITOR'; const friendId = document.getElementById('friend-id').value.trim(); if (!friendId) return;
             document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
@@ -515,7 +559,6 @@ body {
             activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
         }
 
-        // === ZONE: JS_PACKET_HANDLER ===
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
                 case MSG_TYPE_PROFILE:
@@ -538,7 +581,6 @@ body {
             }
         }
 
-        // === ZONE: JS_WALL_UI ===
         function visitorSendWallPacket() {
             const inputField = document.getElementById('wall-input-buffer'); const privateToggle = document.getElementById('private-packet-toggle');
             if (!inputField.value || !activeConn) return;
@@ -567,7 +609,6 @@ body {
         function renderWall() {
             const visitorOutput = document.getElementById('datastream-output'); const hostOutput = document.getElementById('host-datastream-output');
             
-            // Generate standard top-to-bottom chat flow
             if(visitorOutput) {
                 visitorOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
@@ -575,7 +616,7 @@ body {
                         <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
                     </div>
                 `).join('');
-                visitorOutput.scrollTop = visitorOutput.scrollHeight; // Auto-scroll to newest message
+                visitorOutput.scrollTop = visitorOutput.scrollHeight;
             }
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
@@ -584,7 +625,7 @@ body {
                         <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
                     </div>
                 `).join('');
-                hostOutput.scrollTop = hostOutput.scrollHeight; // Auto-scroll to newest message
+                hostOutput.scrollTop = hostOutput.scrollHeight;
             }
         }
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
