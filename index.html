@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.15</title>
+    <title>NOWSPACE :: TRM_v1.16</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -89,6 +89,10 @@
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
+        /* HYPERLINK TERMINAL STYLING */
+        .wall-post a { color: var(--main-cyan); text-decoration: none; border-bottom: 1px dashed var(--main-cyan); transition: all 0.2s; word-break: break-all; }
+        .wall-post a:hover { background: var(--main-cyan); color: #000; }
+
         .private-packet { background: rgba(255,0,255,0.05); border-left: 2px dashed var(--bright-magenta) !important; padding-left: 10px; }
         .blurred-text { filter: blur(5px); user-select: none; color: #ff00ff !important; transition: filter 0.3s ease; }
         .blurred-text:hover { filter: blur(0px); }
@@ -128,13 +132,14 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.15</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.16</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
+    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -178,6 +183,7 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="border: 1px solid #333; margin-bottom: 15px; background: #000; padding: 5px;">
@@ -202,12 +208,14 @@ body {
         </div>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -263,7 +271,7 @@ body {
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
-        const MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; // NEW SOUNDBOARD PROTOCOL
+        const MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
@@ -272,8 +280,7 @@ body {
             'airhorn': 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3',
             'boom': 'https://www.myinstants.com/media/sounds/vine-boom.mp3',
             'bruh': 'https://www.myinstants.com/media/sounds/movie_1.mp3',
-            'alert': 'https://www.myinstants.com/media/sounds/gunshotjbudden.mp3'
-            'alert': ''
+            'alert': 'https://www.myinstants.com/media/sounds/red-alert-klaxon.mp3'
         };
 
         // === ZONE: NETWORK CONFIGURATION ===
@@ -285,23 +292,23 @@ body {
                     { urls: "stun:stun.relay.metered.ca:80" },
                     {
                         urls: "turn:global.relay.metered.ca:80",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:443",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     }
                 ]
             }
@@ -309,13 +316,11 @@ body {
 
         // === ZONE: SOUNDBOARD LOGIC ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null) {
-            // Play the sound locally immediately
             if (SOUND_ASSETS[soundId]) {
                 let audio = new Audio(SOUND_ASSETS[soundId]);
                 audio.play().catch(e => console.warn("Audio blocked by browser:", e));
             }
 
-            // If the user clicked the button, broadcast the packet to the network
             if (isLocalClick) {
                 const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id };
                 if (currentRole === 'HOST') {
@@ -326,7 +331,6 @@ body {
                     activeConn.send(packet);
                 }
             } 
-            // If Host receives a sound from a Visitor, forward it to all OTHER visitors
             else if (currentRole === 'HOST') {
                 const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender };
                 for (let peerId in peer.connections) {
@@ -537,9 +541,20 @@ body {
             });
         }
 
+        // === ZONE: THE HYPERLINK FIX ===
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
-            const mediaRegex = /(https?:\/\/[^\s]+(?:\.jpg|\.jpeg|\.png|\.gif|\.webp))/gi;
-            let formattedText = text.replace(mediaRegex, `<img src="$1" />`);
+            // Find all URLs in the message string
+            const urlRegex = /(https?:\/\/[^\s]+)/gi;
+            
+            let formattedText = text.replace(urlRegex, (url) => {
+                // If the URL is an image file, render it as a picture frame
+                if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
+                    return `<img src="${url}" />`;
+                }
+                // If it's a standard web link, render a safe clickable link that opens in a NEW TAB
+                return `<a href="${url}" target="_blank">${url}</a>`;
+            });
+
             if (isPrivate && hideFromPublicView) { return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`; }
             return formattedText;
         }
@@ -673,7 +688,7 @@ body {
                 case MSG_TYPE_WALL_UPDATE:
                     if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); }
                     break;
-                case MSG_TYPE_SOUNDBOARD: // HANDLE INCOMING SOUND NETWORK EVENTS
+                case MSG_TYPE_SOUNDBOARD: 
                     triggerSound(packet.soundId, false, packet.sender);
                     break;
             }
