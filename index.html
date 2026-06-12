@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.13</title>
+    <title>NOWSPACE :: TRM_v1.14</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -97,14 +97,15 @@
         #visitor-view { position: relative; z-index: 10; display: none; margin-top: 20px;}
         #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #050509 !important; position: relative; z-index: 20;}
         
+        /* EXPANDED AUDIO UI CONTROLS TO SHOW TRACK TITLE */
         #audio-container { 
             margin-bottom: 15px; background: #000000 !important; display: block; 
-            width: 100%; max-width: 500px; height: auto; min-height: 45px; 
+            width: 100%; max-width: 500px; height: auto; min-height: 150px; 
             border: 1px solid var(--main-cyan); position: relative; 
             z-index: 100000; overflow: visible; 
         }
         #audio-container iframe { 
-            width: 100%; height: 45px; border: none; display: block; 
+            width: 100%; height: 150px !important; border: none; display: block; 
             position: relative; z-index: 100000; 
         }
 
@@ -126,7 +127,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.13</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.14</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -141,8 +142,10 @@
         <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name (e.g., Alan)">
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
+        
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
-        <textarea id="my-audio" rows="2"><iframe width="100%" height="45" src="https://www.youtube.com/embed/hMxlPYStVVY?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></textarea>
+        <textarea id="my-audio" rows="2"><iframe width="100%" height="150" src="https://www.youtube.com/embed/hMxlPYStVVY?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></textarea>
+        
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
         <textarea id="my-gallery" rows="3">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
 
@@ -234,7 +237,6 @@ body {
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         
-        // CRYPTO FINGERPRINT GENERATION
         let myFingerprint = localStorage.getItem('nowspace_identity_key');
         if (!myFingerprint) {
             myFingerprint = 'TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
@@ -290,7 +292,7 @@ body {
                 audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value,
                 css: document.getElementById('my-css').value,
-                identityFingerprint: myFingerprint // PACKAGES YOUR SECURE ID
+                identityFingerprint: myFingerprint 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
             const downloadAnchorNode = document.createElement('a');
@@ -320,7 +322,7 @@ body {
                     }
                     if(parsed.identityFingerprint !== undefined) {
                         myFingerprint = parsed.identityFingerprint;
-                        localStorage.setItem('nowspace_identity_key', myFingerprint); // OVERWRITES LOCAL ID WITH CARTRIDGE ID
+                        localStorage.setItem('nowspace_identity_key', myFingerprint); 
                     }
                     saveLocalData();
                     alert("THEME & IDENTITY KEY IMPORTED SUCCESSFULLY!");
@@ -411,7 +413,7 @@ body {
         function resetDefaultTemplate() {
             if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
                 localStorage.removeItem('nowspace_save'); 
-                localStorage.removeItem('nowspace_identity_key'); // WIPES ID TOO
+                localStorage.removeItem('nowspace_identity_key'); 
                 window.location.reload();
             }
         }
@@ -549,127 +551,4 @@ body {
                 conn.on('data', handleIncomingP2PPacket);
                 conn.on('open', () => {
                     const profilePackage = {
-                        type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value,
-                        bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value,
-                        audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value,
-                        top8: top8, currentWall: wallData,
-                        hostFingerprint: myFingerprint // SEND ID HASH TO VISITOR
-                    };
-                    conn.send(profilePackage);
-                });
-            });
-        }
-
-        function visitFriend() {
-            currentRole = 'VISITOR'; const friendId = document.getElementById('friend-id').value.trim(); if (!friendId) return;
-            document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
-            document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
-            globalDisconnectBtn.style.display = 'block';
-            if (!peer) { peer = new Peer(peerConfig); setupPeerCallListener(); peer.on('open', () => { executeConnection(friendId); }); } else { setupPeerCallListener(); executeConnection(friendId); }
-        }
-
-        function executeConnection(friendId) {
-            statusDisplay.innerText = "[ STATUS: NEGOTIATING_FIREWALL... ]"; activeConn = peer.connect(friendId, { reliable: true });
-            
-            let connectionTimeout = setTimeout(() => {
-                if(statusDisplay.innerText.includes("NEGOTIATING")) {
-                    statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // TIMEOUT_OR_DEAD_LINK ]</h2>";
-                }
-            }, 40000); 
-
-            activeConn.on('open', () => { clearTimeout(connectionTimeout); statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; });
-            activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
-        }
-
-        function handleIncomingP2PPacket(packet) {
-            switch(packet.type) {
-                case MSG_TYPE_PROFILE:
-                    document.getElementById('render-alias').innerText = packet.alias; 
-                    document.getElementById('datarender-bio').innerText = packet.bio;
-                    
-                    // TOFU SECURITY CHECK
-                    let knownHosts = JSON.parse(localStorage.getItem('nowspace_known_hosts')) || {};
-                    let badge = document.getElementById('identity-badge');
-                    let hostTarget = activeConn.peer;
-                    
-                    if (!knownHosts[hostTarget]) {
-                        knownHosts[hostTarget] = packet.hostFingerprint;
-                        localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts));
-                        badge.innerHTML = '<span class="badge-new">[ 🆕 TOFU: NEW_IDENTITY_REGISTERED ]</span>';
-                    } else if (knownHosts[hostTarget] === packet.hostFingerprint) {
-                        badge.innerHTML = '<span class="badge-verified">[ ✔ VERIFIED_SECURE_NODE ]</span>';
-                    } else {
-                        badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>';
-                    }
-
-                    if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
-                    if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8);
-                    wallData = packet.currentWall; renderWall();
-                    break;
-                case MSG_TYPE_WALL_POST:
-                    if (currentRole === 'HOST') {
-                        wallData.push({ sender: packet.sender, text: packet.text, isPrivate: packet.isPrivate, timestamp: new Date().toLocaleTimeString() });
-                        saveLocalData(); renderWall(); 
-                        for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
-                    }
-                    break;
-                case MSG_TYPE_WALL_UPDATE:
-                    if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); }
-                    break;
-            }
-        }
-
-        function visitorSendWallPacket() {
-            const inputField = document.getElementById('wall-input-buffer'); const privateToggle = document.getElementById('private-packet-toggle');
-            if (!inputField.value || !activeConn) return;
-            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: peer.id.substring(0,6) });
-            inputField.value = ''; privateToggle.checked = false;
-        }
-
-        function hostSendWallPacket() {
-            const inputField = document.getElementById('host-wall-input'); if (!inputField.value) return;
-            wallData.push({ sender: "[HOST]", text: inputField.value, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-            saveLocalData(); renderWall();
-            for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
-            inputField.value = '';
-        }
-
-        function hostClearWall() {
-            if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
-                wallData = [];
-                saveLocalData(); renderWall();
-                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
-            }
-        }
-
-        document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
-
-        function renderWall() {
-            const visitorOutput = document.getElementById('datastream-output'); const hostOutput = document.getElementById('host-datastream-output');
-            
-            if(visitorOutput) {
-                visitorOutput.innerHTML = wallData.map(post => `
-                    <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
-                        <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender">${post.sender}:</span> 
-                        <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
-                    </div>
-                `).join('');
-                visitorOutput.scrollTop = visitorOutput.scrollHeight;
-            }
-            if(hostOutput) {
-                hostOutput.innerHTML = wallData.map(post => `
-                    <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
-                        <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
-                        <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
-                    </div>
-                `).join('');
-                hostOutput.scrollTop = hostOutput.scrollHeight;
-            }
-        }
-        document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
-        document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
-    </script>
-</body>
-</html>
+                        type: MSG_TYPE_PROFILE, alias: document
