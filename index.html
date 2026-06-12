@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.17</title>
+    <title>NOWSPACE :: TRM_v1.19</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -131,14 +131,13 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.17</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.19</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -147,6 +146,10 @@
         <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name (e.g., Alan)">
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
+        
+        <label>Custom Soundboard (MP3 URL):</label>
+        <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here to use on your soundboard...">
+        
         <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
         <textarea id="my-audio" rows="2"><iframe width="100%" height="150" src="https://www.youtube.com/embed/hMxlPYStVVY?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></textarea>
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
@@ -182,7 +185,6 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="border: 1px solid #333; margin-bottom: 15px; background: #000; padding: 5px;">
@@ -191,11 +193,13 @@ body {
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
         </div>
 
-        <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
             <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
+            <span style="color: #555;">|</span>
+            <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('my-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
         </div>
 
         <div id="host-datastream-output" class="datastream-output"></div>
@@ -204,20 +208,17 @@ body {
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
             
-            <!-- COMMS BUTTONS WITH NEW MUTE -->
             <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
             <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -236,11 +237,14 @@ body {
         <div class="panel" id="datastream-container" style="margin-top:20px;">
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             
-            <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap;">
+            <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
                 <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
+                <span style="color: #555;">|</span>
+                <input type="text" id="visitor-custom-sound" placeholder="Paste custom MP3 URL..." style="width: 160px; margin: 0; padding: 2px 5px; font-size: 0.75rem; height: 26px; border: 1px solid var(--dark-magenta); background: #000; color: #fff;">
+                <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('visitor-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
             </div>
 
             <div id="datastream-output" class="datastream-output"></div>
@@ -249,7 +253,6 @@ body {
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
-                <!-- COMMS BUTTONS WITH NEW MUTE -->
                 <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
                 <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
             </div>
@@ -272,7 +275,7 @@ body {
         
         let localStream = null;
         let activeCalls = [];
-        let isMuted = false; // MUTE STATE TRACKER
+        let isMuted = false;
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -319,14 +322,17 @@ body {
             }
         };
 
-        function triggerSound(soundId, isLocalClick = true, originalSender = null) {
-            if (SOUND_ASSETS[soundId]) {
-                let audio = new Audio(SOUND_ASSETS[soundId]);
+        // === ZONE: SOUNDBOARD LOGIC WITH CUSTOM URL SUPPORT ===
+        function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
+            let audioSrc = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
+            
+            if (audioSrc) {
+                let audio = new Audio(audioSrc);
                 audio.play().catch(e => console.warn("Audio blocked by browser:", e));
             }
 
             if (isLocalClick) {
-                const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id };
+                const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id, customUrl: customUrl };
                 if (currentRole === 'HOST') {
                     for (let peerId in peer.connections) {
                         peer.connections[peerId].forEach(conn => conn.send(packet));
@@ -336,7 +342,7 @@ body {
                 }
             } 
             else if (currentRole === 'HOST') {
-                const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender };
+                const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl };
                 for (let peerId in peer.connections) {
                     if (peerId !== originalSender) { 
                         peer.connections[peerId].forEach(conn => conn.send(packet));
@@ -345,11 +351,13 @@ body {
             }
         }
 
+        // === ZONE: THEME EXPORT & IMPORT ===
         function exportTheme() {
             const data = {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
+                customSound: document.getElementById('my-custom-sound').value, // EXPORT CUSTOM MP3
                 identityFingerprint: myFingerprint 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
@@ -369,6 +377,7 @@ body {
                     if(parsed.bio !== undefined) document.getElementById('my-bio').value = parsed.bio;
                     if(parsed.audio !== undefined) document.getElementById('my-audio').value = parsed.audio;
                     if(parsed.gallery !== undefined) document.getElementById('my-gallery').value = parsed.gallery;
+                    if(parsed.customSound !== undefined) document.getElementById('my-custom-sound').value = parsed.customSound; // IMPORT CUSTOM MP3
                     if(parsed.css !== undefined) {
                         document.getElementById('my-css').value = parsed.css; document.getElementById('custom-injected-css').innerText = parsed.css;
                     }
@@ -381,11 +390,10 @@ body {
             }; reader.readAsText(file);
         }
 
-        // === ZONE: SECURE VOICE & MUTE LOGIC ===
         function toggleMute() {
             if (localStream && localStream.getAudioTracks().length > 0) {
                 isMuted = !isMuted;
-                localStream.getAudioTracks()[0].enabled = !isMuted; // HARD MUTES THE HARDWARE SENSOR
+                localStream.getAudioTracks()[0].enabled = !isMuted;
                 document.querySelectorAll('.mute-btn').forEach(b => {
                     b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
                     if(isMuted) { b.classList.add('btn-alert'); } 
@@ -399,7 +407,7 @@ body {
                 activeCalls.forEach(call => call.close()); activeCalls = [];
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
-                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE
+                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
                 return;
             }
 
@@ -407,7 +415,6 @@ body {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
                 
-                // RESET AND SHOW MUTE BUTTON
                 isMuted = false;
                 document.querySelectorAll('.mute-btn').forEach(b => {
                     b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
@@ -445,7 +452,7 @@ body {
                 if(activeCalls.length === 0 && localStream) {
                     localStream.getTracks().forEach(t => t.stop()); localStream = null;
                     document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
-                    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE ON CLOSE
+                    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
                 }
             });
         }
@@ -458,7 +465,6 @@ body {
                             localStream = await navigator.mediaDevices.getUserMedia({audio: true});
                             document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
                             
-                            // RESET AND SHOW MUTE BUTTON
                             isMuted = false;
                             document.querySelectorAll('.mute-btn').forEach(b => {
                                 b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
@@ -509,7 +515,8 @@ body {
             const data = {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
-                gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, wall: wallData
+                gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
+                customSound: document.getElementById('my-custom-sound').value, wall: wallData
             }; localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
 
@@ -521,6 +528,7 @@ body {
                 if (savedData.bio) document.getElementById('my-bio').value = savedData.bio;
                 if (savedData.audio) document.getElementById('my-audio').value = savedData.audio;
                 if (savedData.gallery) document.getElementById('my-gallery').value = savedData.gallery;
+                if (savedData.customSound) document.getElementById('my-custom-sound').value = savedData.customSound;
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
                 renderWall(); 
@@ -567,7 +575,7 @@ body {
             globalDisconnectBtn.style.display = 'none';
             
             document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
-            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE ON DISCONNECT
+            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
 
             const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
@@ -661,7 +669,7 @@ body {
                 case MSG_TYPE_WALL_UPDATE:
                     if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); } break;
                 case MSG_TYPE_SOUNDBOARD: 
-                    triggerSound(packet.soundId, false, packet.sender); break;
+                    triggerSound(packet.soundId, false, packet.sender, packet.customUrl); break;
             }
         }
 
