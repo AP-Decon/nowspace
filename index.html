@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.16</title>
+    <title>NOWSPACE :: TRM_v1.17</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -89,7 +89,6 @@
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
-        /* HYPERLINK TERMINAL STYLING */
         .wall-post a { color: var(--main-cyan); text-decoration: none; border-bottom: 1px dashed var(--main-cyan); transition: all 0.2s; word-break: break-all; }
         .wall-post a:hover { background: var(--main-cyan); color: #000; }
 
@@ -132,7 +131,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.16</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.17</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -204,7 +203,10 @@ body {
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
+            
+            <!-- COMMS BUTTONS WITH NEW MUTE -->
             <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
+            <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
         </div>
     </div>
 
@@ -246,7 +248,10 @@ body {
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
+                
+                <!-- COMMS BUTTONS WITH NEW MUTE -->
                 <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
             </div>
             <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
                 <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
@@ -267,6 +272,7 @@ body {
         
         let localStream = null;
         let activeCalls = [];
+        let isMuted = false; // MUTE STATE TRACKER
 
         const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -275,12 +281,11 @@ body {
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
-        // === ZONE: SOUNDBOARD ASSETS ===
         const SOUND_ASSETS = {
             'airhorn': 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3',
             'boom': 'https://www.myinstants.com/media/sounds/vine-boom.mp3',
             'bruh': 'https://www.myinstants.com/media/sounds/movie_1.mp3',
-            'alert': 'https://www.myinstants.com/media/sounds/efecto-de-sonido-metal-gear-solid-sonido-de-alerta.mp3'
+            'alert': 'https://www.myinstants.com/media/sounds/red-alert-klaxon.mp3'
         };
 
         // === ZONE: NETWORK CONFIGURATION ===
@@ -314,7 +319,6 @@ body {
             }
         };
 
-        // === ZONE: SOUNDBOARD LOGIC ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null) {
             if (SOUND_ASSETS[soundId]) {
                 let audio = new Audio(SOUND_ASSETS[soundId]);
@@ -341,31 +345,22 @@ body {
             }
         }
 
-        // === ZONE: THEME EXPORT & IMPORT ===
         function exportTheme() {
             const data = {
-                alias: document.getElementById('my-alias').value,
-                customId: document.getElementById('my-custom-id').value,
-                bio: document.getElementById('my-bio').value,
-                audio: document.getElementById('my-audio').value,
-                gallery: document.getElementById('my-gallery').value,
-                css: document.getElementById('my-css').value,
+                alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
+                bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
+                gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
                 identityFingerprint: myFingerprint 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
-            const downloadAnchorNode = document.createElement('a');
-            downloadAnchorNode.setAttribute("href", dataStr);
+            const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr);
             const safeAlias = data.alias.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             downloadAnchorNode.setAttribute("download", `nowspace_theme_${safeAlias}.json`);
-            document.body.appendChild(downloadAnchorNode); 
-            downloadAnchorNode.click();
-            downloadAnchorNode.remove();
+            document.body.appendChild(downloadAnchorNode); downloadAnchorNode.click(); downloadAnchorNode.remove();
         }
 
         function importTheme(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
+            const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
             reader.onload = function(e) {
                 try {
                     const parsed = JSON.parse(e.target.result);
@@ -375,30 +370,36 @@ body {
                     if(parsed.audio !== undefined) document.getElementById('my-audio').value = parsed.audio;
                     if(parsed.gallery !== undefined) document.getElementById('my-gallery').value = parsed.gallery;
                     if(parsed.css !== undefined) {
-                        document.getElementById('my-css').value = parsed.css;
-                        document.getElementById('custom-injected-css').innerText = parsed.css;
+                        document.getElementById('my-css').value = parsed.css; document.getElementById('custom-injected-css').innerText = parsed.css;
                     }
                     if(parsed.identityFingerprint !== undefined) {
-                        myFingerprint = parsed.identityFingerprint;
-                        localStorage.setItem('nowspace_identity_key', myFingerprint); 
+                        myFingerprint = parsed.identityFingerprint; localStorage.setItem('nowspace_identity_key', myFingerprint); 
                     }
-                    saveLocalData();
-                    alert("THEME & IDENTITY KEY IMPORTED SUCCESSFULLY!");
-                } catch (err) {
-                    alert("ERROR: Invalid or corrupt theme file.");
-                }
+                    saveLocalData(); alert("THEME & IDENTITY KEY IMPORTED SUCCESSFULLY!");
+                } catch (err) { alert("ERROR: Invalid or corrupt theme file."); }
                 event.target.value = ''; 
-            };
-            reader.readAsText(file);
+            }; reader.readAsText(file);
         }
 
-        // === ZONE: SECURE VOICE COMMS LOGIC ===
+        // === ZONE: SECURE VOICE & MUTE LOGIC ===
+        function toggleMute() {
+            if (localStream && localStream.getAudioTracks().length > 0) {
+                isMuted = !isMuted;
+                localStream.getAudioTracks()[0].enabled = !isMuted; // HARD MUTES THE HARDWARE SENSOR
+                document.querySelectorAll('.mute-btn').forEach(b => {
+                    b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
+                    if(isMuted) { b.classList.add('btn-alert'); } 
+                    else { b.classList.remove('btn-alert'); }
+                });
+            }
+        }
+
         async function toggleVoice() {
             if (activeCalls.length > 0) {
-                activeCalls.forEach(call => call.close());
-                activeCalls = [];
+                activeCalls.forEach(call => call.close()); activeCalls = [];
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE
                 return;
             }
 
@@ -406,46 +407,45 @@ body {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
                 
+                // RESET AND SHOW MUTE BUTTON
+                isMuted = false;
+                document.querySelectorAll('.mute-btn').forEach(b => {
+                    b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
+                });
+                
                 if (currentRole === 'VISITOR' && activeConn) {
-                    let call = peer.call(activeConn.peer, localStream);
-                    activeCalls.push(call);
-                    handleCallEvent(call);
+                    let call = peer.call(activeConn.peer, localStream); activeCalls.push(call); handleCallEvent(call);
                 } else if (currentRole === 'HOST') {
                     const connectedPeers = Object.keys(peer.connections);
                     if(connectedPeers.length > 0) {
-                        connectedPeers.forEach(peerId => {
-                            let call = peer.call(peerId, localStream);
-                            activeCalls.push(call);
-                            handleCallEvent(call);
-                        });
+                        connectedPeers.forEach(peerId => { let call = peer.call(peerId, localStream); activeCalls.push(call); handleCallEvent(call); });
                     } else {
                         alert("ERROR: No active visitors to broadcast to.");
                         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                         document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
                     }
                 }
             } catch(e) {
                 alert("ERROR: Microphone access denied or hardware not found.");
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                 document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
         }
 
         function handleCallEvent(call) {
             call.on('stream', (remoteStream) => {
-                let audioEl = document.createElement('audio');
-                audioEl.autoplay = true;
-                audioEl.srcObject = remoteStream;
-                audioEl.id = 'audio-node-' + call.peer;
-                document.getElementById('secure-voice-stream-container').appendChild(audioEl);
+                let audioEl = document.createElement('audio'); audioEl.autoplay = true; audioEl.srcObject = remoteStream;
+                audioEl.id = 'audio-node-' + call.peer; document.getElementById('secure-voice-stream-container').appendChild(audioEl);
             });
             call.on('close', () => {
-                let audioEl = document.getElementById('audio-node-' + call.peer);
-                if(audioEl) audioEl.remove();
+                let audioEl = document.getElementById('audio-node-' + call.peer); if(audioEl) audioEl.remove();
                 activeCalls = activeCalls.filter(c => c !== call);
                 if(activeCalls.length === 0 && localStream) {
                     localStream.getTracks().forEach(t => t.stop()); localStream = null;
                     document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE ON CLOSE
                 }
             });
         }
@@ -457,22 +457,22 @@ body {
                         if(!localStream) {
                             localStream = await navigator.mediaDevices.getUserMedia({audio: true});
                             document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                            
+                            // RESET AND SHOW MUTE BUTTON
+                            isMuted = false;
+                            document.querySelectorAll('.mute-btn').forEach(b => {
+                                b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
+                            });
                         }
-                        call.answer(localStream);
-                        activeCalls.push(call);
-                        handleCallEvent(call);
+                        call.answer(localStream); activeCalls.push(call); handleCallEvent(call);
                     } catch(e) { call.close(); alert("ERROR: Could not access microphone."); }
-                } else {
-                    call.close();
-                }
+                } else { call.close(); }
             });
         }
 
         function resetDefaultTemplate() {
             if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
-                localStorage.removeItem('nowspace_save'); 
-                localStorage.removeItem('nowspace_identity_key'); 
-                window.location.reload();
+                localStorage.removeItem('nowspace_save'); localStorage.removeItem('nowspace_identity_key'); window.location.reload();
             }
         }
 
@@ -510,13 +510,11 @@ body {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, wall: wallData
-            };
-            localStorage.setItem('nowspace_save', JSON.stringify(data));
+            }; localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
 
         window.onload = () => {
-            renderTop8();
-            const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
+            renderTop8(); const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
                 if (savedData.customId) document.getElementById('my-custom-id').value = savedData.customId;
@@ -527,9 +525,7 @@ body {
                 if (savedData.wall) wallData = savedData.wall;
                 renderWall(); 
             }
-            const currentCSS = document.getElementById('my-css').value;
-            document.getElementById('custom-injected-css').innerText = currentCSS;
-
+            const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             const urlParams = new URLSearchParams(window.location.search); const targetNode = urlParams.get('node');
             if (targetNode) { document.getElementById('friend-id').value = targetNode; visitFriend(); }
         };
@@ -541,20 +537,12 @@ body {
             });
         }
 
-        // === ZONE: THE HYPERLINK FIX ===
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
-            // Find all URLs in the message string
             const urlRegex = /(https?:\/\/[^\s]+)/gi;
-            
             let formattedText = text.replace(urlRegex, (url) => {
-                // If the URL is an image file, render it as a picture frame
-                if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) {
-                    return `<img src="${url}" />`;
-                }
-                // If it's a standard web link, render a safe clickable link that opens in a NEW TAB
+                if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { return `<img src="${url}" />`; }
                 return `<a href="${url}" target="_blank">${url}</a>`;
             });
-
             if (isPrivate && hideFromPublicView) { return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`; }
             return formattedText;
         }
@@ -579,9 +567,9 @@ body {
             globalDisconnectBtn.style.display = 'none';
             
             document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); // HIDE MUTE ON DISCONNECT
 
-            const currentCSS = document.getElementById('my-css').value;
-            document.getElementById('custom-injected-css').innerText = currentCSS;
+            const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
             window.history.pushState({}, document.title, window.location.pathname);
         }
@@ -612,21 +600,17 @@ body {
             });
 
             peer.on('connection', (conn) => {
-                const logPanel = document.getElementById('host-visitor-log');
-                const timestamp = new Date().toLocaleTimeString();
+                const logPanel = document.getElementById('host-visitor-log'); const timestamp = new Date().toLocaleTimeString();
                 logPanel.innerHTML += `> [${timestamp}] SECURE HANDSHAKE: <b>${conn.peer.substring(0,8)}...</b> linked to node.<br>`;
                 logPanel.scrollTop = logPanel.scrollHeight;
 
                 conn.on('data', handleIncomingP2PPacket);
                 conn.on('open', () => {
                     const profilePackage = {
-                        type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value,
-                        bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value,
-                        audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value,
-                        top8: top8, currentWall: wallData,
-                        hostFingerprint: myFingerprint 
-                    };
-                    conn.send(profilePackage);
+                        type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, 
+                        css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, 
+                        gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, hostFingerprint: myFingerprint 
+                    }; conn.send(profilePackage);
                 });
             });
         }
@@ -641,14 +625,12 @@ body {
 
         function executeConnection(friendId) {
             statusDisplay.innerText = "[ STATUS: NEGOTIATING_FIREWALL... ]"; activeConn = peer.connect(friendId, { reliable: true });
-            
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("NEGOTIATING")) {
                     statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
                     document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // TIMEOUT_OR_DEAD_LINK ]</h2>";
                 }
             }, 40000); 
-
             activeConn.on('open', () => { clearTimeout(connectionTimeout); statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; });
             activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
         }
@@ -656,41 +638,30 @@ body {
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
                 case MSG_TYPE_PROFILE:
-                    document.getElementById('render-alias').innerText = packet.alias; 
-                    document.getElementById('datarender-bio').innerText = packet.bio;
-                    
+                    document.getElementById('render-alias').innerText = packet.alias; document.getElementById('datarender-bio').innerText = packet.bio;
                     let knownHosts = JSON.parse(localStorage.getItem('nowspace_known_hosts')) || {};
-                    let badge = document.getElementById('identity-badge');
-                    let hostTarget = activeConn.peer;
-                    
+                    let badge = document.getElementById('identity-badge'); let hostTarget = activeConn.peer;
                     if (!knownHosts[hostTarget]) {
-                        knownHosts[hostTarget] = packet.hostFingerprint;
-                        localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts));
+                        knownHosts[hostTarget] = packet.hostFingerprint; localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts));
                         badge.innerHTML = '<span class="badge-new">[ 🆕 TOFU: NEW_IDENTITY_REGISTERED ]</span>';
                     } else if (knownHosts[hostTarget] === packet.hostFingerprint) {
                         badge.innerHTML = '<span class="badge-verified">[ ✔ VERIFIED_SECURE_NODE ]</span>';
                     } else {
                         badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>';
                     }
-
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8);
-                    wallData = packet.currentWall; renderWall();
-                    break;
+                    buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8); wallData = packet.currentWall; renderWall(); break;
                 case MSG_TYPE_WALL_POST:
                     if (currentRole === 'HOST') {
                         wallData.push({ sender: packet.sender, text: packet.text, isPrivate: packet.isPrivate, timestamp: new Date().toLocaleTimeString() });
                         saveLocalData(); renderWall(); 
                         for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
-                    }
-                    break;
+                    } break;
                 case MSG_TYPE_WALL_UPDATE:
-                    if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); }
-                    break;
+                    if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); } break;
                 case MSG_TYPE_SOUNDBOARD: 
-                    triggerSound(packet.soundId, false, packet.sender);
-                    break;
+                    triggerSound(packet.soundId, false, packet.sender); break;
             }
         }
 
@@ -711,8 +682,7 @@ body {
 
         function hostClearWall() {
             if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
-                wallData = [];
-                saveLocalData(); renderWall();
+                wallData = []; saveLocalData(); renderWall();
                 for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
             }
         }
@@ -721,15 +691,13 @@ body {
 
         function renderWall() {
             const visitorOutput = document.getElementById('datastream-output'); const hostOutput = document.getElementById('host-datastream-output');
-            
             if(visitorOutput) {
                 visitorOutput.innerHTML = wallData.map(post => `
                     <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
                         <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender">${post.sender}:</span> 
                         <span style="color:#ccc;">${formatWallMessage(post.text, post.isPrivate, true)}</span>
                     </div>
-                `).join('');
-                visitorOutput.scrollTop = visitorOutput.scrollHeight;
+                `).join(''); visitorOutput.scrollTop = visitorOutput.scrollHeight;
             }
             if(hostOutput) {
                 hostOutput.innerHTML = wallData.map(post => `
@@ -737,8 +705,7 @@ body {
                         <span style="color:#555;">[${post.timestamp}]</span> <span class="wall-post-sender" style="color:${post.isPrivate ? '#ff00ff' : 'var(--main-cyan)'}">${post.isPrivate ? '[SECURE]' : ''} ${post.sender}:</span> 
                         <span style="color:#ccc;">${formatWallMessage(post.text, false, false)}</span>
                     </div>
-                `).join('');
-                hostOutput.scrollTop = hostOutput.scrollHeight;
+                `).join(''); hostOutput.scrollTop = hostOutput.scrollHeight;
             }
         }
         document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
