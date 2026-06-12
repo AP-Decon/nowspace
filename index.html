@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.12</title>
+    <title>NOWSPACE :: TRM_v1.13</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -110,6 +110,13 @@
 
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
         #host-visitor-log { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #0f0; height: 100px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; margin-bottom: 10px; }
+        
+        /* IDENTITY SECURITY BADGE */
+        #identity-badge { font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; text-shadow: none; font-family: monospace; }
+        .badge-new { color: #aaa; }
+        .badge-verified { color: #0f0; }
+        .badge-danger { color: #f00; text-shadow: 0 0 5px #f00; animation: flash 1s infinite alternate; }
+        @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
     </style>
     <style id="custom-injected-css"></style>
 </head>
@@ -119,7 +126,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.12</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.13</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -195,7 +202,8 @@ body {
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
-            <h2 id="render-alias" class="glitch-text" style="color: var(--bright-magenta); margin:0 0 10px 0;"></h2>
+            <h2 id="render-alias" class="glitch-text" style="color: var(--bright-magenta); margin:0 0 5px 0;"></h2>
+            <div id="identity-badge"></div>
             <p id="datarender-bio"></p>
         </div>
         <div class="panel" id="visitor-gallery-panel" style="margin-top:20px; display: none;">
@@ -225,6 +233,13 @@ body {
         // === ZONE: JS_GLOBAL_STATE ===
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
+        
+        // CRYPTO FINGERPRINT GENERATION
+        let myFingerprint = localStorage.getItem('nowspace_identity_key');
+        if (!myFingerprint) {
+            myFingerprint = 'TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
+            localStorage.setItem('nowspace_identity_key', myFingerprint);
+        }
         
         let localStream = null;
         let activeCalls = [];
@@ -266,7 +281,7 @@ body {
             }
         };
 
-        // === ZONE: THEME EXPORT & IMPORT ===
+        // === ZONE: THEME EXPORT & IMPORT (WITH IDENTITY KEY) ===
         function exportTheme() {
             const data = {
                 alias: document.getElementById('my-alias').value,
@@ -274,7 +289,8 @@ body {
                 bio: document.getElementById('my-bio').value,
                 audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value,
-                css: document.getElementById('my-css').value
+                css: document.getElementById('my-css').value,
+                identityFingerprint: myFingerprint // PACKAGES YOUR SECURE ID
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
             const downloadAnchorNode = document.createElement('a');
@@ -302,8 +318,12 @@ body {
                         document.getElementById('my-css').value = parsed.css;
                         document.getElementById('custom-injected-css').innerText = parsed.css;
                     }
+                    if(parsed.identityFingerprint !== undefined) {
+                        myFingerprint = parsed.identityFingerprint;
+                        localStorage.setItem('nowspace_identity_key', myFingerprint); // OVERWRITES LOCAL ID WITH CARTRIDGE ID
+                    }
                     saveLocalData();
-                    alert("THEME IMPORTED SUCCESSFULLY!");
+                    alert("THEME & IDENTITY KEY IMPORTED SUCCESSFULLY!");
                 } catch (err) {
                     alert("ERROR: Invalid or corrupt theme file.");
                 }
@@ -390,7 +410,9 @@ body {
 
         function resetDefaultTemplate() {
             if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
-                localStorage.removeItem('nowspace_save'); window.location.reload();
+                localStorage.removeItem('nowspace_save'); 
+                localStorage.removeItem('nowspace_identity_key'); // WIPES ID TOO
+                window.location.reload();
             }
         }
 
@@ -530,7 +552,8 @@ body {
                         type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value,
                         bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value,
                         audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value,
-                        top8: top8, currentWall: wallData
+                        top8: top8, currentWall: wallData,
+                        hostFingerprint: myFingerprint // SEND ID HASH TO VISITOR
                     };
                     conn.send(profilePackage);
                 });
@@ -562,7 +585,24 @@ body {
         function handleIncomingP2PPacket(packet) {
             switch(packet.type) {
                 case MSG_TYPE_PROFILE:
-                    document.getElementById('render-alias').innerText = packet.alias; document.getElementById('datarender-bio').innerText = packet.bio;
+                    document.getElementById('render-alias').innerText = packet.alias; 
+                    document.getElementById('datarender-bio').innerText = packet.bio;
+                    
+                    // TOFU SECURITY CHECK
+                    let knownHosts = JSON.parse(localStorage.getItem('nowspace_known_hosts')) || {};
+                    let badge = document.getElementById('identity-badge');
+                    let hostTarget = activeConn.peer;
+                    
+                    if (!knownHosts[hostTarget]) {
+                        knownHosts[hostTarget] = packet.hostFingerprint;
+                        localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts));
+                        badge.innerHTML = '<span class="badge-new">[ 🆕 TOFU: NEW_IDENTITY_REGISTERED ]</span>';
+                    } else if (knownHosts[hostTarget] === packet.hostFingerprint) {
+                        badge.innerHTML = '<span class="badge-verified">[ ✔ VERIFIED_SECURE_NODE ]</span>';
+                    } else {
+                        badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>';
+                    }
+
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
                     buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8);
