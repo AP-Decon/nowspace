@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.20</title>
+    <title>NOWSPACE :: TRM_v1.22</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -89,6 +89,8 @@
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
         
+        .hide-usernames .wall-post-sender { display: none; }
+
         .wall-post a { color: var(--main-cyan); text-decoration: none; border-bottom: 1px dashed var(--main-cyan); transition: all 0.2s; word-break: break-all; }
         .wall-post a:hover { background: var(--main-cyan); color: #000; }
 
@@ -131,7 +133,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.20</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.22</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -174,14 +176,14 @@ body {
             <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
         </div>
 
-        <!-- NEW: HOST MODULAR FEATURE FLAGS -->
         <div style="margin: 15px 0; border: 1px dashed var(--main-cyan); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 10px 0; font-size:0.85rem; color: var(--main-cyan);">[ SYSTEM_FEATURE_FLAGS ]</h4>
             <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.8rem; align-items: center;">
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> CRT SCANLINES</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> SOUNDBOARD</label>
-                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> GALLERY MODULE</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> GALLERY</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> TOP 8 RING</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> USERNAMES</label>
             </div>
         </div>
 
@@ -264,8 +266,10 @@ body {
 
             <div id="datastream-output" class="datastream-output"></div>
             
+            <!-- NEW: VISITOR ALIAS INPUT -->
             <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
-                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0;">
+                <input type="text" id="visitor-alias-input" placeholder="Set Alias (Optional)..." style="width: 180px; margin-bottom:0;">
+                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0; flex-grow: 1;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
                 <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
@@ -282,7 +286,7 @@ body {
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         
-        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true };
+        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true };
         
         let myFingerprint = localStorage.getItem('nowspace_identity_key');
         if (!myFingerprint) {
@@ -363,6 +367,16 @@ body {
             if (hostTop8Wrapper) {
                 hostTop8Wrapper.style.display = features.top8 ? 'block' : 'none';
             }
+
+            const hostOutput = document.getElementById('host-datastream-output');
+            if (hostOutput) {
+                hostOutput.classList.toggle('hide-usernames', !features.usernames);
+            }
+
+            const visitorOutput = document.getElementById('datastream-output');
+            if (visitorOutput) {
+                visitorOutput.classList.toggle('hide-usernames', !features.usernames);
+            }
         }
 
         function updateHostFeatures() {
@@ -370,6 +384,7 @@ body {
             featureToggles.soundboard = document.getElementById('toggle-soundboard').checked;
             featureToggles.gallery = document.getElementById('toggle-gallery').checked;
             featureToggles.top8 = document.getElementById('toggle-top8').checked;
+            featureToggles.usernames = document.getElementById('toggle-usernames').checked;
             
             applyFeatures(featureToggles);
             saveLocalData();
@@ -444,10 +459,13 @@ body {
                     }
                     if(parsed.features !== undefined) {
                         featureToggles = parsed.features;
+                        if (featureToggles.usernames === undefined) featureToggles.usernames = true; 
+                        
                         document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                         document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
                         document.getElementById('toggle-gallery').checked = featureToggles.gallery;
                         document.getElementById('toggle-top8').checked = featureToggles.top8;
+                        document.getElementById('toggle-usernames').checked = featureToggles.usernames;
                         applyFeatures(featureToggles);
                     }
                     if(parsed.identityFingerprint !== undefined) {
@@ -594,6 +612,14 @@ body {
 
         window.onload = () => {
             renderTop8(); const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
+            
+            // LOAD SAVED VISITOR ALIAS IF PRESENT
+            const savedVisitorAlias = localStorage.getItem('nowspace_visitor_alias');
+            if (savedVisitorAlias) {
+                const aliasInput = document.getElementById('visitor-alias-input');
+                if (aliasInput) aliasInput.value = savedVisitorAlias;
+            }
+
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
                 if (savedData.customId) document.getElementById('my-custom-id').value = savedData.customId;
@@ -605,10 +631,12 @@ body {
                 if (savedData.wall) wallData = savedData.wall;
                 if (savedData.features) {
                     featureToggles = savedData.features;
+                    if (featureToggles.usernames === undefined) featureToggles.usernames = true;
                     document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                     document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
                     document.getElementById('toggle-gallery').checked = featureToggles.gallery;
                     document.getElementById('toggle-top8').checked = featureToggles.top8;
+                    document.getElementById('toggle-usernames').checked = featureToggles.usernames;
                 }
                 applyFeatures(featureToggles);
                 renderWall(); 
@@ -740,7 +768,7 @@ body {
                     }
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true };
+                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true };
                     applyFeatures(featureToggles);
                     buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8); wallData = packet.currentWall; renderWall(); break;
                 case MSG_TYPE_WALL_POST:
@@ -762,9 +790,19 @@ body {
         }
 
         function visitorSendWallPacket() {
-            const inputField = document.getElementById('wall-input-buffer'); const privateToggle = document.getElementById('private-packet-toggle');
+            const inputField = document.getElementById('wall-input-buffer'); 
+            const privateToggle = document.getElementById('private-packet-toggle');
+            const aliasInput = document.getElementById('visitor-alias-input').value.trim();
+            
             if (!inputField.value || !activeConn) return;
-            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: peer.id.substring(0,6) });
+            
+            // USE CUSTOM ALIAS OR FALLBACK TO PEER ID
+            let senderName = aliasInput ? aliasInput : peer.id.substring(0,6);
+            
+            // SAVE ALIAS TO LOCAL STORAGE FOR FUTURE VISITS
+            if(aliasInput) { localStorage.setItem('nowspace_visitor_alias', aliasInput); }
+
+            activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: senderName });
             inputField.value = ''; privateToggle.checked = false;
         }
 
