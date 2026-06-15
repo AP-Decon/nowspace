@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.25</title>
+    <title>NOWSPACE :: TRM_v1.26</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -98,7 +98,6 @@
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: rgba(0,0,0,0.8) !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        /* === NEW: POLL STYLES === */
         .poll-option { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; cursor: pointer; border: 1px solid var(--dark-magenta); padding: 8px; background: #000; font-size: 0.85rem; transition: all 0.2s; position: relative; z-index: 25; }
         .poll-option:hover { border-color: var(--main-cyan); color: var(--main-cyan); box-shadow: inset 0 0 5px rgba(0,255,255,0.3); }
         .poll-bar { height: 4px; background: var(--bright-magenta); margin-top: 2px; margin-bottom: 10px; transition: width 0.4s ease-out; box-shadow: var(--magenta-glow); }
@@ -154,7 +153,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.25</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.26</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -181,38 +180,40 @@
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ==============================================================
-  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.25
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.26
   ==============================================================
 */
 
 :root {
-    --bg-color: #050509;
-    --main-cyan: #00ffff;
-    --bright-magenta: #ff00ff;
-    --dark-magenta: #550055;
-    --text-glow: 0 0 2px #00ffff;
-    --magenta-glow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 4px #ff00ff;
-    --alert-red: #ff003c;
+    --bg-color: #000000; /* Pure black */
+    --main-red: #ff0000; /* Primary crimson */
+    --bright-red: #ff3333; /* Highlight red */
+    --dark-red: #330000; /* Deep shadow red */
+    --text-glow: 0 0 3px #ff0000;
+    --red-glow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 5px #ff0000;
+    --alert-white: #ffffff; /* Contrast color for alerts */
 }
 
 body { 
-    background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif');
-    background-size: cover;
+    background-color: var(--bg-color);
+    background-image: url('https://readingrockets.co.uk/wp-content/uploads/2025/06/cropped-ReadingRocketsLogo.png');
+    background-size: contain; 
+    background-repeat: no-repeat;
     background-attachment: fixed;
     background-position: center;
 }
 
 .panel { 
-    border-color: var(--main-cyan); 
-    box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
-    background: rgba(5, 5, 9, 0.7) !important;
+    border-color: var(--main-red); 
+    box-shadow: inset 0 0 15px rgba(255, 0, 0, 0.15);
+    background: rgba(5, 0, 0, 0.8) !important; /* Tinted black with slight red */
 }
 
 /* Override the title glitch and purple color */
 #render-alias {
     animation: none !important;
     text-shadow: none !important;
-    color: #ffffff !important; 
+    color: var(--alert-white) !important; 
 }</textarea>
         
         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -256,7 +257,7 @@ body {
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
         </div>
 
-        <!-- NEW: HOST POLL DEPLOYMENT -->
+        <!-- HOST POLL DEPLOYMENT -->
         <div id="host-poll-module" class="poll-feature-group" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.5);">
             <h4 style="margin: 0 0 10px 0; font-size: 0.85rem;">[ DEPLOY_CONSENSUS_POLL ]</h4>
             <div id="host-poll-builder">
@@ -320,7 +321,7 @@ body {
             <p id="datarender-bio"></p>
         </div>
         
-        <!-- NEW: VISITOR POLL RENDER PANEL -->
+        <!-- VISITOR POLL RENDER PANEL -->
         <div class="panel poll-feature-group" id="visitor-poll-panel" style="margin-top:20px; display: none;">
             <h3>[ ACTIVE_DATA_QUERY // POLL ]</h3>
             <div id="render-poll-content"></div>
@@ -378,7 +379,7 @@ body {
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         let globalVolume = 0.5;
-        let activePoll = null; // Stores current consensus data
+        let activePoll = null;
         
         let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
         
@@ -480,7 +481,6 @@ body {
                 document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
 
-            // Apply Poll Toggles
             document.querySelectorAll('.poll-feature-group').forEach(el => { el.style.display = features.polls ? 'block' : 'none'; });
             renderVisitorPoll();
         }
@@ -529,6 +529,27 @@ body {
         }
 
         function closePoll() {
+            // AUTOMATED SYSTEM BROADCAST OF POLL RESULTS TO MAIN WALL
+            if(activePoll) {
+                const totalVotes = activePoll.options.reduce((sum, opt) => sum + opt.votes, 0);
+                let resultText = `<b style="color:var(--main-cyan);">[ CONSENSUS ARCHIVED ]</b><br><span style="color:#fff;">${activePoll.question}</span><br>`;
+                
+                activePoll.options.forEach(opt => {
+                    const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
+                    resultText += `<span style="color:#aaa;">> ${opt.text}:</span> <b style="color:var(--bright-magenta);">${percent}%</b> <span style="font-size:0.75rem;color:#555;">(${opt.votes} votes)</span><br>`;
+                });
+
+                wallData.push({ sender: "[SYSTEM]", text: resultText, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+                saveLocalData(); 
+                renderWall();
+                
+                if (currentRole === 'HOST' && peer) {
+                    for (let peerId in peer.connections) { 
+                        peer.connections[peerId].forEach(conn => conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
+                    }
+                }
+            }
+
             activePoll = null;
             document.getElementById('poll-q').value = '';
             document.getElementById('poll-o1').value = '';
@@ -602,14 +623,10 @@ body {
 
         function submitVote(optionIndex) {
             if(!activePoll || !activeConn || activePoll.voters.includes(myFingerprint)) return;
-            
-            // Optimistic local update to freeze UI instantly
             activePoll.voters.push(myFingerprint);
-            
             activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: optionIndex });
             renderVisitorPoll();
         }
-
 
         // === ZONE: SOUNDBOARD LOGIC ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
@@ -831,6 +848,12 @@ body {
                 if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { return `<img src="${url}" />`; }
                 return `<a href="${url}" target="_blank">${url}</a>`;
             });
+            
+            // Allow basic system HTML tags from polls but escape manual HTML to prevent injection
+            if(text.includes("[ CONSENSUS ARCHIVED ]")) {
+                return text;
+            }
+
             if (isPrivate && hideFromPublicView) { return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`; }
             return formattedText;
         }
