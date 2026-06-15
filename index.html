@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.19</title>
+    <title>NOWSPACE :: TRM_v1.20</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -51,7 +51,7 @@
         
         .panel { 
             border: 1px solid var(--main-cyan); padding: 15px; margin-bottom: 20px; 
-            position: relative; background: #050509 !important; 
+            position: relative; background: rgba(5, 5, 9, 0.7) !important; 
             box-shadow: inset 0 0 15px rgba(0,255,255,0.1); z-index: 20;
         }
 
@@ -81,10 +81,10 @@
         .sound-btn:hover { background: #ffaa00; color: #000; box-shadow: 0 0 5px #ffaa00; }
 
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
-        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: #000000 !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
+        .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: rgba(0,0,0,0.8) !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; background: #000000 !important;}
+        .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.5) !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
         .wall-post img { max-width: 250px; max-height: 250px; display: block; margin-top: 8px; border: 1px solid var(--main-cyan); box-shadow: var(--text-glow); }
         .wall-post-sender { color: var(--main-cyan); font-weight: bold;}
@@ -97,11 +97,11 @@
         .blurred-text:hover { filter: blur(0px); }
 
         .top8-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 10px; }
-        .top8-item { border: 1px solid var(--dark-magenta); background: #000; padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; }
+        .top8-item { border: 1px solid var(--dark-magenta); background: rgba(0,0,0,0.8); padding: 8px; text-align: center; cursor: pointer; font-size: 0.8rem; }
         .top8-item:hover { border-color: var(--main-cyan); box-shadow: var(--text-glow); color: #fff; }
 
         #visitor-view { position: relative; z-index: 10; display: none; margin-top: 20px;}
-        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: #050509 !important; position: relative; z-index: 20;}
+        #render-profile-header { border: 2px solid var(--main-cyan); padding: 20px; background-color: rgba(5, 5, 9, 0.7) !important; position: relative; z-index: 20;}
         
         #audio-container { 
             margin-bottom: 15px; background: #000000 !important; display: block; 
@@ -115,7 +115,7 @@
         }
 
         #host-live-wall-panel { display: none; margin-top: 20px; border-color: var(--bright-magenta); }
-        #host-visitor-log { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #0f0; height: 100px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; margin-bottom: 10px; }
+        #host-visitor-log { font-family: 'Fira Code', monospace; font-size: 0.75rem; color: #0f0; height: 100px; overflow-y: auto; background: rgba(0,0,0,0.7); padding: 10px; border: 1px solid #333; margin-bottom: 10px; }
         
         #identity-badge { font-size: 0.75rem; font-weight: bold; margin-bottom: 15px; text-shadow: none; font-family: monospace; }
         .badge-new { color: #aaa; }
@@ -131,13 +131,14 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.19</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.20</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
+    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -173,7 +174,18 @@ body {
             <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
         </div>
 
-        <div style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
+        <!-- NEW: HOST MODULAR FEATURE FLAGS -->
+        <div style="margin: 15px 0; border: 1px dashed var(--main-cyan); padding: 10px; background: rgba(0,0,0,0.4);">
+            <h4 style="margin:0 0 10px 0; font-size:0.85rem; color: var(--main-cyan);">[ SYSTEM_FEATURE_FLAGS ]</h4>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; font-size: 0.8rem; align-items: center;">
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> CRT SCANLINES</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> SOUNDBOARD</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> GALLERY MODULE</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> TOP 8 RING</label>
+            </div>
+        </div>
+
+        <div id="host-top8-wrapper" style="margin: 15px 0; border: 1px dashed var(--dark-magenta); padding: 10px; background: rgba(0,0,0,0.4);">
             <h4 style="margin:0 0 5px 0; font-size:0.85rem;">[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
             <div id="host-top8-display" style="font-size:0.8rem; margin-bottom:10px; color:#aaa;"></div>
             <button class="btn-small" onclick="addToTop8()">+ ADD TARGET NODE</button>
@@ -185,15 +197,16 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
-        <div style="border: 1px solid #333; margin-bottom: 15px; background: #000; padding: 5px;">
+        <div style="border: 1px solid #333; margin-bottom: 15px; background: rgba(0,0,0,0.7); padding: 5px;">
             <h4 style="margin: 0 0 5px 5px; font-size: 0.75rem; color: #555;">> ACCESS_RECORDS</h4>
             <div id="host-visitor-log">> System initialized. Monitoring for incoming handshakes...<br></div>
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
         </div>
 
-        <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
+        <div class="soundboard-container" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
             <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
@@ -213,12 +226,14 @@ body {
         </div>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -237,7 +252,7 @@ body {
         <div class="panel" id="datastream-container" style="margin-top:20px;">
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             
-            <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
+            <div class="soundboard-container" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
                 <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
@@ -267,6 +282,8 @@ body {
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         
+        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true };
+        
         let myFingerprint = localStorage.getItem('nowspace_identity_key');
         if (!myFingerprint) {
             myFingerprint = 'TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36);
@@ -281,6 +298,8 @@ body {
         const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
+        const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE';
+        
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
@@ -322,6 +341,47 @@ body {
             }
         };
 
+        // === ZONE: FEATURE FLAG TOGGLE LOGIC ===
+        function applyFeatures(features) {
+            document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
+            
+            document.querySelectorAll('.soundboard-container').forEach(el => {
+                el.style.display = features.soundboard ? 'flex' : 'none';
+            });
+
+            const galleryPanel = document.getElementById('visitor-gallery-panel');
+            if (galleryPanel) {
+                galleryPanel.style.display = (features.gallery && document.getElementById('render-gallery-grid').innerHTML !== '') ? 'block' : 'none';
+            }
+
+            const top8Panel = document.getElementById('visitor-top8-panel');
+            if (top8Panel) {
+                top8Panel.style.display = (features.top8 && document.getElementById('render-top8-grid').innerHTML !== '') ? 'block' : 'none';
+            }
+            
+            const hostTop8Wrapper = document.getElementById('host-top8-wrapper');
+            if (hostTop8Wrapper) {
+                hostTop8Wrapper.style.display = features.top8 ? 'block' : 'none';
+            }
+        }
+
+        function updateHostFeatures() {
+            featureToggles.scanlines = document.getElementById('toggle-scanlines').checked;
+            featureToggles.soundboard = document.getElementById('toggle-soundboard').checked;
+            featureToggles.gallery = document.getElementById('toggle-gallery').checked;
+            featureToggles.top8 = document.getElementById('toggle-top8').checked;
+            
+            applyFeatures(featureToggles);
+            saveLocalData();
+            
+            if (currentRole === 'HOST' && peer) {
+                const updatePacket = { type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles };
+                for (let peerId in peer.connections) { 
+                    peer.connections[peerId].forEach(conn => conn.send(updatePacket)); 
+                }
+            }
+        }
+
         // === ZONE: SOUNDBOARD LOGIC WITH CUSTOM URL SUPPORT ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
             let audioSrc = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
@@ -357,7 +417,8 @@ body {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
-                customSound: document.getElementById('my-custom-sound').value, // EXPORT CUSTOM MP3
+                customSound: document.getElementById('my-custom-sound').value,
+                features: featureToggles,
                 identityFingerprint: myFingerprint 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
@@ -377,9 +438,17 @@ body {
                     if(parsed.bio !== undefined) document.getElementById('my-bio').value = parsed.bio;
                     if(parsed.audio !== undefined) document.getElementById('my-audio').value = parsed.audio;
                     if(parsed.gallery !== undefined) document.getElementById('my-gallery').value = parsed.gallery;
-                    if(parsed.customSound !== undefined) document.getElementById('my-custom-sound').value = parsed.customSound; // IMPORT CUSTOM MP3
+                    if(parsed.customSound !== undefined) document.getElementById('my-custom-sound').value = parsed.customSound; 
                     if(parsed.css !== undefined) {
                         document.getElementById('my-css').value = parsed.css; document.getElementById('custom-injected-css').innerText = parsed.css;
+                    }
+                    if(parsed.features !== undefined) {
+                        featureToggles = parsed.features;
+                        document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
+                        document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
+                        document.getElementById('toggle-gallery').checked = featureToggles.gallery;
+                        document.getElementById('toggle-top8').checked = featureToggles.top8;
+                        applyFeatures(featureToggles);
                     }
                     if(parsed.identityFingerprint !== undefined) {
                         myFingerprint = parsed.identityFingerprint; localStorage.setItem('nowspace_identity_key', myFingerprint); 
@@ -490,8 +559,9 @@ body {
         function buildVisitorTop8Grid(hostTop8Array) {
             const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
             if (!hostTop8Array || hostTop8Array.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
-            document.getElementById('visitor-top8-panel').style.display = 'block';
             hostTop8Array.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
+            
+            document.getElementById('visitor-top8-panel').style.display = featureToggles.top8 ? 'block' : 'none';
         }
 
         function jumpToNewNode(targetId) { document.getElementById('friend-id').value = targetId; disconnectNode(); visitFriend(); }
@@ -506,8 +576,9 @@ body {
             if(!urlsString || urlsString.trim() === '') { panel.style.display = 'none'; return; }
             const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
             if(urls.length === 0) { panel.style.display = 'none'; return; }
-            panel.style.display = 'block';
             urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${url}', '_blank')"><img src="${url}"></div>`; });
+            
+            panel.style.display = featureToggles.gallery ? 'block' : 'none';
         }
 
         function saveLocalData() {
@@ -516,7 +587,8 @@ body {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
-                customSound: document.getElementById('my-custom-sound').value, wall: wallData
+                customSound: document.getElementById('my-custom-sound').value, wall: wallData,
+                features: featureToggles
             }; localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
 
@@ -531,6 +603,14 @@ body {
                 if (savedData.customSound) document.getElementById('my-custom-sound').value = savedData.customSound;
                 if (savedData.css) document.getElementById('my-css').value = savedData.css;
                 if (savedData.wall) wallData = savedData.wall;
+                if (savedData.features) {
+                    featureToggles = savedData.features;
+                    document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
+                    document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
+                    document.getElementById('toggle-gallery').checked = featureToggles.gallery;
+                    document.getElementById('toggle-top8').checked = featureToggles.top8;
+                }
+                applyFeatures(featureToggles);
                 renderWall(); 
             }
             const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
@@ -617,7 +697,8 @@ body {
                     const profilePackage = {
                         type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, 
                         css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, 
-                        gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, hostFingerprint: myFingerprint 
+                        gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, 
+                        features: featureToggles, hostFingerprint: myFingerprint 
                     }; conn.send(profilePackage);
                 });
             });
@@ -659,6 +740,8 @@ body {
                     }
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
+                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true };
+                    applyFeatures(featureToggles);
                     buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8); wallData = packet.currentWall; renderWall(); break;
                 case MSG_TYPE_WALL_POST:
                     if (currentRole === 'HOST') {
@@ -670,6 +753,11 @@ body {
                     if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); } break;
                 case MSG_TYPE_SOUNDBOARD: 
                     triggerSound(packet.soundId, false, packet.sender, packet.customUrl); break;
+                case MSG_TYPE_FEATURE_UPDATE:
+                    if (currentRole === 'VISITOR') {
+                        featureToggles = packet.features;
+                        applyFeatures(featureToggles);
+                    } break;
             }
         }
 
