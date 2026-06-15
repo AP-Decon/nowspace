@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.22</title>
+    <title>NOWSPACE :: TRM_v1.23</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght=400;700&display=swap');
 
         :root {
             --bg-color: #050509;
@@ -80,6 +80,22 @@
         .sound-btn { border-color: #ffaa00; color: #ffaa00; text-shadow: none; }
         .sound-btn:hover { background: #ffaa00; color: #000; box-shadow: 0 0 5px #ffaa00; }
 
+        /* Volume Regulator Sliders */
+        .vol-slider-wrap { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #ffaa00; font-family: monospace; }
+        .vol-slider-wrap input[type="range"] { -webkit-appearance: none; appearance: none; width: 70px; height: 6px; background: #222; border: 1px solid #ffaa00; margin: 0; padding: 0; cursor: pointer; }
+        .vol-slider-wrap input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 12px; background: #ffaa00; cursor: pointer; }
+
+        /* Hardware Style Voice Toggle Switch */
+        .voice-switch-container { display: inline-flex; align-items: center; gap: 10px; background: #000; border: 1px solid var(--dark-magenta); padding: 4px 10px; height: 38px; cursor: pointer; user-select: none; position: relative; z-index: 25; }
+        .voice-switch-label { font-size: 0.8rem; font-weight: bold; color: #aaa; transition: color 0.2s; }
+        .voice-switch-track { width: 34px; height: 16px; background: #222; border: 1px solid #555; border-radius: 2px; position: relative; transition: all 0.2s; }
+        .voice-switch-handle { width: 14px; height: 12px; background: #555; position: absolute; top: 1px; left: 1px; transition: all 0.2s; box-shadow: inset 1px 1px 1px rgba(255,255,255,0.2); }
+        
+        .voice-switch-container.active { border-color: var(--alert-red); box-shadow: 0 0 5px rgba(255, 0, 60, 0.4); }
+        .voice-switch-container.active .voice-switch-label { color: var(--alert-red); text-shadow: 0 0 4px var(--alert-red); }
+        .voice-switch-container.active .voice-switch-track { background: rgba(255, 0, 60, 0.2); border-color: var(--alert-red); }
+        .voice-switch-container.active .voice-switch-handle { left: 17px; background: var(--alert-red); box-shadow: 0 0 4px var(--alert-red); }
+
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: rgba(0,0,0,0.8) !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
@@ -133,14 +149,13 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.22</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.23</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -158,16 +173,48 @@
         <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
         <textarea id="my-gallery" rows="3">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
 
-        <label>Custom CSS Injection:</label>
-        <textarea id="my-css" rows="6">/* Default Retro Grid GIF Layout */
+        <label>Custom CSS Injection Framework Blueprint:</label>
+        <textarea id="my-css" rows="10">/* ==============================================================
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.23
+  ==============================================================
+  INSTRUCTIONS FOR AI INTERACTION:
+  You can copy/paste this entire payload block directly into an 
+  AI engine (Gemini, ChatGPT, Claude) along with a prompt like:
+  "Modify this template to give it a vaporwave/cyberpunk theme."
+  ==============================================================
+*/
+
+/* 1. MASTER ENGINE CONTROL VARIABLES */
+:root {
+    --bg-color: #050509;
+    --main-cyan: #00ffff;
+    --bright-magenta: #ff00ff;
+    --dark-magenta: #550055;
+    --text-glow: 0 0 2px #00ffff;
+    --magenta-glow: 1px 1px 0px #000, -1px -1px 0px #000, 0 0 4px #ff00ff;
+    --alert-red: #ff003c;
+}
+
+/* 2. BACKGROUND ARCHITECTURE */
 body { 
     background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif');
     background-size: cover;
     background-attachment: fixed;
     background-position: center;
 }
-#render-profile-header { border-color: #ff00ff; box-shadow: 0 0 20px #ff00ff; }
-</textarea>
+
+/* 3. TERMINAL MODULE CONTAINERS */
+.panel { 
+    border-color: var(--main-cyan); 
+    box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
+    background: rgba(5, 5, 9, 0.7) !important;
+}
+
+/* 4. DESIGN ELEMENT OVERRIDES */
+#render-profile-header { 
+    border-color: #ff00ff; 
+    box-shadow: 0 0 20px #ff00ff; 
+}</textarea>
         
         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
             <button class="btn-small" onclick="resetDefaultTemplate()" style="border-color: var(--dark-magenta); color: #aaa;">[ FACTORY RESET ]</button>
@@ -199,7 +246,6 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="border: 1px solid #333; margin-bottom: 15px; background: rgba(0,0,0,0.7); padding: 5px;">
@@ -208,34 +254,41 @@ body {
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
         </div>
 
-        <div class="soundboard-container" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
+        <div class="soundboard-container" style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
             <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
-            <span style="color: #555;">|</span>
             <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('my-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
+            <div class="vol-slider-wrap">
+                <span>VOL:</span>
+                <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
+            </div>
         </div>
 
         <div id="host-datastream-output" class="datastream-output"></div>
-        <div style="display: flex; gap: 10px;">
-            <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall..." style="margin-bottom:0; flex-grow:1; min-width:200px;">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
             
-            <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
-            <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
+            <div class="voice-switch-container host-voice-toggle" onclick="toggleVoice()">
+                <div class="voice-switch-label">COMMS: OFF</div>
+                <div class="voice-switch-track">
+                    <div class="voice-switch-handle"></div>
+                </div>
+            </div>
+
+            <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -254,26 +307,34 @@ body {
         <div class="panel" id="datastream-container" style="margin-top:20px;">
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             
-            <div class="soundboard-container" style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
+            <div class="soundboard-container" style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
                 <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
-                <span style="color: #555;">|</span>
-                <input type="text" id="visitor-custom-sound" placeholder="Paste custom MP3 URL..." style="width: 160px; margin: 0; padding: 2px 5px; font-size: 0.75rem; height: 26px; border: 1px solid var(--dark-magenta); background: #000; color: #fff;">
+                <input type="text" id="visitor-custom-sound" placeholder="Paste custom MP3 URL..." style="width: 140px; margin: 0; padding: 2px 5px; font-size: 0.75rem; height: 26px; border: 1px solid var(--dark-magenta); background: #000; color: #fff;">
                 <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('visitor-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
+                <div class="vol-slider-wrap">
+                    <span>VOL:</span>
+                    <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
+                </div>
             </div>
 
             <div id="datastream-output" class="datastream-output"></div>
             
-            <!-- NEW: VISITOR ALIAS INPUT -->
-            <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px;">
-                <input type="text" id="visitor-alias-input" placeholder="Set Alias (Optional)..." style="width: 180px; margin-bottom:0;">
-                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0; flex-grow: 1;">
+            <div style="display: flex; gap: 10px; align-items: center; margin-bottom:10px; flex-wrap: wrap;">
+                <input type="text" id="visitor-alias-input" placeholder="Set Alias (Optional)..." style="width: 160px; margin-bottom:0;">
+                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0; flex-grow: 1; min-width:200px;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
-                <button class="voice-btn" onclick="toggleVoice()">[ 🎤 MIC LINK ]</button>
-                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff;">[ 🔊 MUTE ]</button>
+                <div class="voice-switch-container visitor-voice-toggle" onclick="toggleVoice()">
+                    <div class="voice-switch-label">COMMS: OFF</div>
+                    <div class="voice-switch-track">
+                        <div class="voice-switch-handle"></div>
+                    </div>
+                </div>
+
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
             </div>
             <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
                 <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
@@ -285,6 +346,7 @@ body {
         // === ZONE: JS_GLOBAL_STATE ===
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
+        let globalVolume = 0.5; // Defaults to 50% volume
         
         let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true };
         
@@ -345,6 +407,14 @@ body {
             }
         };
 
+        // === ZONE: SOUND REGS ===
+        function updateMasterVolume(val) {
+            globalVolume = parseFloat(val);
+            document.querySelectorAll('.vol-slider-wrap input[type="range"]').forEach(input => {
+                input.value = val;
+            });
+        }
+
         // === ZONE: FEATURE FLAG TOGGLE LOGIC ===
         function applyFeatures(features) {
             document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
@@ -397,12 +467,13 @@ body {
             }
         }
 
-        // === ZONE: SOUNDBOARD LOGIC WITH CUSTOM URL SUPPORT ===
+        // === ZONE: SOUNDBOARD LOGIC WITH VOLUME MATRICES ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
             let audioSrc = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
             
             if (audioSrc) {
                 let audio = new Audio(audioSrc);
+                audio.volume = globalVolume; // Applies the controllable structural setting
                 audio.play().catch(e => console.warn("Audio blocked by browser:", e));
             }
 
@@ -489,18 +560,30 @@ body {
             }
         }
 
+        function updateVoiceTogglesVisuals(isLive) {
+            document.querySelectorAll('.voice-switch-container').forEach(sw => {
+                if(isLive) {
+                    sw.classList.add('active');
+                    sw.querySelector('.voice-switch-label').innerText = "COMMS: LIVE";
+                } else {
+                    sw.classList.remove('active');
+                    sw.querySelector('.voice-switch-label').innerText = "COMMS: OFF";
+                }
+            });
+        }
+
         async function toggleVoice() {
             if (activeCalls.length > 0) {
                 activeCalls.forEach(call => call.close()); activeCalls = [];
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                updateVoiceTogglesVisuals(false);
                 document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
                 return;
             }
 
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                updateVoiceTogglesVisuals(true);
                 
                 isMuted = false;
                 document.querySelectorAll('.mute-btn').forEach(b => {
@@ -516,14 +599,14 @@ body {
                     } else {
                         alert("ERROR: No active visitors to broadcast to.");
                         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                        document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                        updateVoiceTogglesVisuals(false);
                         document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
                     }
                 }
             } catch(e) {
                 alert("ERROR: Microphone access denied or hardware not found.");
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                updateVoiceTogglesVisuals(false);
                 document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
         }
@@ -538,7 +621,7 @@ body {
                 activeCalls = activeCalls.filter(c => c !== call);
                 if(activeCalls.length === 0 && localStream) {
                     localStream.getTracks().forEach(t => t.stop()); localStream = null;
-                    document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+                    updateVoiceTogglesVisuals(false);
                     document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
                 }
             });
@@ -550,7 +633,7 @@ body {
                     try {
                         if(!localStream) {
                             localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                            document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🔴 END COMMS ]"; b.classList.add('btn-alert'); });
+                            updateVoiceTogglesVisuals(true);
                             
                             isMuted = false;
                             document.querySelectorAll('.mute-btn').forEach(b => {
@@ -613,7 +696,6 @@ body {
         window.onload = () => {
             renderTop8(); const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
             
-            // LOAD SAVED VISITOR ALIAS IF PRESENT
             const savedVisitorAlias = localStorage.getItem('nowspace_visitor_alias');
             if (savedVisitorAlias) {
                 const aliasInput = document.getElementById('visitor-alias-input');
@@ -682,7 +764,7 @@ body {
             document.getElementById('visitor-gallery-panel').style.display = "none";
             globalDisconnectBtn.style.display = 'none';
             
-            document.querySelectorAll('.voice-btn').forEach(b => { b.innerText = "[ 🎤 MIC LINK ]"; b.classList.remove('btn-alert'); });
+            updateVoiceTogglesVisuals(false);
             document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
 
             const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
@@ -796,10 +878,8 @@ body {
             
             if (!inputField.value || !activeConn) return;
             
-            // USE CUSTOM ALIAS OR FALLBACK TO PEER ID
             let senderName = aliasInput ? aliasInput : peer.id.substring(0,6);
             
-            // SAVE ALIAS TO LOCAL STORAGE FOR FUTURE VISITS
             if(aliasInput) { localStorage.setItem('nowspace_visitor_alias', aliasInput); }
 
             activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: senderName });
