@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.23</title>
+    <title>NOWSPACE :: TRM_v1.24</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
-        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght=400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
 
         :root {
             --bg-color: #050509;
@@ -149,13 +149,14 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.23</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.24</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
+    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -175,7 +176,7 @@
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ==============================================================
-  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.23
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.24
   ==============================================================
   INSTRUCTIONS FOR AI INTERACTION:
   You can copy/paste this entire payload block directly into an 
@@ -231,6 +232,7 @@ body {
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> GALLERY</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> TOP 8 RING</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> USERNAMES</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> VOICE COMMS</label>
             </div>
         </div>
 
@@ -246,6 +248,7 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="border: 1px solid #333; margin-bottom: 15px; background: rgba(0,0,0,0.7); padding: 5px;">
@@ -272,23 +275,26 @@ body {
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
             
-            <div class="voice-switch-container host-voice-toggle" onclick="toggleVoice()">
-                <div class="voice-switch-label">COMMS: OFF</div>
-                <div class="voice-switch-track">
-                    <div class="voice-switch-handle"></div>
+            <span class="voice-feature-group" style="display: flex; gap: 10px; align-items: center;">
+                <div class="voice-switch-container host-voice-toggle" onclick="toggleVoice()">
+                    <div class="voice-switch-label">COMMS: OFF</div>
+                    <div class="voice-switch-track">
+                        <div class="voice-switch-handle"></div>
+                    </div>
                 </div>
-            </div>
-
-            <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
+            </span>
         </div>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -327,14 +333,15 @@ body {
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="margin-bottom:0; flex-grow: 1; min-width:200px;">
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
-                <div class="voice-switch-container visitor-voice-toggle" onclick="toggleVoice()">
-                    <div class="voice-switch-label">COMMS: OFF</div>
-                    <div class="voice-switch-track">
-                        <div class="voice-switch-handle"></div>
+                <span class="voice-feature-group" style="display: flex; gap: 10px; align-items: center;">
+                    <div class="voice-switch-container visitor-voice-toggle" onclick="toggleVoice()">
+                        <div class="voice-switch-label">COMMS: OFF</div>
+                        <div class="voice-switch-track">
+                            <div class="voice-switch-handle"></div>
+                        </div>
                     </div>
-                </div>
-
-                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
+                    <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; border-color: #00ffff; color: #00ffff; height:38px;">[ 🔊 MUTE ]</button>
+                </span>
             </div>
             <label style="font-size:0.8rem; color: var(--bright-magenta); display: flex; align-items: center; gap: 5px; cursor: pointer; text-shadow: var(--magenta-glow);">
                 <input type="checkbox" id="private-packet-toggle" style="width: auto; margin-bottom: 0;"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
@@ -346,9 +353,9 @@ body {
         // === ZONE: JS_GLOBAL_STATE ===
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
-        let globalVolume = 0.5; // Defaults to 50% volume
+        let globalVolume = 0.5;
         
-        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true };
+        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true };
         
         let myFingerprint = localStorage.getItem('nowspace_identity_key');
         if (!myFingerprint) {
@@ -447,6 +454,18 @@ body {
             if (visitorOutput) {
                 visitorOutput.classList.toggle('hide-usernames', !features.usernames);
             }
+
+            document.querySelectorAll('.voice-feature-group').forEach(el => {
+                el.style.display = features.voicecomms ? 'flex' : 'none';
+            });
+
+            // KILLSWITCH: Sever live connections if voice comms are toggled off while active
+            if (!features.voicecomms && localStream) {
+                if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
+                localStream.getTracks().forEach(t => t.stop()); localStream = null;
+                updateVoiceTogglesVisuals(false);
+                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+            }
         }
 
         function updateHostFeatures() {
@@ -455,6 +474,7 @@ body {
             featureToggles.gallery = document.getElementById('toggle-gallery').checked;
             featureToggles.top8 = document.getElementById('toggle-top8').checked;
             featureToggles.usernames = document.getElementById('toggle-usernames').checked;
+            featureToggles.voicecomms = document.getElementById('toggle-voicecomms').checked;
             
             applyFeatures(featureToggles);
             saveLocalData();
@@ -473,7 +493,7 @@ body {
             
             if (audioSrc) {
                 let audio = new Audio(audioSrc);
-                audio.volume = globalVolume; // Applies the controllable structural setting
+                audio.volume = globalVolume;
                 audio.play().catch(e => console.warn("Audio blocked by browser:", e));
             }
 
@@ -531,12 +551,14 @@ body {
                     if(parsed.features !== undefined) {
                         featureToggles = parsed.features;
                         if (featureToggles.usernames === undefined) featureToggles.usernames = true; 
+                        if (featureToggles.voicecomms === undefined) featureToggles.voicecomms = true;
                         
                         document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                         document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
                         document.getElementById('toggle-gallery').checked = featureToggles.gallery;
                         document.getElementById('toggle-top8').checked = featureToggles.top8;
                         document.getElementById('toggle-usernames').checked = featureToggles.usernames;
+                        document.getElementById('toggle-voicecomms').checked = featureToggles.voicecomms;
                         applyFeatures(featureToggles);
                     }
                     if(parsed.identityFingerprint !== undefined) {
@@ -573,8 +595,10 @@ body {
         }
 
         async function toggleVoice() {
-            if (activeCalls.length > 0) {
-                activeCalls.forEach(call => call.close()); activeCalls = [];
+            if (activeCalls.length > 0 || localStream) {
+                if (activeCalls.length > 0) {
+                    activeCalls.forEach(call => call.close()); activeCalls = [];
+                }
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
                 updateVoiceTogglesVisuals(false);
                 document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
@@ -629,6 +653,9 @@ body {
 
         function setupPeerCallListener() {
             peer.on('call', async (call) => {
+                // Instantly sever incoming calls if features are disabled
+                if(!featureToggles.voicecomms) { call.close(); return; }
+                
                 if(confirm("INCOMING SECURE VOICE_LINK DETECTED. ACCEPT COMMS?")) {
                     try {
                         if(!localStream) {
@@ -714,11 +741,14 @@ body {
                 if (savedData.features) {
                     featureToggles = savedData.features;
                     if (featureToggles.usernames === undefined) featureToggles.usernames = true;
+                    if (featureToggles.voicecomms === undefined) featureToggles.voicecomms = true;
+                    
                     document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                     document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
                     document.getElementById('toggle-gallery').checked = featureToggles.gallery;
                     document.getElementById('toggle-top8').checked = featureToggles.top8;
                     document.getElementById('toggle-usernames').checked = featureToggles.usernames;
+                    document.getElementById('toggle-voicecomms').checked = featureToggles.voicecomms;
                 }
                 applyFeatures(featureToggles);
                 renderWall(); 
@@ -850,7 +880,7 @@ body {
                     }
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true };
+                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true };
                     applyFeatures(featureToggles);
                     buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8); wallData = packet.currentWall; renderWall(); break;
                 case MSG_TYPE_WALL_POST:
