@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.24</title>
+    <title>NOWSPACE :: TRM_v1.25</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -80,12 +80,10 @@
         .sound-btn { border-color: #ffaa00; color: #ffaa00; text-shadow: none; }
         .sound-btn:hover { background: #ffaa00; color: #000; box-shadow: 0 0 5px #ffaa00; }
 
-        /* Volume Regulator Sliders */
         .vol-slider-wrap { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; color: #ffaa00; font-family: monospace; }
         .vol-slider-wrap input[type="range"] { -webkit-appearance: none; appearance: none; width: 70px; height: 6px; background: #222; border: 1px solid #ffaa00; margin: 0; padding: 0; cursor: pointer; }
         .vol-slider-wrap input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 12px; background: #ffaa00; cursor: pointer; }
 
-        /* Hardware Style Voice Toggle Switch */
         .voice-switch-container { display: inline-flex; align-items: center; gap: 10px; background: #000; border: 1px solid var(--dark-magenta); padding: 4px 10px; height: 38px; cursor: pointer; user-select: none; position: relative; z-index: 25; }
         .voice-switch-label { font-size: 0.8rem; font-weight: bold; color: #aaa; transition: color 0.2s; }
         .voice-switch-track { width: 34px; height: 16px; background: #222; border: 1px solid #555; border-radius: 2px; position: relative; transition: all 0.2s; }
@@ -99,6 +97,13 @@
         .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-top: 10px; position: relative; z-index: 30; }
         .gallery-frame { border: 2px solid var(--main-cyan); padding: 5px; background: rgba(0,0,0,0.8) !important; box-shadow: var(--text-glow); overflow: hidden; display: flex; align-items: center; justify-content: center; height: 140px; cursor: pointer; }
         .gallery-frame img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* === NEW: POLL STYLES === */
+        .poll-option { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; cursor: pointer; border: 1px solid var(--dark-magenta); padding: 8px; background: #000; font-size: 0.85rem; transition: all 0.2s; position: relative; z-index: 25; }
+        .poll-option:hover { border-color: var(--main-cyan); color: var(--main-cyan); box-shadow: inset 0 0 5px rgba(0,255,255,0.3); }
+        .poll-bar { height: 4px; background: var(--bright-magenta); margin-top: 2px; margin-bottom: 10px; transition: width 0.4s ease-out; box-shadow: var(--magenta-glow); }
+        .poll-locked { cursor: default; }
+        .poll-locked:hover { border-color: var(--dark-magenta); color: inherit; box-shadow: none; }
 
         .datastream-output { height: 300px; overflow-y: scroll; border-left: 2px solid var(--dark-magenta); padding-left: 15px; margin-bottom: 10px; font-size: 0.9rem; display: flex; flex-direction: column; background: rgba(0, 0, 0, 0.5) !important;}
         .wall-post { margin-bottom: 12px; border-bottom: 1px solid #222; padding-bottom: 8px;}
@@ -149,7 +154,7 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.24</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.25</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
@@ -176,16 +181,10 @@
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ==============================================================
-  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.24
-  ==============================================================
-  INSTRUCTIONS FOR AI INTERACTION:
-  You can copy/paste this entire payload block directly into an 
-  AI engine (Gemini, ChatGPT, Claude) along with a prompt like:
-  "Modify this template to give it a vaporwave/cyberpunk theme."
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.25
   ==============================================================
 */
 
-/* 1. MASTER ENGINE CONTROL VARIABLES */
 :root {
     --bg-color: #050509;
     --main-cyan: #00ffff;
@@ -196,7 +195,6 @@
     --alert-red: #ff003c;
 }
 
-/* 2. BACKGROUND ARCHITECTURE */
 body { 
     background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif');
     background-size: cover;
@@ -204,17 +202,17 @@ body {
     background-position: center;
 }
 
-/* 3. TERMINAL MODULE CONTAINERS */
 .panel { 
     border-color: var(--main-cyan); 
     box-shadow: inset 0 0 15px rgba(0,255,255,0.1);
     background: rgba(5, 5, 9, 0.7) !important;
 }
 
-/* 4. DESIGN ELEMENT OVERRIDES */
-#render-profile-header { 
-    border-color: #ff00ff; 
-    box-shadow: 0 0 20px #ff00ff; 
+/* Override the title glitch and purple color */
+#render-alias {
+    animation: none !important;
+    text-shadow: none !important;
+    color: #ffffff !important; 
 }</textarea>
         
         <div style="display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap;">
@@ -233,6 +231,7 @@ body {
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> TOP 8 RING</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> USERNAMES</label>
                 <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> VOICE COMMS</label>
+                <label style="cursor:pointer; color:#fff;"><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()" style="width:auto; margin:0;"> POLLS</label>
             </div>
         </div>
 
@@ -255,6 +254,24 @@ body {
             <h4 style="margin: 0 0 5px 5px; font-size: 0.75rem; color: #555;">> ACCESS_RECORDS</h4>
             <div id="host-visitor-log">> System initialized. Monitoring for incoming handshakes...<br></div>
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
+        </div>
+
+        <!-- NEW: HOST POLL DEPLOYMENT -->
+        <div id="host-poll-module" class="poll-feature-group" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.5);">
+            <h4 style="margin: 0 0 10px 0; font-size: 0.85rem;">[ DEPLOY_CONSENSUS_POLL ]</h4>
+            <div id="host-poll-builder">
+                <input type="text" id="poll-q" placeholder="Enter Poll Question..." style="margin-bottom:8px;">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <input type="text" id="poll-o1" placeholder="Option 1" style="margin-bottom:0;">
+                    <input type="text" id="poll-o2" placeholder="Option 2" style="margin-bottom:0;">
+                    <input type="text" id="poll-o3" placeholder="Option 3 (Optional)" style="margin-bottom:0;">
+                </div>
+                <button class="btn-small" onclick="deployPoll()">LAUNCH POLL</button>
+            </div>
+            <div id="host-poll-active" style="display:none;">
+                <div id="render-host-poll-results" style="margin-bottom: 10px;"></div>
+                <button class="btn-small btn-alert" onclick="closePoll()">[ X END POLL ]</button>
+            </div>
         </div>
 
         <div class="soundboard-container" style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;">
@@ -302,6 +319,13 @@ body {
             <div id="identity-badge"></div>
             <p id="datarender-bio"></p>
         </div>
+        
+        <!-- NEW: VISITOR POLL RENDER PANEL -->
+        <div class="panel poll-feature-group" id="visitor-poll-panel" style="margin-top:20px; display: none;">
+            <h3>[ ACTIVE_DATA_QUERY // POLL ]</h3>
+            <div id="render-poll-content"></div>
+        </div>
+
         <div class="panel" id="visitor-gallery-panel" style="margin-top:20px; display: none;">
             <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
             <div class="gallery-grid" id="render-gallery-grid"></div>
@@ -354,8 +378,9 @@ body {
         let peer = null; let activeConn = null; let wallData = []; let currentRole = null; 
         let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
         let globalVolume = 0.5;
+        let activePoll = null; // Stores current consensus data
         
-        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true };
+        let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
         
         let myFingerprint = localStorage.getItem('nowspace_identity_key');
         if (!myFingerprint) {
@@ -372,6 +397,9 @@ body {
         const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
         const MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
         const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE';
+        const MSG_TYPE_POLL_NEW = 'POLL_NEW';
+        const MSG_TYPE_POLL_VOTE = 'POLL_VOTE';
+        const MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
         
         const statusDisplay = document.getElementById('connection-status');
         const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
@@ -426,46 +454,35 @@ body {
         function applyFeatures(features) {
             document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
             
-            document.querySelectorAll('.soundboard-container').forEach(el => {
-                el.style.display = features.soundboard ? 'flex' : 'none';
-            });
+            document.querySelectorAll('.soundboard-container').forEach(el => { el.style.display = features.soundboard ? 'flex' : 'none'; });
 
             const galleryPanel = document.getElementById('visitor-gallery-panel');
-            if (galleryPanel) {
-                galleryPanel.style.display = (features.gallery && document.getElementById('render-gallery-grid').innerHTML !== '') ? 'block' : 'none';
-            }
+            if (galleryPanel) { galleryPanel.style.display = (features.gallery && document.getElementById('render-gallery-grid').innerHTML !== '') ? 'block' : 'none'; }
 
             const top8Panel = document.getElementById('visitor-top8-panel');
-            if (top8Panel) {
-                top8Panel.style.display = (features.top8 && document.getElementById('render-top8-grid').innerHTML !== '') ? 'block' : 'none';
-            }
+            if (top8Panel) { top8Panel.style.display = (features.top8 && document.getElementById('render-top8-grid').innerHTML !== '') ? 'block' : 'none'; }
             
             const hostTop8Wrapper = document.getElementById('host-top8-wrapper');
-            if (hostTop8Wrapper) {
-                hostTop8Wrapper.style.display = features.top8 ? 'block' : 'none';
-            }
+            if (hostTop8Wrapper) { hostTop8Wrapper.style.display = features.top8 ? 'block' : 'none'; }
 
             const hostOutput = document.getElementById('host-datastream-output');
-            if (hostOutput) {
-                hostOutput.classList.toggle('hide-usernames', !features.usernames);
-            }
+            if (hostOutput) { hostOutput.classList.toggle('hide-usernames', !features.usernames); }
 
             const visitorOutput = document.getElementById('datastream-output');
-            if (visitorOutput) {
-                visitorOutput.classList.toggle('hide-usernames', !features.usernames);
-            }
+            if (visitorOutput) { visitorOutput.classList.toggle('hide-usernames', !features.usernames); }
 
-            document.querySelectorAll('.voice-feature-group').forEach(el => {
-                el.style.display = features.voicecomms ? 'flex' : 'none';
-            });
+            document.querySelectorAll('.voice-feature-group').forEach(el => { el.style.display = features.voicecomms ? 'flex' : 'none'; });
 
-            // KILLSWITCH: Sever live connections if voice comms are toggled off while active
             if (!features.voicecomms && localStream) {
                 if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
                 localStream.getTracks().forEach(t => t.stop()); localStream = null;
                 updateVoiceTogglesVisuals(false);
                 document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
+
+            // Apply Poll Toggles
+            document.querySelectorAll('.poll-feature-group').forEach(el => { el.style.display = features.polls ? 'block' : 'none'; });
+            renderVisitorPoll();
         }
 
         function updateHostFeatures() {
@@ -475,45 +492,138 @@ body {
             featureToggles.top8 = document.getElementById('toggle-top8').checked;
             featureToggles.usernames = document.getElementById('toggle-usernames').checked;
             featureToggles.voicecomms = document.getElementById('toggle-voicecomms').checked;
+            featureToggles.polls = document.getElementById('toggle-polls').checked;
             
             applyFeatures(featureToggles);
             saveLocalData();
             
             if (currentRole === 'HOST' && peer) {
                 const updatePacket = { type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles };
-                for (let peerId in peer.connections) { 
-                    peer.connections[peerId].forEach(conn => conn.send(updatePacket)); 
-                }
+                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(updatePacket)); }
             }
         }
 
-        // === ZONE: SOUNDBOARD LOGIC WITH VOLUME MATRICES ===
+        // === ZONE: POLL LOGIC ===
+        function deployPoll() {
+            const q = document.getElementById('poll-q').value.trim();
+            const o1 = document.getElementById('poll-o1').value.trim();
+            const o2 = document.getElementById('poll-o2').value.trim();
+            const o3 = document.getElementById('poll-o3').value.trim();
+            
+            if(!q || !o1 || !o2) return alert("System requires a Question and at least 2 Options to initialize consensus.");
+            
+            let opts = [{text: o1, votes: 0}, {text: o2, votes: 0}];
+            if(o3) opts.push({text: o3, votes: 0});
+
+            activePoll = { question: q, options: opts, voters: [] };
+            
+            document.getElementById('host-poll-builder').style.display = 'none';
+            document.getElementById('host-poll-active').style.display = 'block';
+            
+            renderHostPoll();
+
+            const packet = { type: MSG_TYPE_POLL_NEW, poll: activePoll };
+            if (currentRole === 'HOST' && peer) {
+                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); }
+            }
+        }
+
+        function closePoll() {
+            activePoll = null;
+            document.getElementById('poll-q').value = '';
+            document.getElementById('poll-o1').value = '';
+            document.getElementById('poll-o2').value = '';
+            document.getElementById('poll-o3').value = '';
+            document.getElementById('host-poll-builder').style.display = 'block';
+            document.getElementById('host-poll-active').style.display = 'none';
+            
+            const packet = { type: MSG_TYPE_POLL_NEW, poll: null };
+            if (currentRole === 'HOST' && peer) {
+                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); }
+            }
+            renderVisitorPoll();
+        }
+
+        function renderHostPoll() {
+            if(!activePoll) return;
+            const resDiv = document.getElementById('render-host-poll-results');
+            const totalVotes = activePoll.options.reduce((sum, opt) => sum + opt.votes, 0);
+            
+            let html = `<div style="color:var(--main-cyan); font-weight:bold; margin-bottom:8px;">> ${activePoll.question}</div>`;
+            activePoll.options.forEach(opt => {
+                const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
+                html += `
+                    <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:2px;">
+                        <span>${opt.text} <span style="color:#aaa;">(${percent}%)</span></span>
+                        <span style="color:var(--bright-magenta);">${opt.votes}</span>
+                    </div>
+                    <div class="poll-bar" style="width:${percent}%;"></div>
+                `;
+            });
+            resDiv.innerHTML = html;
+        }
+
+        function renderVisitorPoll() {
+            const panel = document.getElementById('visitor-poll-panel');
+            const content = document.getElementById('render-poll-content');
+            
+            if(!activePoll || !featureToggles.polls) {
+                panel.style.display = 'none';
+                return;
+            }
+            panel.style.display = 'block';
+            
+            const hasVoted = activePoll.voters.includes(myFingerprint);
+            const totalVotes = activePoll.options.reduce((sum, opt) => sum + opt.votes, 0);
+            
+            let html = `<div style="color:var(--main-cyan); margin-bottom:10px; font-weight:bold;">> ${activePoll.question}</div>`;
+            
+            activePoll.options.forEach((opt, index) => {
+                const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
+                if(hasVoted) {
+                    html += `
+                        <div class="poll-option poll-locked">
+                            <span>${opt.text} <span style="color:#aaa; font-size:0.8rem;">(${percent}%)</span></span>
+                            <span style="color:var(--bright-magenta);">${opt.votes}</span>
+                        </div>
+                        <div class="poll-bar" style="width:${percent}%;"></div>
+                    `;
+                } else {
+                    html += `
+                        <div class="poll-option" onclick="submitVote(${index})">
+                            <span>> ${opt.text}</span>
+                            <span style="font-size:0.8rem; color:#555;">[ VOTE ]</span>
+                        </div>
+                    `;
+                }
+            });
+            content.innerHTML = html;
+        }
+
+        function submitVote(optionIndex) {
+            if(!activePoll || !activeConn || activePoll.voters.includes(myFingerprint)) return;
+            
+            // Optimistic local update to freeze UI instantly
+            activePoll.voters.push(myFingerprint);
+            
+            activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: optionIndex });
+            renderVisitorPoll();
+        }
+
+
+        // === ZONE: SOUNDBOARD LOGIC ===
         function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
             let audioSrc = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
-            
-            if (audioSrc) {
-                let audio = new Audio(audioSrc);
-                audio.volume = globalVolume;
-                audio.play().catch(e => console.warn("Audio blocked by browser:", e));
-            }
+            if (audioSrc) { let audio = new Audio(audioSrc); audio.volume = globalVolume; audio.play().catch(e => console.warn("Audio blocked by browser:", e)); }
 
             if (isLocalClick) {
                 const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id, customUrl: customUrl };
-                if (currentRole === 'HOST') {
-                    for (let peerId in peer.connections) {
-                        peer.connections[peerId].forEach(conn => conn.send(packet));
-                    }
-                } else if (currentRole === 'VISITOR' && activeConn) {
-                    activeConn.send(packet);
-                }
+                if (currentRole === 'HOST') { for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); } } 
+                else if (currentRole === 'VISITOR' && activeConn) { activeConn.send(packet); }
             } 
             else if (currentRole === 'HOST') {
                 const packet = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl };
-                for (let peerId in peer.connections) {
-                    if (peerId !== originalSender) { 
-                        peer.connections[peerId].forEach(conn => conn.send(packet));
-                    }
-                }
+                for (let peerId in peer.connections) { if (peerId !== originalSender) { peer.connections[peerId].forEach(conn => conn.send(packet)); } }
             }
         }
 
@@ -523,9 +633,7 @@ body {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
-                customSound: document.getElementById('my-custom-sound').value,
-                features: featureToggles,
-                identityFingerprint: myFingerprint 
+                customSound: document.getElementById('my-custom-sound').value, features: featureToggles, identityFingerprint: myFingerprint 
             };
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
             const downloadAnchorNode = document.createElement('a'); downloadAnchorNode.setAttribute("href", dataStr);
@@ -545,13 +653,12 @@ body {
                     if(parsed.audio !== undefined) document.getElementById('my-audio').value = parsed.audio;
                     if(parsed.gallery !== undefined) document.getElementById('my-gallery').value = parsed.gallery;
                     if(parsed.customSound !== undefined) document.getElementById('my-custom-sound').value = parsed.customSound; 
-                    if(parsed.css !== undefined) {
-                        document.getElementById('my-css').value = parsed.css; document.getElementById('custom-injected-css').innerText = parsed.css;
-                    }
+                    if(parsed.css !== undefined) { document.getElementById('my-css').value = parsed.css; document.getElementById('custom-injected-css').innerText = parsed.css; }
                     if(parsed.features !== undefined) {
                         featureToggles = parsed.features;
                         if (featureToggles.usernames === undefined) featureToggles.usernames = true; 
                         if (featureToggles.voicecomms === undefined) featureToggles.voicecomms = true;
+                        if (featureToggles.polls === undefined) featureToggles.polls = true;
                         
                         document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                         document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
@@ -559,11 +666,10 @@ body {
                         document.getElementById('toggle-top8').checked = featureToggles.top8;
                         document.getElementById('toggle-usernames').checked = featureToggles.usernames;
                         document.getElementById('toggle-voicecomms').checked = featureToggles.voicecomms;
+                        document.getElementById('toggle-polls').checked = featureToggles.polls;
                         applyFeatures(featureToggles);
                     }
-                    if(parsed.identityFingerprint !== undefined) {
-                        myFingerprint = parsed.identityFingerprint; localStorage.setItem('nowspace_identity_key', myFingerprint); 
-                    }
+                    if(parsed.identityFingerprint !== undefined) { myFingerprint = parsed.identityFingerprint; localStorage.setItem('nowspace_identity_key', myFingerprint); }
                     saveLocalData(); alert("THEME & IDENTITY KEY IMPORTED SUCCESSFULLY!");
                 } catch (err) { alert("ERROR: Invalid or corrupt theme file."); }
                 event.target.value = ''; 
@@ -576,62 +682,38 @@ body {
                 localStream.getAudioTracks()[0].enabled = !isMuted;
                 document.querySelectorAll('.mute-btn').forEach(b => {
                     b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
-                    if(isMuted) { b.classList.add('btn-alert'); } 
-                    else { b.classList.remove('btn-alert'); }
+                    if(isMuted) { b.classList.add('btn-alert'); } else { b.classList.remove('btn-alert'); }
                 });
             }
         }
 
         function updateVoiceTogglesVisuals(isLive) {
             document.querySelectorAll('.voice-switch-container').forEach(sw => {
-                if(isLive) {
-                    sw.classList.add('active');
-                    sw.querySelector('.voice-switch-label').innerText = "COMMS: LIVE";
-                } else {
-                    sw.classList.remove('active');
-                    sw.querySelector('.voice-switch-label').innerText = "COMMS: OFF";
-                }
+                if(isLive) { sw.classList.add('active'); sw.querySelector('.voice-switch-label').innerText = "COMMS: LIVE"; } 
+                else { sw.classList.remove('active'); sw.querySelector('.voice-switch-label').innerText = "COMMS: OFF"; }
             });
         }
 
         async function toggleVoice() {
             if (activeCalls.length > 0 || localStream) {
-                if (activeCalls.length > 0) {
-                    activeCalls.forEach(call => call.close()); activeCalls = [];
-                }
+                if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
                 if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                updateVoiceTogglesVisuals(false);
-                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
-                return;
+                updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); return;
             }
-
             try {
                 localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                updateVoiceTogglesVisuals(true);
+                updateVoiceTogglesVisuals(true); isMuted = false;
+                document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert'); });
                 
-                isMuted = false;
-                document.querySelectorAll('.mute-btn').forEach(b => {
-                    b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
-                });
-                
-                if (currentRole === 'VISITOR' && activeConn) {
-                    let call = peer.call(activeConn.peer, localStream); activeCalls.push(call); handleCallEvent(call);
-                } else if (currentRole === 'HOST') {
+                if (currentRole === 'VISITOR' && activeConn) { let call = peer.call(activeConn.peer, localStream); activeCalls.push(call); handleCallEvent(call); } 
+                else if (currentRole === 'HOST') {
                     const connectedPeers = Object.keys(peer.connections);
-                    if(connectedPeers.length > 0) {
-                        connectedPeers.forEach(peerId => { let call = peer.call(peerId, localStream); activeCalls.push(call); handleCallEvent(call); });
-                    } else {
-                        alert("ERROR: No active visitors to broadcast to.");
-                        if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                        updateVoiceTogglesVisuals(false);
-                        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
-                    }
+                    if(connectedPeers.length > 0) { connectedPeers.forEach(peerId => { let call = peer.call(peerId, localStream); activeCalls.push(call); handleCallEvent(call); }); } 
+                    else { alert("ERROR: No active visitors to broadcast to."); if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; } updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); }
                 }
             } catch(e) {
-                alert("ERROR: Microphone access denied or hardware not found.");
-                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-                updateVoiceTogglesVisuals(false);
-                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+                alert("ERROR: Microphone access denied or hardware not found."); if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+                updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
         }
 
@@ -645,27 +727,20 @@ body {
                 activeCalls = activeCalls.filter(c => c !== call);
                 if(activeCalls.length === 0 && localStream) {
                     localStream.getTracks().forEach(t => t.stop()); localStream = null;
-                    updateVoiceTogglesVisuals(false);
-                    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+                    updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
                 }
             });
         }
 
         function setupPeerCallListener() {
             peer.on('call', async (call) => {
-                // Instantly sever incoming calls if features are disabled
                 if(!featureToggles.voicecomms) { call.close(); return; }
-                
                 if(confirm("INCOMING SECURE VOICE_LINK DETECTED. ACCEPT COMMS?")) {
                     try {
                         if(!localStream) {
                             localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                            updateVoiceTogglesVisuals(true);
-                            
-                            isMuted = false;
-                            document.querySelectorAll('.mute-btn').forEach(b => {
-                                b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');
-                            });
+                            updateVoiceTogglesVisuals(true); isMuted = false;
+                            document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert'); });
                         }
                         call.answer(localStream); activeCalls.push(call); handleCallEvent(call);
                     } catch(e) { call.close(); alert("ERROR: Could not access microphone."); }
@@ -673,11 +748,7 @@ body {
             });
         }
 
-        function resetDefaultTemplate() {
-            if(confirm("Wipe all saved browser cache and reset the terminal layout?")) {
-                localStorage.removeItem('nowspace_save'); localStorage.removeItem('nowspace_identity_key'); window.location.reload();
-            }
-        }
+        function resetDefaultTemplate() { if(confirm("Wipe all saved browser cache and reset the terminal layout?")) { localStorage.removeItem('nowspace_save'); localStorage.removeItem('nowspace_identity_key'); window.location.reload(); } }
 
         function renderTop8() {
             const hostDisplay = document.getElementById('host-top8-display');
@@ -688,15 +759,11 @@ body {
             const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
             if (!hostTop8Array || hostTop8Array.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
             hostTop8Array.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
-            
             document.getElementById('visitor-top8-panel').style.display = featureToggles.top8 ? 'block' : 'none';
         }
 
         function jumpToNewNode(targetId) { document.getElementById('friend-id').value = targetId; disconnectNode(); visitFriend(); }
-        function addToTop8() {
-            const id = prompt("Enter the precise Access Hash of the target node:");
-            if (id && !top8.includes(id)) { top8.push(id.trim().replace(/\s+/g, '-')); localStorage.setItem('nowspace_top8', JSON.stringify(top8)); renderTop8(); }
-        }
+        function addToTop8() { const id = prompt("Enter the precise Access Hash of the target node:"); if (id && !top8.includes(id)) { top8.push(id.trim().replace(/\s+/g, '-')); localStorage.setItem('nowspace_top8', JSON.stringify(top8)); renderTop8(); } }
         function clearTop8() { if(confirm("Purge local network ring configs?")) { localStorage.removeItem('nowspace_top8'); top8 = []; renderTop8(); } }
 
         function buildVisitorGallery(urlsString) {
@@ -705,7 +772,6 @@ body {
             const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
             if(urls.length === 0) { panel.style.display = 'none'; return; }
             urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${url}', '_blank')"><img src="${url}"></div>`; });
-            
             panel.style.display = featureToggles.gallery ? 'block' : 'none';
         }
 
@@ -715,19 +781,14 @@ body {
                 alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value,
                 bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value,
                 gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value,
-                customSound: document.getElementById('my-custom-sound').value, wall: wallData,
-                features: featureToggles
+                customSound: document.getElementById('my-custom-sound').value, wall: wallData, features: featureToggles
             }; localStorage.setItem('nowspace_save', JSON.stringify(data));
         }
 
         window.onload = () => {
             renderTop8(); const savedData = JSON.parse(localStorage.getItem('nowspace_save'));
-            
             const savedVisitorAlias = localStorage.getItem('nowspace_visitor_alias');
-            if (savedVisitorAlias) {
-                const aliasInput = document.getElementById('visitor-alias-input');
-                if (aliasInput) aliasInput.value = savedVisitorAlias;
-            }
+            if (savedVisitorAlias) { const aliasInput = document.getElementById('visitor-alias-input'); if (aliasInput) aliasInput.value = savedVisitorAlias; }
 
             if (savedData) {
                 if (savedData.alias) document.getElementById('my-alias').value = savedData.alias;
@@ -742,6 +803,7 @@ body {
                     featureToggles = savedData.features;
                     if (featureToggles.usernames === undefined) featureToggles.usernames = true;
                     if (featureToggles.voicecomms === undefined) featureToggles.voicecomms = true;
+                    if (featureToggles.polls === undefined) featureToggles.polls = true;
                     
                     document.getElementById('toggle-scanlines').checked = featureToggles.scanlines;
                     document.getElementById('toggle-soundboard').checked = featureToggles.soundboard;
@@ -749,9 +811,9 @@ body {
                     document.getElementById('toggle-top8').checked = featureToggles.top8;
                     document.getElementById('toggle-usernames').checked = featureToggles.usernames;
                     document.getElementById('toggle-voicecomms').checked = featureToggles.voicecomms;
+                    document.getElementById('toggle-polls').checked = featureToggles.polls;
                 }
-                applyFeatures(featureToggles);
-                renderWall(); 
+                applyFeatures(featureToggles); renderWall(); 
             }
             const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             const urlParams = new URLSearchParams(window.location.search); const targetNode = urlParams.get('node');
@@ -760,9 +822,7 @@ body {
 
         function copyMagicLink() {
             const linkInput = document.getElementById('magic-link-input'); linkInput.select();
-            navigator.clipboard.writeText(linkInput.value).then(() => {
-                const btn = document.getElementById('btn-copy-magic'); btn.innerText = "COPIED!"; setTimeout(() => { btn.innerText = "COPY"; }, 2000);
-            });
+            navigator.clipboard.writeText(linkInput.value).then(() => { const btn = document.getElementById('btn-copy-magic'); btn.innerText = "COPIED!"; setTimeout(() => { btn.innerText = "COPY"; }, 2000); });
         }
 
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
@@ -780,22 +840,15 @@ body {
             if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
             document.getElementById('secure-voice-stream-container').innerHTML = ''; 
             
-            if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null;
-            document.getElementById('visitor-view').style.display = 'none';
-            document.getElementById('host-live-wall-panel').style.display = 'none';
-            document.getElementById('host-setup-panel').style.display = 'block';
-            document.getElementById('visitor-connect-panel').style.display = 'block';
-            document.getElementById('btn-go-online').disabled = false;
-            document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
-            document.getElementById('my-id-display').style.display = 'none';
-            document.getElementById('magic-link-container').innerHTML = '';
-            document.getElementById('audio-container').innerHTML = ""; 
-            document.getElementById('render-gallery-grid').innerHTML = "";
-            document.getElementById('visitor-gallery-panel').style.display = "none";
-            globalDisconnectBtn.style.display = 'none';
+            if (peer) peer.destroy(); peer = null; activeConn = null; currentRole = null; activePoll = null;
+            document.getElementById('visitor-view').style.display = 'none'; document.getElementById('host-live-wall-panel').style.display = 'none';
+            document.getElementById('host-setup-panel').style.display = 'block'; document.getElementById('visitor-connect-panel').style.display = 'block';
+            document.getElementById('btn-go-online').disabled = false; document.getElementById('btn-go-online').innerText = ">> INITIALIZE_NODE <<";
+            document.getElementById('my-id-display').style.display = 'none'; document.getElementById('magic-link-container').innerHTML = '';
+            document.getElementById('audio-container').innerHTML = ""; document.getElementById('render-gallery-grid').innerHTML = "";
+            document.getElementById('visitor-gallery-panel').style.display = "none"; globalDisconnectBtn.style.display = 'none';
             
-            updateVoiceTogglesVisuals(false);
-            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+            updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
 
             const currentCSS = document.getElementById('my-css').value; document.getElementById('custom-injected-css').innerText = currentCSS;
             statusDisplay.innerText = "[ STATUS: OFFLINE ]"; statusDisplay.style.color = "#555";
@@ -812,8 +865,7 @@ body {
             setupPeerCallListener(); 
 
             peer.on('open', (id) => {
-                statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)";
-                globalDisconnectBtn.style.display = 'block';
+                statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; statusDisplay.style.color = "var(--main-cyan)"; globalDisconnectBtn.style.display = 'block';
                 document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
                 document.getElementById('host-live-wall-panel').style.display = 'block'; renderWall();
                 const currentUrl = window.location.href.split('?')[0]; const magicLink = `${currentUrl}?node=${id}`;
@@ -838,7 +890,7 @@ body {
                         type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, 
                         css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, 
                         gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, 
-                        features: featureToggles, hostFingerprint: myFingerprint 
+                        features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll
                     }; conn.send(profilePackage);
                 });
             });
@@ -847,8 +899,7 @@ body {
         function visitFriend() {
             currentRole = 'VISITOR'; const friendId = document.getElementById('friend-id').value.trim(); if (!friendId) return;
             document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
-            document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]";
-            globalDisconnectBtn.style.display = 'block';
+            document.getElementById('visitor-view').style.display = 'block'; statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]"; globalDisconnectBtn.style.display = 'block';
             if (!peer) { peer = new Peer(peerConfig); setupPeerCallListener(); peer.on('open', () => { executeConnection(friendId); }); } else { setupPeerCallListener(); executeConnection(friendId); }
         }
 
@@ -856,8 +907,7 @@ body {
             statusDisplay.innerText = "[ STATUS: NEGOTIATING_FIREWALL... ]"; activeConn = peer.connect(friendId, { reliable: true });
             let connectionTimeout = setTimeout(() => {
                 if(statusDisplay.innerText.includes("NEGOTIATING")) {
-                    statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]";
-                    document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // TIMEOUT_OR_DEAD_LINK ]</h2>";
+                    statusDisplay.innerText = "[ STATUS: ERR // NODE_UNREACHABLE ]"; document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 404 // TIMEOUT_OR_DEAD_LINK ]</h2>";
                 }
             }, 40000); 
             activeConn.on('open', () => { clearTimeout(connectionTimeout); statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; });
@@ -868,50 +918,58 @@ body {
             switch(packet.type) {
                 case MSG_TYPE_PROFILE:
                     document.getElementById('render-alias').innerText = packet.alias; document.getElementById('datarender-bio').innerText = packet.bio;
-                    let knownHosts = JSON.parse(localStorage.getItem('nowspace_known_hosts')) || {};
-                    let badge = document.getElementById('identity-badge'); let hostTarget = activeConn.peer;
-                    if (!knownHosts[hostTarget]) {
-                        knownHosts[hostTarget] = packet.hostFingerprint; localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts));
-                        badge.innerHTML = '<span class="badge-new">[ 🆕 TOFU: NEW_IDENTITY_REGISTERED ]</span>';
-                    } else if (knownHosts[hostTarget] === packet.hostFingerprint) {
-                        badge.innerHTML = '<span class="badge-verified">[ ✔ VERIFIED_SECURE_NODE ]</span>';
-                    } else {
-                        badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>';
-                    }
+                    let knownHosts = JSON.parse(localStorage.getItem('nowspace_known_hosts')) || {}; let badge = document.getElementById('identity-badge'); let hostTarget = activeConn.peer;
+                    if (!knownHosts[hostTarget]) { knownHosts[hostTarget] = packet.hostFingerprint; localStorage.setItem('nowspace_known_hosts', JSON.stringify(knownHosts)); badge.innerHTML = '<span class="badge-new">[ 🆕 TOFU: NEW_IDENTITY_REGISTERED ]</span>'; } 
+                    else if (knownHosts[hostTarget] === packet.hostFingerprint) { badge.innerHTML = '<span class="badge-verified">[ ✔ VERIFIED_SECURE_NODE ]</span>'; } 
+                    else { badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>'; }
+                    
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
                     if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
-                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true };
+                    featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
+                    
+                    activePoll = packet.activePoll || null;
                     applyFeatures(featureToggles);
                     buildVisitorGallery(packet.gallery); buildVisitorTop8Grid(packet.top8); wallData = packet.currentWall; renderWall(); break;
+                
                 case MSG_TYPE_WALL_POST:
                     if (currentRole === 'HOST') {
                         wallData.push({ sender: packet.sender, text: packet.text, isPrivate: packet.isPrivate, timestamp: new Date().toLocaleTimeString() });
                         saveLocalData(); renderWall(); 
                         for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => { conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }); }
                     } break;
+                
                 case MSG_TYPE_WALL_UPDATE:
                     if (currentRole === 'VISITOR') { wallData = packet.updatedWall; renderWall(); } break;
+                
                 case MSG_TYPE_SOUNDBOARD: 
                     triggerSound(packet.soundId, false, packet.sender, packet.customUrl); break;
+                
                 case MSG_TYPE_FEATURE_UPDATE:
-                    if (currentRole === 'VISITOR') {
-                        featureToggles = packet.features;
-                        applyFeatures(featureToggles);
+                    if (currentRole === 'VISITOR') { featureToggles = packet.features; applyFeatures(featureToggles); } break;
+                
+                case MSG_TYPE_POLL_NEW:
+                case MSG_TYPE_POLL_UPDATE:
+                    if (currentRole === 'VISITOR') { activePoll = packet.poll; renderVisitorPoll(); } break;
+                
+                case MSG_TYPE_POLL_VOTE:
+                    if (currentRole === 'HOST' && activePoll) {
+                        if (!activePoll.voters.includes(packet.voterId)) {
+                            activePoll.voters.push(packet.voterId);
+                            activePoll.options[packet.optionIndex].votes++;
+                            renderHostPoll();
+                            
+                            const updatePacket = { type: MSG_TYPE_POLL_UPDATE, poll: activePoll };
+                            for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(updatePacket)); }
+                        }
                     } break;
             }
         }
 
         function visitorSendWallPacket() {
-            const inputField = document.getElementById('wall-input-buffer'); 
-            const privateToggle = document.getElementById('private-packet-toggle');
-            const aliasInput = document.getElementById('visitor-alias-input').value.trim();
-            
+            const inputField = document.getElementById('wall-input-buffer'); const privateToggle = document.getElementById('private-packet-toggle'); const aliasInput = document.getElementById('visitor-alias-input').value.trim();
             if (!inputField.value || !activeConn) return;
-            
             let senderName = aliasInput ? aliasInput : peer.id.substring(0,6);
-            
             if(aliasInput) { localStorage.setItem('nowspace_visitor_alias', aliasInput); }
-
             activeConn.send({ type: MSG_TYPE_WALL_POST, text: inputField.value, isPrivate: privateToggle.checked, sender: senderName });
             inputField.value = ''; privateToggle.checked = false;
         }
