@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.26</title>
+    <title>NOWSPACE :: TRM_v1.27</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
         @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap');
 
         :root {
-            --bg-color: #050509;
+            --bg-color: #000000;
             --main-cyan: #00ffff;
             --bright-magenta: #ff00ff;
             --dark-magenta: #550055;
@@ -153,14 +153,13 @@
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.26</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.27</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
     </div>
 
-    <!-- === ZONE: HTML_HOST_INTERFACE === -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -173,14 +172,15 @@
         <label>Custom Soundboard (MP3 URL):</label>
         <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here to use on your soundboard...">
         
-        <label>Profile Audio Embed (HTML &lt;iframe&gt;):</label>
-        <textarea id="my-audio" rows="2"><iframe width="100%" height="150" src="https://www.youtube.com/embed/hMxlPYStVVY?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe></textarea>
-        <label>Profile Gallery (Paste one Image/GIF URL per line):</label>
-        <textarea id="my-gallery" rows="3">https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExZG1pNHl2OTZ3bDczbDB3c2IzajA1YWpodTg4Ync1NG45OXNjaXZnMCZlcD12MV9naWZzX3NlYXJjaCZjdD1n/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
+        <label>Profile Soundtrack (Paste a YouTube Link):</label>
+        <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
+        
+        <label>Profile Gallery (Paste Image URLs or Giphy Links, one per line):</label>
+        <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ==============================================================
-  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.26
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.27
   ==============================================================
 */
 
@@ -196,7 +196,7 @@
 
 body { 
     background-color: var(--bg-color);
-    background-image: url('https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmliZ3hrcjkxNnVwMHZsMTN3ODR0b3VnaGJrZTZrZnc5cXdlZXc2aSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/ui1VQlTo0FvHrdwJD7/giphy.gif');
+    background-image: url('https://readingrockets.co.uk/wp-content/uploads/2025/06/cropped-ReadingRocketsLogo.png');
     background-size: contain; 
     background-repeat: no-repeat;
     background-attachment: fixed;
@@ -248,7 +248,6 @@ body {
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- === ZONE: HOST LIVE CONTROLLER === -->
     <div class="panel" id="host-live-wall-panel">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="border: 1px solid #333; margin-bottom: 15px; background: rgba(0,0,0,0.7); padding: 5px;">
@@ -257,7 +256,6 @@ body {
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''" style="margin-left: 5px; border-color:#555; color:#555;">[ CLEAR LOG ]</button>
         </div>
 
-        <!-- HOST POLL DEPLOYMENT -->
         <div id="host-poll-module" class="poll-feature-group" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-bottom: 15px; background: rgba(0,0,0,0.5);">
             <h4 style="margin: 0 0 10px 0; font-size: 0.85rem;">[ DEPLOY_CONSENSUS_POLL ]</h4>
             <div id="host-poll-builder">
@@ -305,14 +303,12 @@ body {
         </div>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_INTERFACE === -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here (e.g., Alan)...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- === ZONE: HTML_VISITOR_VIEW === -->
     <div id="visitor-view">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -321,7 +317,6 @@ body {
             <p id="datarender-bio"></p>
         </div>
         
-        <!-- VISITOR POLL RENDER PANEL -->
         <div class="panel poll-feature-group" id="visitor-poll-panel" style="margin-top:20px; display: none;">
             <h3>[ ACTIVE_DATA_QUERY // POLL ]</h3>
             <div id="render-poll-content"></div>
@@ -443,42 +438,56 @@ body {
             }
         };
 
+        // === ZONE: REGEX AUTO-EMBED SCANNERS ===
+        function extractYouTubeId(url) {
+            const regExp = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+            const match = url.match(regExp);
+            return match ? match[1] : null;
+        }
+
+        function extractGiphyId(url) {
+            const regExp = /giphy\.com\/gifs\/(?:.*-)?([a-zA-Z0-9]+)/i;
+            const match = url.match(regExp);
+            return match ? match[1] : null;
+        }
+
+        function renderAudioEmbed(input) {
+            if(!input) return "";
+            if(input.includes("<iframe")) return input; 
+            
+            let ytId = extractYouTubeId(input);
+            if(ytId) {
+                return `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+            }
+            return "";
+        }
+
         // === ZONE: SOUND REGS ===
         function updateMasterVolume(val) {
             globalVolume = parseFloat(val);
-            document.querySelectorAll('.vol-slider-wrap input[type="range"]').forEach(input => {
-                input.value = val;
-            });
+            document.querySelectorAll('.vol-slider-wrap input[type="range"]').forEach(input => { input.value = val; });
         }
 
         // === ZONE: FEATURE FLAG TOGGLE LOGIC ===
         function applyFeatures(features) {
             document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
-            
             document.querySelectorAll('.soundboard-container').forEach(el => { el.style.display = features.soundboard ? 'flex' : 'none'; });
-
             const galleryPanel = document.getElementById('visitor-gallery-panel');
             if (galleryPanel) { galleryPanel.style.display = (features.gallery && document.getElementById('render-gallery-grid').innerHTML !== '') ? 'block' : 'none'; }
-
             const top8Panel = document.getElementById('visitor-top8-panel');
             if (top8Panel) { top8Panel.style.display = (features.top8 && document.getElementById('render-top8-grid').innerHTML !== '') ? 'block' : 'none'; }
-            
             const hostTop8Wrapper = document.getElementById('host-top8-wrapper');
             if (hostTop8Wrapper) { hostTop8Wrapper.style.display = features.top8 ? 'block' : 'none'; }
-
             const hostOutput = document.getElementById('host-datastream-output');
             if (hostOutput) { hostOutput.classList.toggle('hide-usernames', !features.usernames); }
-
             const visitorOutput = document.getElementById('datastream-output');
             if (visitorOutput) { visitorOutput.classList.toggle('hide-usernames', !features.usernames); }
-
             document.querySelectorAll('.voice-feature-group').forEach(el => { el.style.display = features.voicecomms ? 'flex' : 'none'; });
-
+            
             if (!features.voicecomms && localStream) {
                 if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
                 localStream.getTracks().forEach(t => t.stop()); localStream = null;
-                updateVoiceTogglesVisuals(false);
-                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+                updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
             }
 
             document.querySelectorAll('.poll-feature-group').forEach(el => { el.style.display = features.polls ? 'block' : 'none'; });
@@ -494,8 +503,7 @@ body {
             featureToggles.voicecomms = document.getElementById('toggle-voicecomms').checked;
             featureToggles.polls = document.getElementById('toggle-polls').checked;
             
-            applyFeatures(featureToggles);
-            saveLocalData();
+            applyFeatures(featureToggles); saveLocalData();
             
             if (currentRole === 'HOST' && peer) {
                 const updatePacket = { type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles };
@@ -512,24 +520,17 @@ body {
             
             if(!q || !o1 || !o2) return alert("System requires a Question and at least 2 Options to initialize consensus.");
             
-            let opts = [{text: o1, votes: 0}, {text: o2, votes: 0}];
-            if(o3) opts.push({text: o3, votes: 0});
-
+            let opts = [{text: o1, votes: 0}, {text: o2, votes: 0}]; if(o3) opts.push({text: o3, votes: 0});
             activePoll = { question: q, options: opts, voters: [] };
             
-            document.getElementById('host-poll-builder').style.display = 'none';
-            document.getElementById('host-poll-active').style.display = 'block';
-            
+            document.getElementById('host-poll-builder').style.display = 'none'; document.getElementById('host-poll-active').style.display = 'block';
             renderHostPoll();
 
             const packet = { type: MSG_TYPE_POLL_NEW, poll: activePoll };
-            if (currentRole === 'HOST' && peer) {
-                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); }
-            }
+            if (currentRole === 'HOST' && peer) { for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); } }
         }
 
         function closePoll() {
-            // AUTOMATED SYSTEM BROADCAST OF POLL RESULTS TO MAIN WALL
             if(activePoll) {
                 const totalVotes = activePoll.options.reduce((sum, opt) => sum + opt.votes, 0);
                 let resultText = `<b style="color:var(--main-cyan);">[ CONSENSUS ARCHIVED ]</b><br><span style="color:#fff;">${activePoll.question}</span><br>`;
@@ -540,28 +541,20 @@ body {
                 });
 
                 wallData.push({ sender: "[SYSTEM]", text: resultText, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-                saveLocalData(); 
-                renderWall();
+                saveLocalData(); renderWall();
                 
                 if (currentRole === 'HOST' && peer) {
-                    for (let peerId in peer.connections) { 
-                        peer.connections[peerId].forEach(conn => conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
-                    }
+                    for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
                 }
             }
 
             activePoll = null;
-            document.getElementById('poll-q').value = '';
-            document.getElementById('poll-o1').value = '';
-            document.getElementById('poll-o2').value = '';
-            document.getElementById('poll-o3').value = '';
-            document.getElementById('host-poll-builder').style.display = 'block';
-            document.getElementById('host-poll-active').style.display = 'none';
+            document.getElementById('poll-q').value = ''; document.getElementById('poll-o1').value = '';
+            document.getElementById('poll-o2').value = ''; document.getElementById('poll-o3').value = '';
+            document.getElementById('host-poll-builder').style.display = 'block'; document.getElementById('host-poll-active').style.display = 'none';
             
             const packet = { type: MSG_TYPE_POLL_NEW, poll: null };
-            if (currentRole === 'HOST' && peer) {
-                for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); }
-            }
+            if (currentRole === 'HOST' && peer) { for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(packet)); } }
             renderVisitorPoll();
         }
 
@@ -577,28 +570,20 @@ body {
                     <div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:2px;">
                         <span>${opt.text} <span style="color:#aaa;">(${percent}%)</span></span>
                         <span style="color:var(--bright-magenta);">${opt.votes}</span>
-                    </div>
-                    <div class="poll-bar" style="width:${percent}%;"></div>
+                    </div><div class="poll-bar" style="width:${percent}%;"></div>
                 `;
-            });
-            resDiv.innerHTML = html;
+            }); resDiv.innerHTML = html;
         }
 
         function renderVisitorPoll() {
-            const panel = document.getElementById('visitor-poll-panel');
-            const content = document.getElementById('render-poll-content');
-            
-            if(!activePoll || !featureToggles.polls) {
-                panel.style.display = 'none';
-                return;
-            }
+            const panel = document.getElementById('visitor-poll-panel'); const content = document.getElementById('render-poll-content');
+            if(!activePoll || !featureToggles.polls) { panel.style.display = 'none'; return; }
             panel.style.display = 'block';
             
             const hasVoted = activePoll.voters.includes(myFingerprint);
             const totalVotes = activePoll.options.reduce((sum, opt) => sum + opt.votes, 0);
             
             let html = `<div style="color:var(--main-cyan); margin-bottom:10px; font-weight:bold;">> ${activePoll.question}</div>`;
-            
             activePoll.options.forEach((opt, index) => {
                 const percent = totalVotes === 0 ? 0 : Math.round((opt.votes / totalVotes) * 100);
                 if(hasVoted) {
@@ -606,25 +591,17 @@ body {
                         <div class="poll-option poll-locked">
                             <span>${opt.text} <span style="color:#aaa; font-size:0.8rem;">(${percent}%)</span></span>
                             <span style="color:var(--bright-magenta);">${opt.votes}</span>
-                        </div>
-                        <div class="poll-bar" style="width:${percent}%;"></div>
+                        </div><div class="poll-bar" style="width:${percent}%;"></div>
                     `;
                 } else {
-                    html += `
-                        <div class="poll-option" onclick="submitVote(${index})">
-                            <span>> ${opt.text}</span>
-                            <span style="font-size:0.8rem; color:#555;">[ VOTE ]</span>
-                        </div>
-                    `;
+                    html += `<div class="poll-option" onclick="submitVote(${index})"><span>> ${opt.text}</span><span style="font-size:0.8rem; color:#555;">[ VOTE ]</span></div>`;
                 }
-            });
-            content.innerHTML = html;
+            }); content.innerHTML = html;
         }
 
         function submitVote(optionIndex) {
             if(!activePoll || !activeConn || activePoll.voters.includes(myFingerprint)) return;
-            activePoll.voters.push(myFingerprint);
-            activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: optionIndex });
+            activePoll.voters.push(myFingerprint); activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: optionIndex });
             renderVisitorPoll();
         }
 
@@ -695,8 +672,7 @@ body {
 
         function toggleMute() {
             if (localStream && localStream.getAudioTracks().length > 0) {
-                isMuted = !isMuted;
-                localStream.getAudioTracks()[0].enabled = !isMuted;
+                isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted;
                 document.querySelectorAll('.mute-btn').forEach(b => {
                     b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
                     if(isMuted) { b.classList.add('btn-alert'); } else { b.classList.remove('btn-alert'); }
@@ -788,7 +764,12 @@ body {
             if(!urlsString || urlsString.trim() === '') { panel.style.display = 'none'; return; }
             const urls = urlsString.split('\n').map(url => url.trim()).filter(url => url.length > 0);
             if(urls.length === 0) { panel.style.display = 'none'; return; }
-            urls.forEach(url => { grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${url}', '_blank')"><img src="${url}"></div>`; });
+            urls.forEach(url => { 
+                let finalUrl = url;
+                let giphyId = extractGiphyId(url);
+                if(giphyId) finalUrl = `https://media.giphy.com/media/${giphyId}/giphy.gif`;
+                grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${finalUrl}', '_blank')"><img src="${finalUrl}"></div>`; 
+            });
             panel.style.display = featureToggles.gallery ? 'block' : 'none';
         }
 
@@ -845,15 +826,17 @@ body {
         function formatWallMessage(text, isPrivate, hideFromPublicView) {
             const urlRegex = /(https?:\/\/[^\s]+)/gi;
             let formattedText = text.replace(urlRegex, (url) => {
+                let ytId = extractYouTubeId(url);
+                if (ytId) { return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`; }
+                
+                let giphyId = extractGiphyId(url);
+                if (giphyId) { return `<img src="https://media.giphy.com/media/${giphyId}/giphy.gif" />`; }
+
                 if (url.match(/\.(jpeg|jpg|gif|png|webp)$/i)) { return `<img src="${url}" />`; }
                 return `<a href="${url}" target="_blank">${url}</a>`;
             });
             
-            // Allow basic system HTML tags from polls but escape manual HTML to prevent injection
-            if(text.includes("[ CONSENSUS ARCHIVED ]")) {
-                return text;
-            }
-
+            if(text.includes("[ CONSENSUS ARCHIVED ]")) { return text; }
             if (isPrivate && hideFromPublicView) { return `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formattedText}</span>`; }
             return formattedText;
         }
@@ -947,7 +930,7 @@ body {
                     else { badge.innerHTML = '<span class="badge-danger">[ ⚠️ DANGER: ALIEN FINGERPRINT / POTENTIAL IMPOSTER ]</span>'; }
                     
                     if(packet.css) document.getElementById('custom-injected-css').innerText = packet.css;
-                    if(packet.audio) document.getElementById('audio-container').innerHTML = packet.audio;
+                    if(packet.audio) document.getElementById('audio-container').innerHTML = renderAudioEmbed(packet.audio);
                     featureToggles = packet.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
                     
                     activePoll = packet.activePoll || null;
