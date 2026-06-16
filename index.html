@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.28</title>
+    <title>NOWSPACE :: TRM_v1.29</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         /* === ZONE: CSS_VARIABLES === */
@@ -144,17 +144,68 @@
         .badge-verified { color: #0f0; }
         .badge-danger { color: #f00; text-shadow: 0 0 5px #f00; animation: flash 1s infinite alternate; }
         @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
+
+        /* === NEW: SYSTEM MANUAL MODAL STYLES === */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.85); z-index: 200000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+        .modal-content { border: 2px solid var(--main-cyan); background: var(--bg-color); padding: 25px; max-width: 650px; width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 0 30px rgba(0,255,255,0.2); position: relative; }
+        .modal-close-btn { position: absolute; top: 15px; right: 15px; border: 1px solid var(--alert-red); color: var(--alert-red); background: #000; cursor: pointer; font-weight: bold; padding: 4px 10px; transition: all 0.2s; }
+        .modal-close-btn:hover { background: var(--alert-red); color: #000; box-shadow: 0 0 10px var(--alert-red); }
+        .manual-section { margin-bottom: 20px; border-bottom: 1px dashed #333; padding-bottom: 15px; }
+        .manual-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+        .manual-h3 { color: var(--bright-magenta); margin: 0 0 10px 0; text-shadow: var(--magenta-glow); font-size: 1.1rem; }
+        .manual-text { font-size: 0.85rem; color: #ccc; line-height: 1.5; margin: 0 0 10px 0; text-shadow: none; }
     </style>
     <style id="custom-injected-css"></style>
 </head>
 <body>
     <div id="crt-scanlines"></div>
 
+    <!-- === NEW: SYSTEM MANUAL MODAL OVERLAY === -->
+    <div id="system-manual-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.29</h2>
+            
+            <div class="manual-section">
+                <h3 class="manual-h3">> WHAT IS NOWSPACE?</h3>
+                <p class="manual-text">NOWSPACE is a decentralized, peer-to-peer communication terminal. When you connect to a node, your data flows directly between your machine and the host. There are no central servers intercepting, storing, or monitoring your conversations.</p>
+            </div>
+
+            <div class="manual-section">
+                <h3 class="manual-h3">> PRIVACY & LOCAL DATA USAGE</h3>
+                <p class="manual-text"><b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy.</p>
+                <p class="manual-text">To keep you connected and remember your layout preferences without forcing you to create an account, this application saves small packets of data directly to your browser's <b>Local Storage</b> (such as your display alias, UI theme configuration, and your secure connection hash). Your data never leaves your device unless you actively broadcast it to a peer.</p>
+                <p class="manual-text"><i>Embedded media (such as YouTube videos) are automatically routed through privacy-enhanced domains to prevent third-party advertising cookies from loading on your machine.</i></p>
+            </div>
+
+            <div class="manual-section">
+                <h3 class="manual-h3">> HOW TO OPERATE: HOSTING</h3>
+                <ul class="manual-text" style="padding-left:20px;">
+                    <li>Configure your profile variables (Alias, Bio, Soundtrack, Custom CSS).</li>
+                    <li>Click <b>INITIALIZE_NODE</b> to bring your terminal online.</li>
+                    <li>Copy your generated <b>Magic Link</b> and share it with peers to invite them to your terminal.</li>
+                    <li>Use the <b>SYSTEM_FEATURE_FLAGS</b> to enable or disable modules (like voice comms or polls) for everyone connected to you in real-time.</li>
+                </ul>
+            </div>
+
+            <div class="manual-section">
+                <h3 class="manual-h3">> HOW TO OPERATE: VISITING</h3>
+                <ul class="manual-text" style="padding-left:20px;">
+                    <li>Paste a Host's Access Hash into the input box and click <b>CONNECT_TO_PEER</b> (or simply open a Magic Link).</li>
+                    <li>You can set an optional display alias before broadcasting to the wall.</li>
+                    <li><b>Media Embedding:</b> Paste direct image URLs (ending in .jpg, .png, .gif) or standard YouTube/Giphy links directly into the chat box to render them on the wall.</li>
+                    <li><b>Secure Transmission:</b> Check the 'HOST EYES ONLY' box to send a blurred, private packet that only the Host can read.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
     <div style="display:flex; justify-content:space-between; align-items:center; position: relative; z-index: 40; border-bottom: 1px solid var(--main-cyan); padding-bottom: 10px; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.28</h1>
+        <h1 class="glitch-text" style="border:none; padding:0; margin:0;">// NOWSPACE :: TRM_v1.29</h1>
         <div style="display: flex; gap: 15px; align-items: center;">
+            <button class="btn-small" onclick="toggleManual()" style="margin:0; border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status" style="font-size:0.8rem; color: #aaa; text-shadow: none;">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none; margin:0;">[ X KILL_LINK ]</button>
         </div>
@@ -181,7 +232,7 @@
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ==============================================================
-  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.28
+  NOWSPACE ENGINE: SKINNING FRAMEWORK BLUEPRINT v1.29
   ==============================================================
 */
 
@@ -421,27 +472,33 @@ body {
                     { urls: "stun:stun.relay.metered.ca:80" },
                     {
                         urls: "turn:global.relay.metered.ca:80",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:80?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turn:global.relay.metered.ca:443",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     },
                     {
                         urls: "turns:global.relay.metered.ca:443?transport=tcp",
-                        username: "a2c8cb5b5df48328de43a219",
-                        credential: "cn5bJg9evQNfOc/k"
+                        username: "PASTE_YOUR_USERNAME_HERE",
+                        credential: "PASTE_YOUR_CREDENTIAL_HERE"
                     }
                 ]
             }
         };
+
+        // === ZONE: MODAL LOGIC ===
+        function toggleManual() {
+            const modal = document.getElementById('system-manual-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        }
 
         // === ZONE: REGEX AUTO-EMBED SCANNERS ===
         function extractYouTubeId(url) {
