@@ -1,4 +1,4 @@
-﻿// === SYSTEM GLOBAL DATABASE ENGINE ===
+// === SYSTEM GLOBAL DATABASE ENGINE ===
 let peer = null, activeConn = null, wallData = [], currentRole = null;
 let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 let globalVolume = 0.5, activePoll = null;
@@ -146,8 +146,8 @@ function deployPoll() {
 
 function closePoll() {
     if(activePoll) {
-        const total = activePoll.options.reduce((sum, o) => sum + opt.votes, 0);
-        let txt = `<b style="color:var(--main-cyan);"[ CONSENSUS ARCHIVED ]</b><br><span style="color:#fff;">${activePoll.question}</span><br>`;
+        const total = activePoll.options.reduce((sum, o) => sum + o.votes, 0);
+        let txt = `<b style="color:var(--main-cyan);">[ CONSENSUS ARCHIVED ]</b><br><span style="color:#fff;">${activePoll.question}</span><br>`;
         activePoll.options.forEach(o => {
             const pct = total === 0 ? 0 : Math.round((o.votes / total) * 100);
             txt += `<span style="color:#aaa;">> ${o.text}:</span> <b style="color:var(--bright-magenta);">${pct}%</b><br>`;
@@ -166,11 +166,11 @@ function closePoll() {
 
 function renderHostPoll() {
     if(!activePoll) return;
-    const total = activePoll.options.reduce((s, o) => sum + opt.votes, 0);
-    let html = `<div style="color:var(--main-cyan); font-weight:bold;">> ${activePoll.question}</div>`;
+    const total = activePoll.options.reduce((s, o) => s + o.votes, 0);
+    let html = `<div style="color:var(--main-cyan); font-weight:bold; margin-bottom:8px;">> ${activePoll.question}</div>`;
     activePoll.options.forEach(o => {
         const pct = total === 0 ? 0 : Math.round((o.votes / total) * 100);
-        html += `<div>${o.text} (${pct}%)</div><div class="poll-bar" style="width:${pct}%;"></div>`;
+        html += `<div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:2px;"><span>${o.text} <span style="color:#aaa;">(${pct}%)</span></span><span style="color:var(--bright-magenta);">${o.votes}</span></div><div class="poll-bar" style="width:${pct}%;"></div>`;
     });
     document.getElementById('render-host-poll-results').innerHTML = html;
 }
@@ -179,11 +179,11 @@ function renderVisitorPoll() {
     const panel = document.getElementById('visitor-poll-panel'), content = document.getElementById('render-poll-content');
     if(!activePoll || !featureToggles.polls) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
-    const voted = activePoll.voters.includes(myFingerprint), total = activePoll.options.reduce((s, o) => sum + opt.votes, 0);
-    let html = `<div style="color:var(--main-cyan);">> ${activePoll.question}</div>`;
+    const voted = activePoll.voters.includes(myFingerprint), total = activePoll.options.reduce((s, o) => s + o.votes, 0);
+    let html = `<div style="color:var(--main-cyan); margin-bottom:10px; font-weight:bold;">> ${activePoll.question}</div>`;
     activePoll.options.forEach((o, idx) => {
         const pct = total === 0 ? 0 : Math.round((o.votes / total) * 100);
-        html += voted ? `<div class="poll-option poll-locked"><span>${o.text} (${pct}%)</span></div><div class="poll-bar" style="width:${pct}%;"></div>` : `<div class="poll-option" onclick="submitVote(${idx})"><span>> ${o.text}</span></div>`;
+        html += voted ? `<div class="poll-option poll-locked"><span>${o.text} <span style="color:#aaa; font-size:0.8rem;">(${pct}%)</span></span><span style="color:var(--bright-magenta);">${o.votes}</span></div><div class="poll-bar" style="width:${pct}%;"></div>` : `<div class="poll-option" onclick="submitVote(${idx})"><span>> ${o.text}</span><span style="font-size:0.8rem; color:#555;">[ VOTE ]</span></div>`;
     });
     content.innerHTML = html;
 }
@@ -325,8 +325,9 @@ function buildVisitorGallery(str) {
 }
 
 function formatWallMessage(text) {
+    if(text.includes("[ CONSENSUS ARCHIVED ]")) return text;
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
-        let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen></iframe><br>`;
+        let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
         let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
         return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? `<img src="${url}" />` : `<a href="${url}" target="_blank">${url}</a>`;
     });
@@ -350,8 +351,10 @@ function startHosting() {
     peer.on('open', (id) => {
         statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; globalDisconnectBtn.style.display = 'block';
         document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
-        document.getElementById('host-live-wall-panel').style.display = 'block'; renderWall();
-        document.getElementById('magic-link-container').innerHTML = `<input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly><button onclick="copyMagicLink()">COPY</button>`;
+        document.getElementById('host-live-wall-panel').style.display = 'block'; 
+        document.getElementById('visitor-connect-panel').style.display = 'none';
+        renderWall();
+        document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
     peer.on('connection', (c) => {
         c.on('data', handleIncomingP2PPacket);
@@ -363,8 +366,11 @@ function startHosting() {
 
 function visitFriend() {
     currentRole = 'VISITOR'; const fId = document.getElementById('friend-id').value.trim(); if (!fId) return;
-    document.getElementById('host-setup-panel').style.display = 'none'; document.getElementById('visitor-connect-panel').style.display = 'none';
-    document.getElementById('visitor-view').style.display = 'block'; globalDisconnectBtn.style.display = 'block';
+    document.getElementById('host-setup-panel').style.display = 'none'; 
+    document.getElementById('visitor-connect-panel').style.display = 'none';
+    document.getElementById('host-live-wall-panel').style.display = 'none';
+    document.getElementById('visitor-view').style.display = 'block'; 
+    statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]"; globalDisconnectBtn.style.display = 'block';
     if (!peer) { peer = new Peer(peerConfig); setupPeerCallListener(); peer.on('open', () => { executeConnection(fId); }); } else { executeConnection(fId); }
 }
 
