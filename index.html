@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.30</title>
+    <title>NOWSPACE :: TRM_v1.31</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,16 +11,18 @@
     <div id="crt-scanlines"></div>
     <div id="secure-voice-stream-container" style="display:none;"></div>
 
+    <!-- SYSTEM MANUAL MODAL -->
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.30</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.31</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
+    <!-- TOP HEADER CONTROL REGION -->
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.30</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.31</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -28,6 +30,7 @@
         </div>
     </div>
 
+    <!-- INTERFACE 01: HOST PROVISIONING -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -79,7 +82,8 @@
         <div id="magic-link-container"></div>
     </div>
 
-    <div class="panel" id="host-live-wall-panel">
+    <!-- INTERFACE 02: HOST CONTROL DECK -->
+    <div class="panel" id="host-live-wall-panel" style="display: none;">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div class="visitor-log-box">
             <h4>> ACCESS_RECORDS</h4>
@@ -87,6 +91,7 @@
             <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''">[ CLEAR LOG ]</button>
         </div>
 
+        <!-- POLL DEPLOYMENT CONSOLE -->
         <div id="host-poll-module" class="poll-feature-group poll-builder-box">
             <h4>[ DEPLOY_CONSENSUS_POLL ]</h4>
             <div id="host-poll-builder">
@@ -104,6 +109,7 @@
             </div>
         </div>
 
+        <!-- SOUNDBOARD MODULE -->
         <div class="soundboard-container">
             <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
@@ -132,13 +138,15 @@
         </div>
     </div>
 
+    <!-- INTERFACE 03: VISITOR CONNECT CONSOLE -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <div id="visitor-view">
+    <!-- INTERFACE 04: VISITOR CORE COMPONENT DESK -->
+    <div id="visitor-view" style="display: none;">
         <div id="audio-container"></div>
         <div id="render-profile-header">
             <h2 id="render-alias" class="glitch-text"></h2>
@@ -156,7 +164,7 @@
             <div class="gallery-grid" id="render-gallery-grid"></div>
         </div>
         
-        <div class="panel" id="visitor-top8-panel">
+        <div class="panel" id="visitor-top8-panel" style="display: none;">
             <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
             <div class="top8-grid" id="render-top8-grid"></div>
         </div>
