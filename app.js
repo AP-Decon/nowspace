@@ -130,8 +130,8 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = formatWallMessage(post.text);
         }
 
-        // GRID WARS (TIC-TAC-TOE) INLINE RENDERING
-        if (post.isGame === 'tictactoe') {
+        // === GRID WARS (TIC-TAC-TOE) INLINE RENDERING ===
+        if (post.isGame === 'tictactoe' && post.board) {
             let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
             let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
             post.board.forEach((cell, i) => {
@@ -145,6 +145,22 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
                 <div style="font-size:0.8rem;">${statusText}</div>
             </div>`;
         }
+        
+        let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
+
+        return `
+            <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}" style="display:flex; align-items:flex-start;">
+                ${deleteBtnHTML}
+                <div style="flex-grow:1; word-break: break-all;">
+                    <span style="color:#555;">[${post.timestamp}]</span> 
+                    <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span> 
+                    <span style="color:#ccc;">${textOut}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    container.scrollTop = container.scrollHeight;
+}
         
         let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
 
