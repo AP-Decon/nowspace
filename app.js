@@ -45,13 +45,13 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "PASTE_YOUR_USERNAME_HERE",
-                credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "PASTE_YOUR_USERNAME_HERE",
-                credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             }
         ]
     }
