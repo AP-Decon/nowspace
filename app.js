@@ -75,18 +75,25 @@ function renderAudioEmbed(input) {
 function renderWallStream(targetId, filterSecureText, decryptMode) {
     const container = document.getElementById(targetId);
     if (!container) return;
-    container.innerHTML = wallData.map(post => {
+    container.innerHTML = wallData.map((post, index) => {
         let textOut = post.text;
         if (post.isPrivate) {
             textOut = decryptMode ? formatWallMessage(post.text) : `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formatWallMessage(post.text)}</span>`;
         } else {
             textOut = formatWallMessage(post.text);
         }
+        
+        // Add delete capability directly to the Host's datastream view
+        let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
+
         return `
-            <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}">
-                <span style="color:#555;">[${post.timestamp}]</span> 
-                <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span> 
-                <span style="color:#ccc;">${textOut}</span>
+            <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}" style="display:flex; align-items:flex-start;">
+                ${deleteBtnHTML}
+                <div style="flex-grow:1; word-break: break-all;">
+                    <span style="color:#555;">[${post.timestamp}]</span> 
+                    <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span> 
+                    <span style="color:#ccc;">${textOut}</span>
+                </div>
             </div>
         `;
     }).join('');
@@ -96,6 +103,19 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
 function renderWall() {
     renderWallStream('datastream-output', true, false);
     renderWallStream('host-datastream-output', false, true);
+}
+
+function deleteWallMessage(index) {
+    if(confirm("DELETE THIS PACKET? It will be wiped for all connected nodes.")) {
+        wallData.splice(index, 1);
+        saveLocalData();
+        renderWall();
+        if (currentRole === 'HOST' && peer) {
+            for (let id in peer.connections) { 
+                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
+            }
+        }
+    }
 }
 
 // === SYSTEM SYSTEM FLAGS CONSOLE IMPLEMENTATION ===
@@ -305,7 +325,26 @@ function kickAndBan(targetPeerId) {
             }); 
         }
         renderActivePeers();
+        renderBannedPeers();
     }
+}
+
+function renderBannedPeers() {
+    const container = document.getElementById('host-banned-list');
+    if(!container) return;
+    if(bannedFingerprints.length === 0) { container.innerHTML = "No active bans."; return; }
+    container.innerHTML = bannedFingerprints.map(fp => {
+        return `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:3px; align-items:center;">
+            <span style="color:#555;font-size:0.7rem;">${fp}</span>
+            <button class="btn-small" style="border-color:#0f0; color:#0f0;" onclick="unbanFingerprint('${fp}')">[ UNBAN ]</button>
+        </div>`;
+    }).join('');
+}
+
+function unbanFingerprint(fp) {
+    bannedFingerprints = bannedFingerprints.filter(f => f !== fp);
+    localStorage.setItem('nowspace_banned', JSON.stringify(bannedFingerprints));
+    renderBannedPeers();
 }
 
 // === UTILITY, CORE HANDSHAKES, AND EVENT LISTENERS ===
@@ -396,7 +435,7 @@ function startHosting() {
         document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
         document.getElementById('host-live-wall-panel').style.display = 'block'; 
         document.getElementById('visitor-connect-panel').style.display = 'none';
-        renderWall(); renderActivePeers();
+        renderWall(); renderActivePeers(); renderBannedPeers();
         document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
     peer.on('connection', (c) => {
