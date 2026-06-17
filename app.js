@@ -34,7 +34,7 @@ const MANUAL_DATABASE = [
     { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
     { h3: "HOW TO OPERATE: HOSTING", p: "Configure profile variables. Click INITIALIZE_NODE. Copy your generated Magic Link and pass it to peers to form explicit communication nodes." },
     { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text." }
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet." }
 ];
 
 // === WEBRTC GATEWAY CONFIGURATION ===
@@ -74,28 +74,32 @@ function renderAudioEmbed(input) {
 
 // === COMMAND LINE INTERCEPTOR ===
 function parseSlashCommand(text, senderName) {
-    if (!text.startsWith('/')) return text;
+    if (!text.startsWith('/')) return { text: text, burnSec: null };
     const parts = text.split(' ');
     const cmd = parts[0].toLowerCase();
     const payload = parts.slice(1).join(' ');
 
     if (cmd === '/clear') {
-        wallData = [];
-        renderWall();
-        return null; // Null flags the system to abort the network broadcast
+        wallData = []; renderWall(); return { text: null, burnSec: null };
     }
     if (cmd === '/roll') {
-        const roll = Math.floor(Math.random() * 20) + 1;
-        return `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`;
+        const roll = Math.floor(Math.random() * 100) + 1;
+        return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null };
     }
     if (cmd === '/glitch') {
-        return `<span class="glitch-text" style="display:inline-block;">${payload}</span>`;
+        return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null };
     }
     if (cmd === '/vapor') {
         const vapor = payload.replace(/[a-zA-Z0-9!?-]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
-        return `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`;
+        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null };
     }
-    return text; // Pass through if command isn't recognized
+    if (cmd === '/burn') {
+        const sec = parseInt(parts[1], 10);
+        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null }; 
+        const burnMsg = parts.slice(2).join(' ');
+        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec };
+    }
+    return { text: text, burnSec: null };
 }
 
 // === DRY PIPELINE: UNIFIED STREAM RENDERING ===
@@ -436,7 +440,7 @@ function buildVisitorGallery(str) {
 }
 
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
@@ -525,7 +529,6 @@ function handleIncomingP2PPacket(p, senderId) {
             featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
             applyFeatures(featureToggles); buildVisitorGallery(p.gallery); buildVisitorTop8Grid(p.top8); wallData = p.currentWall; renderWall(); break;
         
-        // === ROUTER LOGIC FOR WHISPERS ===
         case 'RELAY_WHISPER':
             if (currentRole === 'HOST') {
                 let targetConnId = null;
@@ -555,7 +558,17 @@ function handleIncomingP2PPacket(p, senderId) {
             if (currentRole === 'HOST') { 
                 if (bannedFingerprints.includes(p.fingerprint)) return;
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; renderActivePeers();
-                wallData.push({ sender: p.sender, text: p.text, isPrivate: p.isPrivate, timestamp: new Date().toLocaleTimeString() }); saveLocalData(); renderWall(); 
+                
+                const packet = { 
+                    sender: p.sender, 
+                    text: p.text, 
+                    isPrivate: p.isPrivate, 
+                    timestamp: new Date().toLocaleTimeString(),
+                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null 
+                };
+
+                wallData.push(packet); 
+                saveLocalData(); renderWall(); 
                 for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); } 
             } break;
         case MSG_TYPE_WALL_UPDATE:
@@ -603,12 +616,12 @@ function visitorSendWallPacket() {
     }
 
     // SLASH COMMAND INTERCEPTOR
-    const processedText = parseSlashCommand(rawText, name);
-    if (processedText === null) {
+    const parsed = parseSlashCommand(rawText, name);
+    if (parsed.text === null) {
         input.value = ''; priv.checked = false; return;
     }
 
-    activeConn.send({ type: MSG_TYPE_WALL_POST, text: processedText, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
+    activeConn.send({ type: MSG_TYPE_WALL_POST, text: parsed.text, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint, burnSec: parsed.burnSec });
     input.value = ''; priv.checked = false;
 }
 
@@ -619,16 +632,49 @@ function hostSendWallPacket() {
     const rawText = input.value.trim();
     
     // SLASH COMMAND INTERCEPTOR
-    const processedText = parseSlashCommand(rawText, "[HOST]");
-    if (processedText === null) {
+    const parsed = parseSlashCommand(rawText, "[HOST]");
+    if (parsed.text === null) {
         input.value = ''; return;
     }
 
-    wallData.push({ sender: "[HOST]", text: processedText, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+    const packet = { 
+        sender: "[HOST]", 
+        text: parsed.text, 
+        isPrivate: false, 
+        timestamp: new Date().toLocaleTimeString(),
+        burnAt: parsed.burnSec ? Date.now() + (parsed.burnSec * 1000) : null 
+    };
+
+    wallData.push(packet);
     saveLocalData(); renderWall(); 
     for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
     input.value = '';
 }
+
+// === OBLIVION PROTOCOL: GLOBAL GARBAGE COLLECTOR ===
+setInterval(() => {
+    if (wallData.length === 0) return;
+    let changed = false;
+    const now = Date.now();
+    
+    wallData = wallData.filter(p => {
+        if (p.burnAt && now >= p.burnAt) {
+            changed = true;
+            return false; // DESTROY THE PACKET
+        }
+        return true;
+    });
+
+    if (changed) {
+        renderWall();
+        if (currentRole === 'HOST' && peer) {
+            saveLocalData();
+            for (let id in peer.connections) { 
+                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
+            }
+        }
+    }
+}, 1000);
 
 function saveLocalData() {
     if (currentRole !== 'HOST') return;
