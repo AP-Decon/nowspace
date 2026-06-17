@@ -141,3 +141,19 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
 .badge-verified { color: #0f0; }
 .badge-danger { color: #f00; text-shadow: 0 0 5px #f00; animation: flash 1s infinite alternate; }
 @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
+/* === GLITCH ANIMATION ENGINE === */
+.glitch-text {
+    position: relative;
+    display: inline-block;
+    color: #fff;
+    animation: textGlitch 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both infinite;
+}
+
+@keyframes textGlitch {
+    0% { text-shadow: 2px 2px var(--bright-magenta), -2px -2px var(--main-cyan); transform: translate(0); }
+    20% { text-shadow: -2px -2px var(--bright-magenta), 2px 2px var(--main-cyan); transform: translate(-1px, 1px); }
+    40% { text-shadow: 2px -2px var(--bright-magenta), -2px 2px var(--main-cyan); transform: translate(1px, -1px); }
+    60% { text-shadow: -2px 2px var(--bright-magenta), 2px -2px var(--main-cyan); transform: translate(-1px, -1px); }
+    80% { text-shadow: 2px 2px var(--bright-magenta), -2px -2px var(--main-cyan); transform: translate(1px, 1px); }
+    100% { text-shadow: -2px -2px var(--bright-magenta), 2px 2px var(--main-cyan); transform: translate(0); }
+}
