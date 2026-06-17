@@ -34,7 +34,7 @@ const MANUAL_DATABASE = [
     { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
     { h3: "HOW TO OPERATE: HOSTING", p: "Configure profile variables. Click INITIALIZE_NODE. Copy your generated Magic Link and pass it to peers to form explicit communication nodes." },
     { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet." }
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
 ];
 
 // === WEBRTC GATEWAY CONFIGURATION ===
@@ -45,13 +45,13 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             }
         ]
     }
@@ -74,32 +74,35 @@ function renderAudioEmbed(input) {
 
 // === COMMAND LINE INTERCEPTOR ===
 function parseSlashCommand(text, senderName) {
-    if (!text.startsWith('/')) return { text: text, burnSec: null };
+    if (!text.startsWith('/')) return { text: text, burnSec: null, isGame: null };
     const parts = text.split(' ');
     const cmd = parts[0].toLowerCase();
     const payload = parts.slice(1).join(' ');
 
     if (cmd === '/clear') {
-        wallData = []; renderWall(); return { text: null, burnSec: null };
+        wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
     if (cmd === '/roll') {
         const roll = Math.floor(Math.random() * 100) + 1;
-        return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null };
+        return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null, isGame: null };
     }
     if (cmd === '/glitch') {
-        return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null };
+        return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null, isGame: null };
     }
     if (cmd === '/vapor') {
         const vapor = payload.replace(/[a-zA-Z0-9!?-]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
-        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null };
+        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null, isGame: null };
     }
     if (cmd === '/burn') {
         const sec = parseInt(parts[1], 10);
-        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null }; 
+        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null, isGame: null }; 
         const burnMsg = parts.slice(2).join(' ');
-        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec };
+        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec, isGame: null };
     }
-    return { text: text, burnSec: null };
+    if (cmd === '/tictactoe') {
+        return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe' };
+    }
+    return { text: text, burnSec: null, isGame: null };
 }
 
 // === DRY PIPELINE: UNIFIED STREAM RENDERING ===
@@ -125,6 +128,22 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = decryptMode ? formatWallMessage(post.text) : `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formatWallMessage(post.text)}</span>`;
         } else {
             textOut = formatWallMessage(post.text);
+        }
+
+        // GRID WARS (TIC-TAC-TOE) INLINE RENDERING
+        if (post.isGame === 'tictactoe') {
+            let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
+            let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
+            post.board.forEach((cell, i) => {
+                let color = cell === 'X' ? 'var(--bright-magenta)' : 'var(--main-cyan)';
+                grid += `<button onclick="sendGameMove('${post.gameId}', ${i})" style="width:40px; height:40px; font-size:1.2rem; background:#000; border:1px solid var(--dark-magenta); color:${color}; font-family:monospace; cursor:pointer; padding:0;">${cell || '&nbsp;'}</button>`;
+            });
+            grid += `</div>`;
+            textOut += `<br><div style="border: 1px dashed #333; padding: 10px; display:inline-block; margin-top:5px; background:rgba(0,0,0,0.5);">
+                <div style="font-size:0.8rem; margin-bottom:5px; color:#aaa;">[ GRID_WARS.EXE // TERMINAL_SYNC_ACTIVE ]</div>
+                ${grid}
+                <div style="font-size:0.8rem;">${statusText}</div>
+            </div>`;
         }
         
         let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
@@ -440,7 +459,7 @@ function buildVisitorGallery(str) {
 }
 
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
@@ -553,6 +572,10 @@ function handleIncomingP2PPacket(p, senderId) {
                 wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
                 renderWall();
             } break;
+            
+        case 'GAME_MOVE':
+            if (currentRole === 'HOST') { processGameMove(p); } 
+            break;
 
         case MSG_TYPE_WALL_POST:
             if (currentRole === 'HOST') { 
@@ -564,7 +587,13 @@ function handleIncomingP2PPacket(p, senderId) {
                     text: p.text, 
                     isPrivate: p.isPrivate, 
                     timestamp: new Date().toLocaleTimeString(),
-                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null 
+                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null,
+                    isGame: p.isGame,
+                    gameId: p.isGame ? Date.now().toString() : null,
+                    board: p.isGame ? Array(9).fill(null) : null,
+                    turn: p.isGame ? 'X' : null,
+                    winner: null,
+                    players: p.isGame ? { X: null, O: null } : null
                 };
 
                 wallData.push(packet); 
@@ -621,7 +650,7 @@ function visitorSendWallPacket() {
         input.value = ''; priv.checked = false; return;
     }
 
-    activeConn.send({ type: MSG_TYPE_WALL_POST, text: parsed.text, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint, burnSec: parsed.burnSec });
+    activeConn.send({ type: MSG_TYPE_WALL_POST, text: parsed.text, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint, burnSec: parsed.burnSec, isGame: parsed.isGame });
     input.value = ''; priv.checked = false;
 }
 
@@ -630,25 +659,80 @@ function hostSendWallPacket() {
     if (!input.value) return;
     
     const rawText = input.value.trim();
+    const alias = document.getElementById('my-alias').value.trim() || "[HOST]";
     
     // SLASH COMMAND INTERCEPTOR
-    const parsed = parseSlashCommand(rawText, "[HOST]");
+    const parsed = parseSlashCommand(rawText, alias);
     if (parsed.text === null) {
         input.value = ''; return;
     }
 
     const packet = { 
-        sender: "[HOST]", 
+        sender: alias, 
         text: parsed.text, 
         isPrivate: false, 
         timestamp: new Date().toLocaleTimeString(),
-        burnAt: parsed.burnSec ? Date.now() + (parsed.burnSec * 1000) : null 
+        burnAt: parsed.burnSec ? Date.now() + (parsed.burnSec * 1000) : null,
+        isGame: parsed.isGame,
+        gameId: parsed.isGame ? Date.now().toString() : null,
+        board: parsed.isGame ? Array(9).fill(null) : null,
+        turn: parsed.isGame ? 'X' : null,
+        winner: null,
+        players: parsed.isGame ? { X: null, O: null } : null
     };
 
     wallData.push(packet);
     saveLocalData(); renderWall(); 
     for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
     input.value = '';
+}
+
+// === GRID WARS (TIC-TAC-TOE) ENGINE ===
+function sendGameMove(gameId, cellIndex) {
+    let alias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : document.getElementById('my-alias').value.trim();
+    if(!alias && peer) alias = peer.id.substring(0,6);
+    
+    if (currentRole === 'HOST') {
+        processGameMove({ gameId: gameId, cellIndex: cellIndex, fingerprint: myFingerprint, senderAlias: alias });
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        activeConn.send({ type: 'GAME_MOVE', gameId: gameId, cellIndex: cellIndex, fingerprint: myFingerprint, senderAlias: alias });
+    }
+}
+
+function processGameMove(p) {
+    let game = wallData.find(m => m.gameId === p.gameId);
+    if (game && !game.winner && !game.board[p.cellIndex]) {
+        // Lock player into role (First Come First Served)
+        if (!game.players[game.turn]) {
+            game.players[game.turn] = { fp: p.fingerprint, alias: p.senderAlias };
+        }
+        
+        // Validate Turn
+        if (game.players[game.turn].fp === p.fingerprint) {
+            game.board[p.cellIndex] = game.turn;
+            checkGameWinner(game);
+            game.turn = game.turn === 'X' ? 'O' : 'X';
+            
+            saveLocalData();
+            renderWall();
+            for (let id in peer.connections) { 
+                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
+            }
+        }
+    }
+}
+
+function checkGameWinner(game) {
+    const lines = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (let line of lines) {
+        const [a,b,c] = line;
+        if (game.board[a] && game.board[a] === game.board[b] && game.board[a] === game.board[c]) {
+            const winnerAlias = game.players[game.board[a]] ? game.players[game.board[a]].alias : "PLAYER " + game.board[a];
+            game.winner = winnerAlias.toUpperCase() + " WINS";
+            return;
+        }
+    }
+    if (!game.board.includes(null)) game.winner = 'DRAW // STALEMATE';
 }
 
 // === OBLIVION PROTOCOL: GLOBAL GARBAGE COLLECTOR ===
