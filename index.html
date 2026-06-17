@@ -48,7 +48,21 @@
         <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
 
         <label>Custom CSS Injection Framework Blueprint:</label>
-        <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
+        <textarea id="my-css" rows="10">/* ENTER CUSTOM OVERRIDES HERE */
+            /* QUICK REFERENCE GUIDE:
+            :root {
+            --main-cyan: #00ffff;
+            --bright-magenta: #ff00ff;
+            --bg-color: #000000;
+            --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
+            }
+
+            TARGET EXAMPLES:
+            body { font-family: "Courier New", monospace; }
+            .wall-post { border-left: 2px solid var(--bright-magenta); padding-left: 10px; }
+            button { border-radius: 4px; }
+            #crt-scanlines { opacity: 0.15; }
+        */</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
