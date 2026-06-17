@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.33</title>
+    <title>NOWSPACE :: TRM_v1.34</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,14 +15,14 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.33</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.34</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <!-- TOP HEADER CONTROL REGION -->
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.33</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.34</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -107,10 +107,13 @@ button { border-radius: 4px; }
                 <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''">[ CLEAR LOG ]</button>
             </div>
             
-            <!-- NEW: BAN HAMMER PANEL -->
+            <!-- MODERATION PANEL -->
             <div class="visitor-log-box" style="flex: 1; min-width: 250px; border-color: var(--alert-red);">
-                <h4 style="color: var(--alert-red);">> ACTIVE_CONNECTIONS // BAN_HAMMER</h4>
+                <h4 style="color: var(--alert-red);">> ACTIVE_CONNECTIONS</h4>
                 <div id="host-active-peers" style="font-size: 0.8rem; margin-bottom: 10px; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active peers.</div>
+                
+                <h4 style="color: var(--alert-red); border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px;">> BANNED_FINGERPRINTS</h4>
+                <div id="host-banned-list" style="font-size: 0.8rem; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active bans.</div>
             </div>
         </div>
 
@@ -159,7 +162,7 @@ button { border-radius: 4px; }
         <div class="input-transmit-bar">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
-            <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
+            <button class="btn-alert" onclick="hostClearWall()">[ WIPE ALL ]</button>
             
             <span class="voice-feature-group">
                 <div class="voice-switch-container host-voice-toggle" onclick="toggleVoice()">
