@@ -135,3 +135,22 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
 .badge-verified { color: #0f0; }
 .badge-danger { color: #f00; text-shadow: 0 0 5px #f00; animation: flash 1s infinite alternate; }
 @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
+
+.emoji-board {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.emoji-board button {
+    background: transparent;
+    border: 1px solid var(--main-cyan);
+    cursor: pointer;
+    padding: 2px 5px;
+    font-size: 1rem;
+}
+
+.emoji-board button:hover {
+    background: var(--main-cyan);
+    color: #000;
+}
