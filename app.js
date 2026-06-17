@@ -506,10 +506,35 @@ function handleIncomingP2PPacket(p, senderId) {
 }
 
 function visitorSendWallPacket() {
-    const input = document.getElementById('wall-input-buffer'), priv = document.getElementById('private-packet-toggle'), alias = document.getElementById('visitor-alias-input').value.trim();
+    const input = document.getElementById('wall-input-buffer');
+    const priv = document.getElementById('private-packet-toggle');
+    const alias = document.getElementById('visitor-alias-input').value.trim();
     if (!input.value || !activeConn) return;
-    let name = alias ? alias : peer.id.substring(0,6); if(alias) localStorage.setItem('nowspace_visitor_alias', alias);
-    activeConn.send({ type: MSG_TYPE_WALL_POST, text: input.value, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
+    
+    let name = alias ? alias : peer.id.substring(0,6); 
+    if(alias) localStorage.setItem('nowspace_visitor_alias', alias);
+    
+    const rawText = input.value.trim();
+
+    // === NEW: WHISPER INTERCEPTOR ===
+    if (rawText.toLowerCase().startsWith('/w ')) {
+        const parts = rawText.split(' ');
+        if (parts.length >= 3) {
+            const targetUser = parts[1];
+            const whisperText = parts.slice(2).join(' ');
+            
+            // Send routing request to Host
+            activeConn.send({ type: 'RELAY_WHISPER', targetAlias: targetUser, text: whisperText, senderAlias: name });
+            
+            // Render locally for sender so they know it sent
+            wallData.push({ sender: name, text: `TO ${targetUser.toUpperCase()}: ${whisperText}`, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
+            renderWall();
+            input.value = ''; return;
+        }
+    }
+
+    // Standard Broadcast
+    activeConn.send({ type: MSG_TYPE_WALL_POST, text: rawText, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
     input.value = ''; priv.checked = false;
 }
 
