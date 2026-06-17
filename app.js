@@ -162,21 +162,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     container.scrollTop = container.scrollHeight;
 }
         
-        let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
-
-        return `
-            <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}" style="display:flex; align-items:flex-start;">
-                ${deleteBtnHTML}
-                <div style="flex-grow:1; word-break: break-all;">
-                    <span style="color:#555;">[${post.timestamp}]</span> 
-                    <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span> 
-                    <span style="color:#ccc;">${textOut}</span>
-                </div>
-            </div>
-        `;
-    }).join('');
-    container.scrollTop = container.scrollHeight;
-}
 
 function renderWall() {
     renderWallStream('datastream-output', true, false);
