@@ -1,6 +1,8 @@
 // === SYSTEM GLOBAL DATABASE ENGINE ===
 let peer = null, activeConn = null, wallData = [], currentRole = null;
 let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
+let bannedFingerprints = JSON.parse(localStorage.getItem('nowspace_banned')) || [];
+let peerFingerprintMap = {}; 
 let globalVolume = 0.5, activePoll = null;
 
 let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
@@ -275,6 +277,37 @@ function setupPeerCallListener() {
     });
 }
 
+// === MODERATION: BAN HAMMER ENGINE ===
+function renderActivePeers() {
+    const container = document.getElementById('host-active-peers');
+    if(!container) return;
+    const peers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
+    if(peers.length === 0) { container.innerHTML = "No active peers."; return; }
+    container.innerHTML = peers.map(id => {
+        const data = peerFingerprintMap[id] || {alias: 'Unknown'};
+        return `<div style="display:flex; justify-content:space-between; margin-bottom:5px; border-bottom:1px dashed #333; padding-bottom:3px; align-items:center;">
+            <span>${data.alias} <span style="color:#555;font-size:0.7rem;">(${id.substring(0,6)})</span></span>
+            <button class="btn-small btn-alert" onclick="kickAndBan('${id}')">[ BAN ]</button>
+        </div>`;
+    }).join('');
+}
+
+function kickAndBan(targetPeerId) {
+    if(confirm("BANISH THIS VISITOR? Their fingerprint will be permanently blocked from this node.")) {
+        const fp = peerFingerprintMap[targetPeerId]?.fingerprint;
+        if (fp && !bannedFingerprints.includes(fp)) { 
+            bannedFingerprints.push(fp); 
+            localStorage.setItem('nowspace_banned', JSON.stringify(bannedFingerprints)); 
+        }
+        if (peer.connections[targetPeerId]) { 
+            peer.connections[targetPeerId].forEach(c => { 
+                c.send({type: 'BANNED'}); setTimeout(() => c.close(), 500); 
+            }); 
+        }
+        renderActivePeers();
+    }
+}
+
 // === UTILITY, CORE HANDSHAKES, AND EVENT LISTENERS ===
 function toggleManual() {
     const modal = document.getElementById('system-manual-modal');
@@ -333,20 +366,13 @@ function formatWallMessage(text) {
     });
 }
 
-// === NEW EMOJI ENGINE ===
 function insertEmoji(emoji) {
     if (currentRole === 'HOST') {
         const hostInput = document.getElementById('host-wall-input');
-        if (hostInput) {
-            hostInput.value += emoji;
-            hostInput.focus();
-        }
+        if (hostInput) { hostInput.value += emoji; hostInput.focus(); }
     } else if (currentRole === 'VISITOR') {
         const visitorInput = document.getElementById('wall-input-buffer');
-        if (visitorInput) {
-            visitorInput.value += emoji;
-            visitorInput.focus();
-        }
+        if (visitorInput) { visitorInput.value += emoji; visitorInput.focus(); }
     }
 }
 
@@ -370,13 +396,15 @@ function startHosting() {
         document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
         document.getElementById('host-live-wall-panel').style.display = 'block'; 
         document.getElementById('visitor-connect-panel').style.display = 'none';
-        renderWall();
+        renderWall(); renderActivePeers();
         document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
     peer.on('connection', (c) => {
-        c.on('data', handleIncomingP2PPacket);
+        c.on('data', (data) => handleIncomingP2PPacket(data, c.peer));
+        c.on('close', () => { renderActivePeers(); });
         c.on('open', () => {
             c.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
+            renderActivePeers();
         });
     });
 }
@@ -393,11 +421,24 @@ function visitFriend() {
 
 function executeConnection(fId) {
     activeConn = peer.connect(fId, { reliable: true });
-    activeConn.on('data', handleIncomingP2PPacket); activeConn.on('close', () => { disconnectNode(); });
+    activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn.peer)); 
+    activeConn.on('close', () => { disconnectNode(); });
+    activeConn.on('open', () => { 
+        statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; 
+        activeConn.send({ type: 'VISITOR_HANDSHAKE', fingerprint: myFingerprint, alias: document.getElementById('visitor-alias-input').value || 'Unknown' });
+    });
 }
 
-function handleIncomingP2PPacket(p) {
+function handleIncomingP2PPacket(p, senderId) {
     switch(p.type) {
+        case 'VISITOR_HANDSHAKE':
+            if (currentRole === 'HOST') {
+                if (bannedFingerprints.includes(p.fingerprint)) {
+                    if (peer.connections[senderId]) { peer.connections[senderId].forEach(c => { c.send({type: 'BANNED'}); setTimeout(() => c.close(), 500); }); } return;
+                }
+                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
+                renderActivePeers();
+            } break;
         case MSG_TYPE_PROFILE:
             document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
             if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
@@ -405,7 +446,12 @@ function handleIncomingP2PPacket(p) {
             featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
             applyFeatures(featureToggles); buildVisitorGallery(p.gallery); buildVisitorTop8Grid(p.top8); wallData = p.currentWall; renderWall(); break;
         case MSG_TYPE_WALL_POST:
-            if (currentRole === 'HOST') { wallData.push({ sender: p.sender, text: p.text, isPrivate: p.isPrivate, timestamp: new Date().toLocaleTimeString() }); saveLocalData(); renderWall(); for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); } } break;
+            if (currentRole === 'HOST') { 
+                if (bannedFingerprints.includes(p.fingerprint)) return;
+                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; renderActivePeers();
+                wallData.push({ sender: p.sender, text: p.text, isPrivate: p.isPrivate, timestamp: new Date().toLocaleTimeString() }); saveLocalData(); renderWall(); 
+                for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); } 
+            } break;
         case MSG_TYPE_WALL_UPDATE:
             if (currentRole === 'VISITOR') { wallData = p.updatedWall; renderWall(); } break;
         case MSG_TYPE_SOUNDBOARD: triggerSound(p.soundId, false, p.sender, p.customUrl); break;
@@ -414,6 +460,9 @@ function handleIncomingP2PPacket(p) {
         case MSG_TYPE_POLL_UPDATE: if (currentRole === 'VISITOR') { activePoll = p.poll; renderVisitorPoll(); } break;
         case MSG_TYPE_POLL_VOTE:
             if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { activePoll.voters.push(p.voterId); activePoll.options[p.optionIndex].votes++; renderHostPoll(); for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll })); } } break;
+        case 'BANNED':
+            alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
+            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
     }
 }
 
@@ -421,7 +470,7 @@ function visitorSendWallPacket() {
     const input = document.getElementById('wall-input-buffer'), priv = document.getElementById('private-packet-toggle'), alias = document.getElementById('visitor-alias-input').value.trim();
     if (!input.value || !activeConn) return;
     let name = alias ? alias : peer.id.substring(0,6); if(alias) localStorage.setItem('nowspace_visitor_alias', alias);
-    activeConn.send({ type: MSG_TYPE_WALL_POST, text: input.value, isPrivate: priv.checked, sender: name });
+    activeConn.send({ type: MSG_TYPE_WALL_POST, text: input.value, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
     input.value = ''; priv.checked = false;
 }
 
