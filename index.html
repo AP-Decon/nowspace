@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.31</title>
+    <title>NOWSPACE :: TRM_v1.32</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,14 +15,14 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.31</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.32</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <!-- TOP HEADER CONTROL REGION -->
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.31</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.32</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -49,20 +49,20 @@
 
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ENTER CUSTOM OVERRIDES HERE */
-            /* QUICK REFERENCE GUIDE:
-            :root {
-            --main-cyan: #00ffff;
-            --bright-magenta: #ff00ff;
-            --bg-color: #000000;
-            --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
-            }
+/* QUICK REFERENCE GUIDE:
+:root {
+  --main-cyan: #00ffff;
+  --bright-magenta: #ff00ff;
+  --bg-color: #000000;
+  --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
 
-            TARGET EXAMPLES:
-            body { font-family: "Courier New", monospace; }
-            .wall-post { border-left: 2px solid var(--bright-magenta); padding-left: 10px; }
-            button { border-radius: 4px; }
-            #crt-scanlines { opacity: 0.15; }
-        */</textarea>
+TARGET EXAMPLES:
+body { font-family: "Courier New", monospace; }
+.wall-post { border-left: 2px solid var(--bright-magenta); padding-left: 10px; }
+button { border-radius: 4px; }
+#crt-scanlines { opacity: 0.15; }
+*/</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
@@ -137,15 +137,17 @@
         </div>
 
         <div id="host-datastream-output" class="datastream-output"></div>
-        <div class="input-transmit-bar">
-            <div class="emoji-board">
+        
+        <div class="emoji-board">
             <button onclick="insertEmoji('👽')">👽</button>
             <button onclick="insertEmoji('💀')">💀</button>
             <button onclick="insertEmoji('👾')">👾</button>
             <button onclick="insertEmoji('⚡')">⚡</button>
             <button onclick="insertEmoji('🔥')">🔥</button>
             <button onclick="insertEmoji('💾')">💾</button>
-            </div>
+        </div>
+        
+        <div class="input-transmit-bar">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE WALL ]</button>
@@ -209,6 +211,15 @@
 
             <div id="datastream-output" class="datastream-output"></div>
             
+            <div class="emoji-board">
+                <button onclick="insertEmoji('👽')">👽</button>
+                <button onclick="insertEmoji('💀')">💀</button>
+                <button onclick="insertEmoji('👾')">👾</button>
+                <button onclick="insertEmoji('⚡')">⚡</button>
+                <button onclick="insertEmoji('🔥')">🔥</button>
+                <button onclick="insertEmoji('💾')">💾</button>
+            </div>
+
             <div class="input-transmit-bar">
                 <input type="text" id="visitor-alias-input" placeholder="Set Alias...">
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="flex-grow: 1;">
