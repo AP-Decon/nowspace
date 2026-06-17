@@ -335,15 +335,18 @@ function formatWallMessage(text) {
 
 // === NEW EMOJI ENGINE ===
 function insertEmoji(emoji) {
-    const hostInput = document.getElementById('host-wall-input');
-    const visitorInput = document.getElementById('wall-input-buffer');
-    
-    if (hostInput && hostInput.offsetParent !== null) {
-        hostInput.value += emoji;
-        hostInput.focus();
-    } else if (visitorInput && visitorInput.offsetParent !== null) {
-        visitorInput.value += emoji;
-        visitorInput.focus();
+    if (currentRole === 'HOST') {
+        const hostInput = document.getElementById('host-wall-input');
+        if (hostInput) {
+            hostInput.value += emoji;
+            hostInput.focus();
+        }
+    } else if (currentRole === 'VISITOR') {
+        const visitorInput = document.getElementById('wall-input-buffer');
+        if (visitorInput) {
+            visitorInput.value += emoji;
+            visitorInput.focus();
+        }
     }
 }
 
