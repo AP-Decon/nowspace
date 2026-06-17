@@ -1,4 +1,4 @@
-﻿/* === STRUCTURAL BASE ARCHITECTURE === */
+/* === STRUCTURAL BASE ARCHITECTURE === */
 :root {
     --bg-color: #050509;
     --main-cyan: #00ffff;
@@ -78,6 +78,11 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
 .vol-slider-wrap input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 10px; height: 12px; background: #ffaa00; cursor: pointer; }
 #visitor-custom-sound { width: 140px; margin: 0; padding: 2px 5px; font-size: 0.75rem; height: 26px; border: 1px solid var(--dark-magenta); background: #000; color: #fff; }
 
+/* === EMOJI BOARD === */
+.emoji-board { display: flex; gap: 5px; margin-bottom: 5px; }
+.emoji-board button { background: #000; border: 1px solid var(--main-cyan); color: #fff; cursor: pointer; padding: 2px 5px; font-size: 1.2rem; text-shadow: none; box-shadow: none; }
+.emoji-board button:hover { background: var(--main-cyan); color: #000; box-shadow: var(--text-glow); }
+
 /* === COMMS TOGGLE CONTROLS === */
 .voice-switch-container { display: inline-flex; align-items: center; gap: 10px; background: #000; border: 1px solid var(--dark-magenta); padding: 4px 10px; height: 38px; cursor: pointer; user-select: none; position: relative; z-index: 25; }
 .voice-switch-label { font-size: 0.8rem; font-weight: bold; color: #aaa; transition: color 0.2s; }
@@ -135,22 +140,3 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
 .badge-verified { color: #0f0; }
 .badge-danger { color: #f00; text-shadow: 0 0 5px #f00; animation: flash 1s infinite alternate; }
 @keyframes flash { from { opacity: 1; } to { opacity: 0.5; } }
-
-.emoji-board {
-    display: flex;
-    gap: 5px;
-    margin-bottom: 5px;
-}
-
-.emoji-board button {
-    background: transparent;
-    border: 1px solid var(--main-cyan);
-    cursor: pointer;
-    padding: 2px 5px;
-    font-size: 1rem;
-}
-
-.emoji-board button:hover {
-    background: var(--main-cyan);
-    color: #000;
-}
