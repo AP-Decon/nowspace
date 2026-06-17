@@ -83,7 +83,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = formatWallMessage(post.text);
         }
         
-        // Add delete capability directly to the Host's datastream view
         let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
 
         return `
@@ -398,6 +397,7 @@ function buildVisitorGallery(str) {
 
 function formatWallMessage(text) {
     if(text.includes("[ CONSENSUS ARCHIVED ]")) return text;
+    if(text.includes("<img src=\"data:image")) return text; // Bypass formatting for base64 images
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
         let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
@@ -543,3 +543,63 @@ window.onload = () => {
 };
 document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
 document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+
+// === HARDWARE COMPRESSION ENGINE ===
+function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+        alert("[ SYSTEM_ERROR ] Only image matrices are supported via direct upload. Please link external files.");
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const MAX_WIDTH = 800;
+            let newWidth = img.width;
+            let newHeight = img.height;
+
+            if (img.width > MAX_WIDTH) {
+                const scaleSize = MAX_WIDTH / img.width;
+                newWidth = MAX_WIDTH;
+                newHeight = img.height * scaleSize;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+            
+            transmitCompressedImage(compressedBase64);
+        }
+        img.src = e.target.result;
+    }
+    reader.readAsDataURL(file);
+}
+
+function transmitCompressedImage(base64Str) {
+    const imgTag = `<br><img src="${base64Str}" style="max-width:100%; border: 1px solid var(--main-cyan); border-radius: 4px; margin-top: 5px; box-shadow: var(--text-glow);" />`;
+    
+    if (currentRole === 'HOST') {
+        wallData.push({ sender: "[HOST]", text: imgTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+        saveLocalData(); 
+        renderWall(); 
+        for (let id in peer.connections) { 
+            peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
+        }
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        const priv = document.getElementById('private-packet-toggle');
+        const alias = document.getElementById('visitor-alias-input').value.trim();
+        let name = alias ? alias : peer.id.substring(0,6);
+        activeConn.send({ type: MSG_TYPE_WALL_POST, text: imgTag, isPrivate: priv?.checked || false, sender: name, fingerprint: myFingerprint });
+    }
+    
+    document.getElementById('hidden-file-input').value = '';
+}
