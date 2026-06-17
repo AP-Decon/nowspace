@@ -33,7 +33,8 @@ const MANUAL_DATABASE = [
     { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal. When you connect to a node, your data flows directly between your machine and the host. There are no central servers intercepting, storing, or monitoring your conversations." },
     { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
     { h3: "HOW TO OPERATE: HOSTING", p: "Configure profile variables. Click INITIALIZE_NODE. Copy your generated Magic Link and pass it to peers to form explicit communication nodes." },
-    { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." }
+    { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." },
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text." }
 ];
 
 // === WEBRTC GATEWAY CONFIGURATION ===
@@ -69,6 +70,32 @@ function renderAudioEmbed(input) {
     if(!input) return ""; if(input.includes("<iframe")) return input; 
     let ytId = extractYouTubeId(input);
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
+}
+
+// === COMMAND LINE INTERCEPTOR ===
+function parseSlashCommand(text, senderName) {
+    if (!text.startsWith('/')) return text;
+    const parts = text.split(' ');
+    const cmd = parts[0].toLowerCase();
+    const payload = parts.slice(1).join(' ');
+
+    if (cmd === '/clear') {
+        wallData = [];
+        renderWall();
+        return null; // Null flags the system to abort the network broadcast
+    }
+    if (cmd === '/roll') {
+        const roll = Math.floor(Math.random() * 20) + 1;
+        return `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`;
+    }
+    if (cmd === '/glitch') {
+        return `<span class="glitch-text" style="display:inline-block;">${payload}</span>`;
+    }
+    if (cmd === '/vapor') {
+        const vapor = payload.replace(/[a-zA-Z0-9!?-]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+        return `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`;
+    }
+    return text; // Pass through if command isn't recognized
 }
 
 // === DRY PIPELINE: UNIFIED STREAM RENDERING ===
@@ -410,7 +437,7 @@ function buildVisitorGallery(str) {
 
 function formatWallMessage(text) {
     if(text.includes("[ CONSENSUS ARCHIVED ]")) return text;
-    if(text.includes("<img src=\"data:image")) return text; // Bypass formatting for base64 images
+    if(text.includes("<img src=\"data:image")) return text; 
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
         let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
@@ -523,7 +550,6 @@ function handleIncomingP2PPacket(p, senderId) {
                 wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
                 renderWall();
             } break;
-        // ==================================
 
         case MSG_TYPE_WALL_POST:
             if (currentRole === 'HOST') { 
@@ -576,15 +602,31 @@ function visitorSendWallPacket() {
         }
     }
 
-    // Standard Broadcast
-    activeConn.send({ type: MSG_TYPE_WALL_POST, text: rawText, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
+    // SLASH COMMAND INTERCEPTOR
+    const processedText = parseSlashCommand(rawText, name);
+    if (processedText === null) {
+        input.value = ''; priv.checked = false; return;
+    }
+
+    activeConn.send({ type: MSG_TYPE_WALL_POST, text: processedText, isPrivate: priv.checked, sender: name, fingerprint: myFingerprint });
     input.value = ''; priv.checked = false;
 }
 
 function hostSendWallPacket() {
-    const input = document.getElementById('host-wall-input'); if (!input.value) return;
-    wallData.push({ sender: "[HOST]", text: input.value, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-    saveLocalData(); renderWall(); for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
+    const input = document.getElementById('host-wall-input'); 
+    if (!input.value) return;
+    
+    const rawText = input.value.trim();
+    
+    // SLASH COMMAND INTERCEPTOR
+    const processedText = parseSlashCommand(rawText, "[HOST]");
+    if (processedText === null) {
+        input.value = ''; return;
+    }
+
+    wallData.push({ sender: "[HOST]", text: processedText, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+    saveLocalData(); renderWall(); 
+    for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
     input.value = '';
 }
 
