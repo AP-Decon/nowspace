@@ -76,6 +76,19 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     const container = document.getElementById(targetId);
     if (!container) return;
     container.innerHTML = wallData.map((post, index) => {
+        
+        // WHISPER STYLING
+        if (post.isLocalWhisper) {
+            return `
+            <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
+                <div style="flex-grow:1; word-break: break-all;">
+                    <span style="color:#555;">[${post.timestamp}]</span> 
+                    <span class="wall-post-sender" style="color:var(--bright-magenta);">[WHISPER] ${post.sender}:</span> 
+                    <span style="color:var(--bright-magenta);">${formatWallMessage(post.text)}</span>
+                </div>
+            </div>`;
+        }
+
         let textOut = post.text;
         if (post.isPrivate) {
             textOut = decryptMode ? formatWallMessage(post.text) : `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formatWallMessage(post.text)}</span>`;
@@ -484,6 +497,34 @@ function handleIncomingP2PPacket(p, senderId) {
             if(p.audio) document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
             featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
             applyFeatures(featureToggles); buildVisitorGallery(p.gallery); buildVisitorTop8Grid(p.top8); wallData = p.currentWall; renderWall(); break;
+        
+        // === ROUTER LOGIC FOR WHISPERS ===
+        case 'RELAY_WHISPER':
+            if (currentRole === 'HOST') {
+                let targetConnId = null;
+                for (let id in peerFingerprintMap) {
+                    if (peerFingerprintMap[id].alias.toLowerCase() === p.targetAlias.toLowerCase()) { targetConnId = id; break; }
+                }
+                
+                if (targetConnId && peer.connections[targetConnId]) {
+                    peer.connections[targetConnId].forEach(c => c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }));
+                    const hostDiv = document.getElementById('host-datastream-output');
+                    hostDiv.innerHTML += `<div class="wall-post" style="padding: 2px 5px;"><span style="color:#555; font-size:0.8rem;">[ ROUTER: ${p.senderAlias} whispered ${p.targetAlias} ]</span></div>`;
+                    hostDiv.scrollTop = hostDiv.scrollHeight;
+                } else {
+                    if (peer.connections[senderId]) {
+                        peer.connections[senderId].forEach(c => c.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` }));
+                    }
+                }
+            } break;
+
+        case 'INCOMING_WHISPER':
+            if (currentRole === 'VISITOR') {
+                wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
+                renderWall();
+            } break;
+        // ==================================
+
         case MSG_TYPE_WALL_POST:
             if (currentRole === 'HOST') { 
                 if (bannedFingerprints.includes(p.fingerprint)) return;
@@ -492,7 +533,12 @@ function handleIncomingP2PPacket(p, senderId) {
                 for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); } 
             } break;
         case MSG_TYPE_WALL_UPDATE:
-            if (currentRole === 'VISITOR') { wallData = p.updatedWall; renderWall(); } break;
+            if (currentRole === 'VISITOR') { 
+                const localWhispers = wallData.filter(m => m.isLocalWhisper);
+                wallData = p.updatedWall; 
+                if (localWhispers.length > 0) wallData.push(...localWhispers); 
+                renderWall(); 
+            } break;
         case MSG_TYPE_SOUNDBOARD: triggerSound(p.soundId, false, p.sender, p.customUrl); break;
         case MSG_TYPE_FEATURE_UPDATE: if (currentRole === 'VISITOR') { featureToggles = p.features; applyFeatures(featureToggles); } break;
         case MSG_TYPE_POLL_NEW:
@@ -516,17 +562,14 @@ function visitorSendWallPacket() {
     
     const rawText = input.value.trim();
 
-    // === NEW: WHISPER INTERCEPTOR ===
+    // WHISPER INTERCEPTOR
     if (rawText.toLowerCase().startsWith('/w ')) {
         const parts = rawText.split(' ');
         if (parts.length >= 3) {
             const targetUser = parts[1];
             const whisperText = parts.slice(2).join(' ');
             
-            // Send routing request to Host
             activeConn.send({ type: 'RELAY_WHISPER', targetAlias: targetUser, text: whisperText, senderAlias: name });
-            
-            // Render locally for sender so they know it sent
             wallData.push({ sender: name, text: `TO ${targetUser.toUpperCase()}: ${whisperText}`, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
             renderWall();
             input.value = ''; return;
