@@ -333,6 +333,20 @@ function formatWallMessage(text) {
     });
 }
 
+// === NEW EMOJI ENGINE ===
+function insertEmoji(emoji) {
+    const hostInput = document.getElementById('host-wall-input');
+    const visitorInput = document.getElementById('wall-input-buffer');
+    
+    if (hostInput && hostInput.offsetParent !== null) {
+        hostInput.value += emoji;
+        hostInput.focus();
+    } else if (visitorInput && visitorInput.offsetParent !== null) {
+        visitorInput.value += emoji;
+        visitorInput.focus();
+    }
+}
+
 function disconnectNode() {
     if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -438,17 +452,3 @@ window.onload = () => {
 };
 document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
 document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
-
-function insertEmoji(emoji) {
-    // Targets the currently active input field
-    const hostInput = document.getElementById('host-wall-input');
-    const visitorInput = document.getElementById('wall-input-buffer');
-    
-    if (hostInput && hostInput.offsetParent !== null) {
-        hostInput.value += emoji;
-        hostInput.focus();
-    } else if (visitorInput && visitorInput.offsetParent !== null) {
-        visitorInput.value += emoji;
-        visitorInput.focus();
-    }
-}
