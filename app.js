@@ -83,7 +83,7 @@ function parseSlashCommand(text, senderName) {
         wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
     if (cmd === '/roll') {
-        const roll = Math.floor(Math.random() * 100) + 1;
+        const roll = Math.floor(Math.random() * 20) + 1;
         return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null, isGame: null };
     }
     if (cmd === '/glitch') {
