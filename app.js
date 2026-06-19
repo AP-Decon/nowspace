@@ -10,7 +10,7 @@ let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: t
 let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
 localStorage.setItem('nowspace_identity_key', myFingerprint);
 
-let localStream = null, activeCalls = [], isMuted = false;
+let localStream = null, activeCalls = [], isMuted = false, isCamOn = false;
 
 // PROTOCOL DEFINITIONS
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -29,7 +29,6 @@ const SOUND_ASSETS = {
     'alert': 'https://www.myinstants.com/media/sounds/efecto-de-sonido-metal-gear-solid-sonido-de-alerta.mp3'
 };
 
-// VIRTUALIZED MANUAL ENGINE MATRIX
 const MANUAL_DATABASE = [
     { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal. When you connect to a node, your data flows directly between your machine and the host. There are no central servers intercepting, storing, or monitoring your conversations." },
     { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
@@ -58,7 +57,6 @@ const peerConfig = {
     }
 };
 
-// === REGEX AUTOMAGIC MEDIA ENGINE ===
 function extractYouTubeId(url) {
     const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
     return match ? match[1] : null;
@@ -73,7 +71,6 @@ function renderAudioEmbed(input) {
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
 }
 
-// === BULLETPROOF BROADCAST ENGINE ===
 function broadcastToAll(packet) {
     if (currentRole !== 'HOST' || !peer) return;
     for (let id in peer.connections) {
@@ -83,7 +80,6 @@ function broadcastToAll(packet) {
     }
 }
 
-// === COMMAND LINE INTERCEPTOR ===
 function parseSlashCommand(text, senderName) {
     if (!text.startsWith('/')) return { text: text, burnSec: null, isGame: null };
     const parts = text.split(' ');
@@ -94,7 +90,6 @@ function parseSlashCommand(text, senderName) {
         wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
     
-    // === MULTI-DICE RNG ENGINE W/ CRITICAL BURSTS ===
     if (cmd === '/roll') {
         let max = 100;
         let diceCount = 1;
@@ -124,7 +119,6 @@ function parseSlashCommand(text, senderName) {
             let r = Math.floor(Math.random() * max) + 1;
             totalSum += r;
             
-            // Critical Hit & Miss detection specifically for d20s
             if (max === 20 && r === 20) {
                 nat20Count++;
                 rollsHtml.push(`<b class="glitch-text" style="color:#0f0; font-size:1.3em; text-shadow: 0 0 8px #0f0;">20</b>`);
@@ -145,7 +139,6 @@ function parseSlashCommand(text, senderName) {
             resultText = `a d${max} ➔ ${rollsHtml[0]}`;
         }
 
-        // Apply Terminal Explosion Banners
         let extraFlair = '';
         if (nat20Count > 0) {
             let multiMultiplier = nat20Count > 1 ? ` (x${nat20Count})` : '';
@@ -176,12 +169,10 @@ function parseSlashCommand(text, senderName) {
     return { text: text, burnSec: null, isGame: null };
 }
 
-// === DRY PIPELINE: UNIFIED STREAM RENDERING ===
 function renderWallStream(targetId, filterSecureText, decryptMode) {
     const container = document.getElementById(targetId);
     if (!container) return;
     container.innerHTML = wallData.map((post, index) => {
-        
         if (post.isLocalWhisper) {
             return `
             <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
@@ -245,7 +236,6 @@ function deleteWallMessage(index) {
     }
 }
 
-// === SYSTEM SYSTEM FLAGS CONSOLE IMPLEMENTATION ===
 function applyFeatures(features) {
     document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
     document.querySelectorAll('.soundboard-container').forEach(el => el.style.display = features.soundboard ? 'flex' : 'none');
@@ -264,7 +254,10 @@ function applyFeatures(features) {
     if (!features.voicecomms && localStream) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
-        updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+        updateVoiceTogglesVisuals(false); 
+        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+        document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+        document.getElementById('video-stream-container').innerHTML = '';
     }
     renderVisitorPoll();
 }
@@ -277,7 +270,6 @@ function updateHostFeatures() {
     broadcastToAll({ type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles });
 }
 
-// === POLL LOGIC ARCHITECTURE ===
 function deployPoll() {
     const q = document.getElementById('poll-q').value.trim(), o1 = document.getElementById('poll-o1').value.trim(), o2 = document.getElementById('poll-o2').value.trim(), o3 = document.getElementById('poll-o3').value.trim();
     if(!q || !o1 || !o2) return alert("Requires data strings.");
@@ -336,7 +328,6 @@ function submitVote(idx) {
     renderVisitorPoll();
 }
 
-// === SOUND REGULATORY BOARD ===
 function updateMasterVolume(val) { globalVolume = parseFloat(val); document.querySelectorAll('.vol-slider-wrap input[type="range"]').forEach(i => i.value = val); }
 
 function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
@@ -355,13 +346,25 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     }
 }
 
-// === COMMS SWITCH MANAGEMENT DRIVERS ===
+// === AUDIO/VISUAL COMMS ENGINE ===
 function toggleMute() {
     if (localStream && localStream.getAudioTracks().length > 0) {
-        isMuted = !isMuted; localStream.getAudioTracks()[0].enabled = !isMuted;
+        isMuted = !isMuted; 
+        localStream.getAudioTracks()[0].enabled = !isMuted;
         document.querySelectorAll('.mute-btn').forEach(b => {
             b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
             b.classList.toggle('btn-alert', isMuted);
+        });
+    }
+}
+
+function toggleCam() {
+    if (localStream && localStream.getVideoTracks().length > 0) {
+        isCamOn = !isCamOn;
+        localStream.getVideoTracks()[0].enabled = isCamOn;
+        document.querySelectorAll('.cam-btn').forEach(b => {
+            b.innerText = isCamOn ? "[ 📷 CAM: ON ]" : "[ 📷 CAM: OFF ]";
+            b.classList.toggle('btn-alert', !isCamOn);
         });
     }
 }
@@ -376,31 +379,79 @@ async function toggleVoice() {
     if (activeCalls.length > 0 || localStream) {
         if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-        updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); return;
+        updateVoiceTogglesVisuals(false); 
+        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+        document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+        document.getElementById('video-stream-container').innerHTML = '';
+        return;
     }
     try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        updateVoiceTogglesVisuals(true); isMuted = false;
+        // We now request VIDEO alongside audio, but heavily throttle it to save bandwidth!
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+            audio: true, 
+            video: { width: 320, height: 240, frameRate: 15 } 
+        });
+        
+        updateVoiceTogglesVisuals(true); 
+        isMuted = false;
+        isCamOn = false;
+        
+        // Turn the camera hardware off by default so the user has to opt-in
+        localStream.getVideoTracks().forEach(t => t.enabled = false);
+
         document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert'); });
-        if (currentRole === 'VISITOR' && activeConn) { let call = peer.call(activeConn.peer, localStream); activeCalls.push(call); handleCallEvent(call); } 
-        else if (currentRole === 'HOST') {
+        document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
+
+        // Render your own local video feed so you can see yourself
+        let localVid = document.createElement('video');
+        localVid.srcObject = localStream;
+        localVid.autoplay = true;
+        localVid.muted = true; // Prevents you from hearing an echo of yourself
+        localVid.classList.add('video-feed', 'local-video');
+        localVid.id = 'local-video-node';
+        document.getElementById('video-stream-container').appendChild(localVid);
+
+        if (currentRole === 'VISITOR' && activeConn) { 
+            let call = peer.call(activeConn.peer, localStream); 
+            activeCalls.push(call); handleCallEvent(call); 
+        } else if (currentRole === 'HOST') {
             const peers = Object.keys(peer.connections);
-            if(peers.length > 0) { peers.forEach(pId => { let call = peer.call(pId, localStream); activeCalls.push(call); handleCallEvent(call); }); } 
-            else { alert("No active visitors."); if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; } updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); }
+            if(peers.length > 0) { 
+                peers.forEach(pId => { let call = peer.call(pId, localStream); activeCalls.push(call); handleCallEvent(call); }); 
+            } else { 
+                alert("No active visitors."); 
+                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; } 
+                updateVoiceTogglesVisuals(false); 
+                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+                document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+                document.getElementById('video-stream-container').innerHTML = '';
+            }
         }
     } catch(e) { updateVoiceTogglesVisuals(false); }
 }
 
 function handleCallEvent(call) {
     call.on('stream', (remote) => {
-        let a = document.createElement('audio'); a.autoplay = true; a.srcObject = remote; a.id = 'audio-node-' + call.peer;
-        document.getElementById('secure-voice-stream-container').appendChild(a);
+        // We check to make sure we haven't already drawn this peer's video feed
+        if(!document.getElementById('video-node-' + call.peer)) {
+            let v = document.createElement('video');
+            v.autoplay = true;
+            v.playsInline = true;
+            v.srcObject = remote;
+            v.id = 'video-node-' + call.peer;
+            v.classList.add('video-feed');
+            document.getElementById('video-stream-container').appendChild(v);
+        }
     });
     call.on('close', () => {
-        let a = document.getElementById('audio-node-' + call.peer); if(a) a.remove();
+        let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
         if(activeCalls.length === 0 && localStream) {
-            localStream.getTracks().forEach(t => t.stop()); localStream = null; updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+            localStream.getTracks().forEach(t => t.stop()); localStream = null; 
+            updateVoiceTogglesVisuals(false); 
+            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
+            document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+            document.getElementById('video-stream-container').innerHTML = '';
         }
     });
 }
@@ -408,12 +459,28 @@ function handleCallEvent(call) {
 function setupPeerCallListener() {
     peer.on('call', async (call) => {
         if(!featureToggles.voicecomms) { call.close(); return; }
-        if(confirm("INCOMING COMMS LINK. ACCEPT?")) {
+        if(confirm("INCOMING A/V COMMS LINK. ACCEPT?")) {
             try {
                 if(!localStream) {
-                    localStream = await navigator.mediaDevices.getUserMedia({audio: true});
-                    updateVoiceTogglesVisuals(true); isMuted = false;
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        audio: true, 
+                        video: { width: 320, height: 240, frameRate: 15 }
+                    });
+                    updateVoiceTogglesVisuals(true); 
+                    isMuted = false;
+                    isCamOn = false;
+                    localStream.getVideoTracks().forEach(t => t.enabled = false);
+
                     document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; });
+                    document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
+
+                    let localVid = document.createElement('video');
+                    localVid.srcObject = localStream;
+                    localVid.autoplay = true;
+                    localVid.muted = true;
+                    localVid.classList.add('video-feed', 'local-video');
+                    localVid.id = 'local-video-node';
+                    document.getElementById('video-stream-container').appendChild(localVid);
                 }
                 call.answer(localStream); activeCalls.push(call); handleCallEvent(call);
             } catch(e) { call.close(); }
@@ -437,7 +504,6 @@ function broadcastOnlineUsers() {
     broadcastToAll({ type: MSG_TYPE_USER_LIST, users: onlineUsers });
 }
 
-// === MODERATION: BAN HAMMER ENGINE ===
 function renderActivePeers() {
     const container = document.getElementById('host-active-peers');
     if(!container) return;
@@ -488,7 +554,6 @@ function unbanFingerprint(fp) {
     renderBannedPeers();
 }
 
-// === UTILITY, CORE HANDSHAKES, AND EVENT LISTENERS ===
 function toggleManual() {
     const modal = document.getElementById('system-manual-modal');
     const target = document.getElementById('manual-render-target');
@@ -557,7 +622,6 @@ function insertEmoji(emoji) {
     }
 }
 
-// === MASTER DISCONNECT PROTOCOL ===
 function disconnectNode() {
     if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -565,11 +629,14 @@ function disconnectNode() {
     document.getElementById('visitor-view').style.display = 'none'; document.getElementById('host-live-wall-panel').style.display = 'none';
     document.getElementById('host-setup-panel').style.display = 'block'; document.getElementById('visitor-connect-panel').style.display = 'block';
     document.getElementById('btn-go-online').disabled = false; document.getElementById('my-id-display').style.display = 'none';
-    globalDisconnectBtn.style.display = 'none'; updateVoiceTogglesVisuals(false); document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+    globalDisconnectBtn.style.display = 'none'; 
+    updateVoiceTogglesVisuals(false); 
+    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
+    document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+    document.getElementById('video-stream-container').innerHTML = '';
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
 }
 
-// === HOST INITIALIZATION ENGINE ===
 function startHosting() {
     currentRole = 'HOST'; document.getElementById('btn-go-online').disabled = true; saveLocalData();
     const customId = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
@@ -588,7 +655,6 @@ function startHosting() {
     });
 }
 
-// === VISITOR CONNECTION ENGINE ===
 function visitFriend() {
     currentRole = 'VISITOR'; const fId = document.getElementById('friend-id').value.trim(); if (!fId) return;
     document.getElementById('host-setup-panel').style.display = 'none'; 
@@ -612,7 +678,6 @@ function executeConnection(fId) {
     });
 }
 
-// === MASTER PACKET INTERCEPTOR ===
 function handleIncomingP2PPacket(p, conn) {
     const senderId = conn.peer;
     switch(p.type) {
@@ -620,21 +685,14 @@ function handleIncomingP2PPacket(p, conn) {
             if (currentRole === 'HOST') {
                 const hostPwd = document.getElementById('my-password').value;
                 if (hostPwd && p.password !== hostPwd) {
-                    conn.send({type: 'AUTH_FAILED'}); 
-                    setTimeout(() => conn.close(), 500); 
-                    return;
+                    conn.send({type: 'AUTH_FAILED'}); setTimeout(() => conn.close(), 500); return;
                 }
-                
                 if (bannedFingerprints.includes(p.fingerprint)) {
-                    conn.send({type: 'BANNED'}); 
-                    setTimeout(() => conn.close(), 500); 
-                    return;
+                    conn.send({type: 'BANNED'}); setTimeout(() => conn.close(), 500); return;
                 }
                 
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
-                renderActivePeers();
-                broadcastOnlineUsers();
-                
+                renderActivePeers(); broadcastOnlineUsers();
                 conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
             } break;
         
@@ -710,8 +768,7 @@ function handleIncomingP2PPacket(p, conn) {
                 };
 
                 wallData.push(packet); 
-                saveLocalData(); 
-                renderWall(); 
+                saveLocalData(); renderWall(); 
                 broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
             } break;
         case MSG_TYPE_WALL_UPDATE:
@@ -744,7 +801,6 @@ function visitorSendWallPacket() {
     
     const rawText = input.value.trim();
 
-    // WHISPER INTERCEPTOR
     if (rawText.toLowerCase().startsWith('/w ')) {
         const parts = rawText.split(' ');
         if (parts.length >= 3) {
@@ -758,7 +814,6 @@ function visitorSendWallPacket() {
         }
     }
 
-    // SLASH COMMAND INTERCEPTOR
     const parsed = parseSlashCommand(rawText, name);
     if (parsed.text === null) {
         input.value = ''; priv.checked = false; return;
@@ -775,7 +830,6 @@ function hostSendWallPacket() {
     const rawText = input.value.trim();
     const alias = document.getElementById('my-alias').value.trim() || "[HOST]";
     
-    // SLASH COMMAND INTERCEPTOR
     const parsed = parseSlashCommand(rawText, alias);
     if (parsed.text === null) {
         input.value = ''; return;
@@ -801,17 +855,14 @@ function hostSendWallPacket() {
     input.value = '';
 }
 
-// === SYSTEM MASTER OVERRIDE ===
 function hostClearWall() {
     if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
         wallData = []; 
-        saveLocalData(); 
-        renderWall();
+        saveLocalData(); renderWall();
         broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
 }
 
-// === GRID WARS (TIC-TAC-TOE) ENGINE ===
 function sendGameMove(gameId, cellIndex) {
     let alias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : document.getElementById('my-alias').value.trim();
     if(!alias && peer) alias = peer.id.substring(0,6);
@@ -835,8 +886,7 @@ function processGameMove(p) {
             checkGameWinner(game);
             game.turn = game.turn === 'X' ? 'O' : 'X';
             
-            saveLocalData();
-            renderWall();
+            saveLocalData(); renderWall();
             broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
     }
@@ -855,26 +905,16 @@ function checkGameWinner(game) {
     if (!game.board.includes(null)) game.winner = 'DRAW // STALEMATE';
 }
 
-// === OBLIVION PROTOCOL: GLOBAL GARBAGE COLLECTOR ===
 setInterval(() => {
     if (wallData.length === 0) return;
-    let changed = false;
-    const now = Date.now();
-    
+    let changed = false; const now = Date.now();
     wallData = wallData.filter(p => {
-        if (p.burnAt && now >= p.burnAt) {
-            changed = true;
-            return false; 
-        }
+        if (p.burnAt && now >= p.burnAt) { changed = true; return false; }
         return true;
     });
-
     if (changed) {
         renderWall();
-        if (currentRole === 'HOST' && peer) {
-            saveLocalData();
-            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-        }
+        if (currentRole === 'HOST' && peer) { saveLocalData(); broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }
     }
 }, 1000);
 
@@ -898,8 +938,6 @@ window.onload = () => {
         applyFeatures(featureToggles); renderWall();
     }
     document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
-    
-    // === CONTEXT-AWARE UX FIX ===
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
         document.getElementById('host-setup-panel').style.display = 'none';
@@ -910,39 +948,19 @@ window.onload = () => {
 document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
 document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
 
-// === HARDWARE COMPRESSION ENGINE ===
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-        alert("[ SYSTEM_ERROR ] Only image matrices are supported via direct upload. Please link external files.");
-        event.target.value = '';
-        return;
-    }
-
+    if (!file.type.startsWith('image/')) { alert("[ SYSTEM_ERROR ] Only image matrices are supported via direct upload."); event.target.value = ''; return; }
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            const MAX_WIDTH = 800;
-            let newWidth = img.width;
-            let newHeight = img.height;
-
-            if (img.width > MAX_WIDTH) {
-                const scaleSize = MAX_WIDTH / img.width;
-                newWidth = MAX_WIDTH;
-                newHeight = img.height * scaleSize;
-            }
-
-            const canvas = document.createElement('canvas');
-            canvas.width = newWidth;
-            canvas.height = newHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, newWidth, newHeight);
-
+            const MAX_WIDTH = 800; let newWidth = img.width; let newHeight = img.height;
+            if (img.width > MAX_WIDTH) { const scaleSize = MAX_WIDTH / img.width; newWidth = MAX_WIDTH; newHeight = img.height * scaleSize; }
+            const canvas = document.createElement('canvas'); canvas.width = newWidth; canvas.height = newHeight;
+            const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, newWidth, newHeight);
             const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
-            
             transmitCompressedImage(compressedBase64);
         }
         img.src = e.target.result;
@@ -952,18 +970,14 @@ function handleImageUpload(event) {
 
 function transmitCompressedImage(base64Str) {
     const imgTag = `<br><img src="${base64Str}" style="max-width:100%; border: 1px solid var(--main-cyan); border-radius: 4px; margin-top: 5px; box-shadow: var(--text-glow);" />`;
-    
     if (currentRole === 'HOST') {
         wallData.push({ sender: "[HOST]", text: imgTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-        saveLocalData(); 
-        renderWall(); 
-        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+        saveLocalData(); renderWall(); broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     } else if (currentRole === 'VISITOR' && activeConn) {
         const priv = document.getElementById('private-packet-toggle');
         const alias = document.getElementById('visitor-alias-input').value.trim();
         let name = alias ? alias : peer.id.substring(0,6);
         activeConn.send({ type: MSG_TYPE_WALL_POST, text: imgTag, isPrivate: priv?.checked || false, sender: name, fingerprint: myFingerprint });
     }
-    
     document.getElementById('hidden-file-input').value = '';
 }
