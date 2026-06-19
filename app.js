@@ -854,14 +854,17 @@ window.onload = () => {
     }
     document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
     
-    // THE FIX: Grabs the ID from the URL, pastes it in the box, but WAITS for you to click connect!
+    // === CONTEXT-AWARE UX FIX ===
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
+        // Instantly hide the Host Provisioning block
+        document.getElementById('host-setup-panel').style.display = 'none';
+        
+        // Prep the visitor connection fields
         document.getElementById('friend-id').value = urlNode; 
-        document.getElementById('visitor-password').focus(); // Highlights the password box for you
+        document.getElementById('visitor-password').focus(); 
     }
 };
-
 // === HARDWARE COMPRESSION ENGINE ===
 function handleImageUpload(event) {
     const file = event.target.files[0];
