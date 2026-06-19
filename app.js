@@ -17,6 +17,7 @@ const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_
 const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE', MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
 const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE', MSG_TYPE_POLL_NEW = 'POLL_NEW';
 const MSG_TYPE_POLL_VOTE = 'POLL_VOTE', MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
+const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
 
 const statusDisplay = document.getElementById('connection-status');
 const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
@@ -83,7 +84,7 @@ function parseSlashCommand(text, senderName) {
         wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
     if (cmd === '/roll') {
-        const roll = Math.floor(Math.random() * 20) + 1;
+        const roll = Math.floor(Math.random() * 100) + 1;
         return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null, isGame: null };
     }
     if (cmd === '/glitch') {
@@ -130,7 +131,7 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = formatWallMessage(post.text);
         }
 
-        // === GRID WARS (TIC-TAC-TOE) INLINE RENDERING ===
+        // GRID WARS (TIC-TAC-TOE) INLINE RENDERING
         if (post.isGame === 'tictactoe' && post.board) {
             let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
             let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
@@ -161,7 +162,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     }).join('');
     container.scrollTop = container.scrollHeight;
 }
-        
 
 function renderWall() {
     renderWallStream('datastream-output', true, false);
@@ -360,6 +360,24 @@ function setupPeerCallListener() {
     });
 }
 
+// === SYSTEM RADAR (ONLINE STATUS) ENGINE ===
+function broadcastOnlineUsers() {
+    if (currentRole !== 'HOST') return;
+    const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
+    const onlineUsers = [{ alias: hostAlias, isHost: true }];
+    
+    const activePeers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
+    activePeers.forEach(id => {
+        if (peerFingerprintMap[id]) {
+            onlineUsers.push({ alias: peerFingerprintMap[id].alias, isHost: false });
+        }
+    });
+
+    for (let id in peer.connections) {
+        peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_USER_LIST, users: onlineUsers }));
+    }
+}
+
 // === MODERATION: BAN HAMMER ENGINE ===
 function renderActivePeers() {
     const container = document.getElementById('host-active-peers');
@@ -389,6 +407,7 @@ function kickAndBan(targetPeerId) {
         }
         renderActivePeers();
         renderBannedPeers();
+        broadcastOnlineUsers();
     }
 }
 
@@ -504,7 +523,7 @@ function startHosting() {
     });
     peer.on('connection', (c) => {
         c.on('data', (data) => handleIncomingP2PPacket(data, c.peer));
-        c.on('close', () => { renderActivePeers(); });
+        c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
         c.on('open', () => {
             c.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
             renderActivePeers();
@@ -541,6 +560,7 @@ function handleIncomingP2PPacket(p, senderId) {
                 }
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                 renderActivePeers();
+                broadcastOnlineUsers();
             } break;
         case MSG_TYPE_PROFILE:
             document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
@@ -549,6 +569,19 @@ function handleIncomingP2PPacket(p, senderId) {
             featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
             applyFeatures(featureToggles); buildVisitorGallery(p.gallery); buildVisitorTop8Grid(p.top8); wallData = p.currentWall; renderWall(); break;
         
+        case MSG_TYPE_USER_LIST:
+            if (currentRole === 'VISITOR') {
+                const container = document.getElementById('render-online-users');
+                if (container) {
+                    container.innerHTML = p.users.map(u => 
+                        `<span style="display:inline-block; margin-right:15px; margin-bottom:5px;">
+                            <span style="color:${u.isHost ? 'var(--main-cyan)' : '#0f0'}; text-shadow:0 0 5px ${u.isHost ? 'var(--main-cyan)' : '#0f0'};">●</span> 
+                            <b style="color:${u.isHost ? 'var(--main-cyan)' : '#fff'};">${u.alias} ${u.isHost ? '[HOST]' : ''}</b>
+                        </span>`
+                    ).join('');
+                }
+            } break;
+
         case 'RELAY_WHISPER':
             if (currentRole === 'HOST') {
                 let targetConnId = null;
@@ -581,7 +614,9 @@ function handleIncomingP2PPacket(p, senderId) {
         case MSG_TYPE_WALL_POST:
             if (currentRole === 'HOST') { 
                 if (bannedFingerprints.includes(p.fingerprint)) return;
-                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; renderActivePeers();
+                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
+                renderActivePeers();
+                broadcastOnlineUsers();
                 
                 const packet = { 
                     sender: p.sender, 
