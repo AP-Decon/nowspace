@@ -10,7 +10,8 @@ let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: t
 let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
 localStorage.setItem('nowspace_identity_key', myFingerprint);
 
-let localStream = null, activeCalls = [], isMuted = false, isCamOn = false;
+// NEW: currentNetworkPeers tracks the Full Mesh roster!
+let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, currentNetworkPeers = [];
 
 // PROTOCOL DEFINITIONS
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -353,7 +354,7 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     }
 }
 
-// === AUDIO/VISUAL COMMS ENGINE ===
+// === FULL MESH AUDIO/VISUAL COMMS ENGINE ===
 function toggleMute() {
     if (localStream && localStream.getAudioTracks().length > 0) {
         isMuted = !isMuted; 
@@ -414,15 +415,17 @@ async function toggleVoice() {
         localVid.id = 'local-video-node';
         getVidContainer().appendChild(localVid);
 
-        if (currentRole === 'VISITOR' && activeConn) { 
-            let call = peer.call(activeConn.peer, localStream); 
-            activeCalls.push(call); handleCallEvent(call); 
+        // MESH DIALING: Call everyone on the known active roster
+        if (currentNetworkPeers.length > 0) {
+            currentNetworkPeers.forEach(pId => {
+                let call = peer.call(pId, localStream);
+                activeCalls.push(call);
+                handleCallEvent(call);
+            });
         } else if (currentRole === 'HOST') {
-            const peers = Object.keys(peer.connections);
-            if(peers.length > 0) { 
-                peers.forEach(pId => { let call = peer.call(pId, localStream); activeCalls.push(call); handleCallEvent(call); }); 
-            }
+            alert("No active visitors to dial. Broadcasting open channel...");
         }
+
     } catch(e) { updateVoiceTogglesVisuals(false); }
 }
 
@@ -437,20 +440,17 @@ function handleCallEvent(call) {
             v.classList.add('video-feed');
             getVidContainer().appendChild(v);
         }
-        // Force the video element to sync with the latest incoming stream data
         v.srcObject = remote;
     });
     call.on('close', () => {
         let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
-        // Cleaned up over-aggressive stream destruction here so the Host doesn't drop comms when 1 visitor leaves!
     });
 }
 
 function setupPeerCallListener() {
     peer.on('call', (call) => {
         if(!featureToggles.voicecomms) { call.close(); return; }
-        // Seamlessly auto-answer without blocking the main thread!
         call.answer(localStream || undefined);
         activeCalls.push(call); 
         handleCallEvent(call);
@@ -461,15 +461,21 @@ function setupPeerCallListener() {
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
     const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
-    const onlineUsers = [{ alias: hostAlias, isHost: true }];
+    
+    // The Host adds their own ID to the roster
+    const onlineUsers = [{ id: peer.id, alias: hostAlias, isHost: true }];
     
     const activePeers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
     activePeers.forEach(id => {
         if (peerFingerprintMap[id]) {
-            onlineUsers.push({ alias: peerFingerprintMap[id].alias, isHost: false });
+            // Include the hidden PeerID in the roster for the Mesh auto-dialer
+            onlineUsers.push({ id: id, alias: peerFingerprintMap[id].alias, isHost: false });
         }
     });
 
+    // Host updates their local roster of other peers
+    currentNetworkPeers = onlineUsers.map(u => u.id).filter(id => id !== peer.id);
+    
     broadcastToAll({ type: MSG_TYPE_USER_LIST, users: onlineUsers });
 }
 
@@ -665,7 +671,7 @@ function handleIncomingP2PPacket(p, conn) {
                 renderActivePeers(); broadcastOnlineUsers();
                 conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
                 
-                // NEW: AUTO-CALL LATE JOINERS
+                // MESH OVERRIDE: Host auto-dials new visitor if Host is broadcasting
                 if (localStream) {
                     let call = peer.call(senderId, localStream);
                     activeCalls.push(call);
@@ -687,6 +693,21 @@ function handleIncomingP2PPacket(p, conn) {
         
         case MSG_TYPE_USER_LIST:
             if (currentRole === 'VISITOR') {
+                // Filter out our own ID, create array of all OTHER active IDs
+                const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
+                
+                // MESH OVERRIDE: Visitor auto-dials new peers if Visitor is broadcasting
+                if (localStream) {
+                    newPeers.forEach(newPeerId => {
+                        if (!currentNetworkPeers.includes(newPeerId)) {
+                            let call = peer.call(newPeerId, localStream);
+                            activeCalls.push(call);
+                            handleCallEvent(call);
+                        }
+                    });
+                }
+                currentNetworkPeers = newPeers; // Update local roster tracker
+
                 const container = document.getElementById('render-online-users');
                 if (container) {
                     container.innerHTML = p.users.map(u => 
