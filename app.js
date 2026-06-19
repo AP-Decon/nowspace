@@ -73,6 +73,16 @@ function renderAudioEmbed(input) {
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
 }
 
+// === BULLETPROOF BROADCAST ENGINE ===
+function broadcastToAll(packet) {
+    if (currentRole !== 'HOST' || !peer) return;
+    for (let id in peer.connections) {
+        peer.connections[id].forEach(c => {
+            if (c.open) c.send(packet);
+        });
+    }
+}
+
 // === COMMAND LINE INTERCEPTOR ===
 function parseSlashCommand(text, senderName) {
     if (!text.startsWith('/')) return { text: text, burnSec: null, isGame: null };
@@ -171,11 +181,7 @@ function deleteWallMessage(index) {
         wallData.splice(index, 1);
         saveLocalData();
         renderWall();
-        if (currentRole === 'HOST' && peer) {
-            for (let id in peer.connections) { 
-                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
-            }
-        }
+        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
 }
 
@@ -208,10 +214,7 @@ function updateHostFeatures() {
         featureToggles[f] = document.getElementById('toggle-' + f).checked;
     });
     applyFeatures(featureToggles); saveLocalData();
-    if (currentRole === 'HOST' && peer) {
-        const updatePacket = { type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles };
-        for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send(updatePacket)); }
-    }
+    broadcastToAll({ type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles });
 }
 
 // === POLL LOGIC ARCHITECTURE ===
@@ -222,9 +225,7 @@ function deployPoll() {
     activePoll = { question: q, options: opts, voters: [] };
     document.getElementById('host-poll-builder').style.display = 'none'; document.getElementById('host-poll-active').style.display = 'block';
     renderHostPoll();
-    if (currentRole === 'HOST' && peer) {
-        for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send({ type: MSG_TYPE_POLL_NEW, poll: activePoll })); }
-    }
+    broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: activePoll });
 }
 
 function closePoll() {
@@ -237,13 +238,11 @@ function closePoll() {
         });
         wallData.push({ sender: "[SYSTEM]", text: txt, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
         saveLocalData(); renderWall();
-        if (currentRole === 'HOST' && peer) {
-            for (let peerId in peer.connections) { peer.connections[peerId].forEach(conn => conn.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
-        }
+        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
     activePoll = null; ['q','o1','o2','o3'].forEach(id => document.getElementById('poll-'+id).value = '');
     document.getElementById('host-poll-builder').style.display = 'block'; document.getElementById('host-poll-active').style.display = 'none';
-    if (currentRole === 'HOST' && peer) { for (let pId in peer.connections) { peer.connections[pId].forEach(c => c.send({ type: MSG_TYPE_POLL_NEW, poll: null })); } }
+    broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: null });
     renderVisitorPoll();
 }
 
@@ -285,10 +284,14 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     if (src) { let a = new Audio(src); a.volume = globalVolume; a.play().catch(e => {}); }
     if (isLocalClick) {
         const p = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id, customUrl: customUrl };
-        if (currentRole === 'HOST') { for (let id in peer.connections) { peer.connections[id].forEach(c => c.send(p)); } } 
+        if (currentRole === 'HOST') { broadcastToAll(p); } 
         else if (currentRole === 'VISITOR' && activeConn) { activeConn.send(p); }
     } else if (currentRole === 'HOST') {
-        for (let id in peer.connections) { if (id !== originalSender) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl })); } }
+        for (let id in peer.connections) { 
+            if (id !== originalSender) { 
+                peer.connections[id].forEach(c => { if(c.open) c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); }); 
+            } 
+        }
     }
 }
 
@@ -371,9 +374,7 @@ function broadcastOnlineUsers() {
         }
     });
 
-    for (let id in peer.connections) {
-        peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_USER_LIST, users: onlineUsers }));
-    }
+    broadcastToAll({ type: MSG_TYPE_USER_LIST, users: onlineUsers });
 }
 
 // === MODERATION: BAN HAMMER ENGINE ===
@@ -522,10 +523,8 @@ function startHosting() {
         document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
     peer.on('connection', (c) => {
-        c.on('data', (data) => handleIncomingP2PPacket(data, c.peer));
+        c.on('data', (data) => handleIncomingP2PPacket(data, c));
         c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
-        // The host no longer sends the profile data here. 
-        // It waits for the VISITOR_HANDSHAKE to verify the password first.
     });
 }
 
@@ -542,8 +541,10 @@ function visitFriend() {
 
 function executeConnection(fId) {
     activeConn = peer.connect(fId, { reliable: true });
-    activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn.peer)); 
+    activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn)); 
     activeConn.on('close', () => { disconnectNode(); });
+    
+    // Fire handshake only when channel is explicitly declared OPEN by PeerJS
     activeConn.on('open', () => { 
         statusDisplay.innerText = "[ STATUS: AUTHENTICATING... ]"; 
         const visitorPwd = document.getElementById('visitor-password') ? document.getElementById('visitor-password').value : '';
@@ -553,31 +554,30 @@ function executeConnection(fId) {
 }
 
 // === MASTER PACKET INTERCEPTOR ===
-function handleIncomingP2PPacket(p, senderId) {
+function handleIncomingP2PPacket(p, conn) {
+    const senderId = conn.peer;
     switch(p.type) {
         case 'VISITOR_HANDSHAKE':
             if (currentRole === 'HOST') {
-                // Check if Host has a password set
                 const hostPwd = document.getElementById('my-password').value;
                 if (hostPwd && p.password !== hostPwd) {
-                    if (peer.connections[senderId]) { peer.connections[senderId].forEach(c => { c.send({type: 'AUTH_FAILED'}); setTimeout(() => c.close(), 500); }); } return;
+                    conn.send({type: 'AUTH_FAILED'}); 
+                    setTimeout(() => conn.close(), 500); 
+                    return;
                 }
                 
-                // Check if Visitor is Banned
                 if (bannedFingerprints.includes(p.fingerprint)) {
-                    if (peer.connections[senderId]) { peer.connections[senderId].forEach(c => { c.send({type: 'BANNED'}); setTimeout(() => c.close(), 500); }); } return;
+                    conn.send({type: 'BANNED'}); 
+                    setTimeout(() => conn.close(), 500); 
+                    return;
                 }
                 
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                 renderActivePeers();
                 broadcastOnlineUsers();
                 
-                // Authorize and send Node Profile Data
-                if (peer.connections[senderId]) {
-                    peer.connections[senderId].forEach(c => {
-                        c.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
-                    });
-                }
+                // Directly authorize and send Node Profile Data on the confirmed open channel
+                conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
             } break;
         
         case 'AUTH_FAILED':
@@ -585,7 +585,7 @@ function handleIncomingP2PPacket(p, senderId) {
             disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; break;
             
         case MSG_TYPE_PROFILE:
-            statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; 
+            statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
             document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
             if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
             if(p.audio) document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
@@ -613,14 +613,12 @@ function handleIncomingP2PPacket(p, senderId) {
                 }
                 
                 if (targetConnId && peer.connections[targetConnId]) {
-                    peer.connections[targetConnId].forEach(c => c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }));
+                    peer.connections[targetConnId].forEach(c => { if(c.open) c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }); });
                     const hostDiv = document.getElementById('host-datastream-output');
                     hostDiv.innerHTML += `<div class="wall-post" style="padding: 2px 5px;"><span style="color:#555; font-size:0.8rem;">[ ROUTER: ${p.senderAlias} whispered ${p.targetAlias} ]</span></div>`;
                     hostDiv.scrollTop = hostDiv.scrollHeight;
                 } else {
-                    if (peer.connections[senderId]) {
-                        peer.connections[senderId].forEach(c => c.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` }));
-                    }
+                    conn.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` });
                 }
             } break;
 
@@ -638,8 +636,6 @@ function handleIncomingP2PPacket(p, senderId) {
             if (currentRole === 'HOST') { 
                 if (bannedFingerprints.includes(p.fingerprint)) return;
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
-                renderActivePeers();
-                broadcastOnlineUsers();
                 
                 const packet = { 
                     sender: p.sender, 
@@ -656,8 +652,9 @@ function handleIncomingP2PPacket(p, senderId) {
                 };
 
                 wallData.push(packet); 
-                saveLocalData(); renderWall(); 
-                for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); } 
+                saveLocalData(); 
+                renderWall(); 
+                broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
             } break;
         case MSG_TYPE_WALL_UPDATE:
             if (currentRole === 'VISITOR') { 
@@ -671,7 +668,7 @@ function handleIncomingP2PPacket(p, senderId) {
         case MSG_TYPE_POLL_NEW:
         case MSG_TYPE_POLL_UPDATE: if (currentRole === 'VISITOR') { activePoll = p.poll; renderVisitorPoll(); } break;
         case MSG_TYPE_POLL_VOTE:
-            if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { activePoll.voters.push(p.voterId); activePoll.options[p.optionIndex].votes++; renderHostPoll(); for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll })); } } break;
+            if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { activePoll.voters.push(p.voterId); activePoll.options[p.optionIndex].votes++; renderHostPoll(); broadcastToAll({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll }); } break;
         case 'BANNED':
             alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
             disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
@@ -742,7 +739,7 @@ function hostSendWallPacket() {
 
     wallData.push(packet);
     saveLocalData(); renderWall(); 
-    for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); }
+    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     input.value = '';
 }
 
@@ -752,13 +749,7 @@ function hostClearWall() {
         wallData = []; 
         saveLocalData(); 
         renderWall();
-        if (currentRole === 'HOST' && peer) {
-            for (let id in peer.connections) { 
-                peer.connections[id].forEach(c => { 
-                    c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
-                }); 
-            }
-        }
+        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
 }
 
@@ -788,9 +779,7 @@ function processGameMove(p) {
             
             saveLocalData();
             renderWall();
-            for (let id in peer.connections) { 
-                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
-            }
+            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
     }
 }
@@ -826,9 +815,7 @@ setInterval(() => {
         renderWall();
         if (currentRole === 'HOST' && peer) {
             saveLocalData();
-            for (let id in peer.connections) { 
-                peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
-            }
+            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
     }
 }, 1000);
@@ -857,14 +844,14 @@ window.onload = () => {
     // === CONTEXT-AWARE UX FIX ===
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
-        // Instantly hide the Host Provisioning block
         document.getElementById('host-setup-panel').style.display = 'none';
-        
-        // Prep the visitor connection fields
         document.getElementById('friend-id').value = urlNode; 
         document.getElementById('visitor-password').focus(); 
     }
 };
+document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
+document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+
 // === HARDWARE COMPRESSION ENGINE ===
 function handleImageUpload(event) {
     const file = event.target.files[0];
@@ -912,9 +899,7 @@ function transmitCompressedImage(base64Str) {
         wallData.push({ sender: "[HOST]", text: imgTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
         saveLocalData(); 
         renderWall(); 
-        for (let id in peer.connections) { 
-            peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData })); 
-        }
+        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     } else if (currentRole === 'VISITOR' && activeConn) {
         const priv = document.getElementById('private-packet-toggle');
         const alias = document.getElementById('visitor-alias-input').value.trim();
