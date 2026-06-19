@@ -35,7 +35,7 @@ const MANUAL_DATABASE = [
     { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
     { h3: "HOW TO OPERATE: HOSTING", p: "Configure profile variables. Click INITIALIZE_NODE. Copy your generated Magic Link and pass it to peers to form explicit communication nodes." },
     { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll</b> : Generates a random number.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll [sides]*[count]</b> : RNG generator (e.g. /roll 20*2).<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
 ];
 
 // === WEBRTC GATEWAY CONFIGURATION ===
@@ -46,13 +46,13 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             }
         ]
     }
@@ -93,10 +93,48 @@ function parseSlashCommand(text, senderName) {
     if (cmd === '/clear') {
         wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
+    
+    // === MULTI-DICE RNG ENGINE ===
     if (cmd === '/roll') {
-        const roll = Math.floor(Math.random() * 100) + 1;
-        return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled a ${roll} ]</b>`, burnSec: null, isGame: null };
+        let max = 100;
+        let diceCount = 1;
+        let hasPayload = false;
+
+        if (payload.trim() !== '') {
+            hasPayload = true;
+            const cleanPayload = payload.replace(/\s+/g, '');
+            if (cleanPayload.includes('*')) {
+                const mathParts = cleanPayload.split('*');
+                max = parseInt(mathParts[0], 10) || 100;
+                diceCount = parseInt(mathParts[1], 10) || 1;
+            } else {
+                max = parseInt(cleanPayload, 10) || 100;
+            }
+        }
+
+        max = Math.max(2, max);
+        diceCount = Math.max(1, Math.min(diceCount, 50)); 
+
+        let rolls = [];
+        let totalSum = 0;
+        for (let i = 0; i < diceCount; i++) {
+            let r = Math.floor(Math.random() * max) + 1;
+            rolls.push(r);
+            totalSum += r;
+        }
+
+        let resultText = '';
+        if (!hasPayload) {
+            resultText = `a ${totalSum} (1-100)`;
+        } else if (diceCount > 1) {
+            resultText = `d${max} * ${diceCount} ➔ [${rolls.join(', ')}] = ${totalSum}`;
+        } else {
+            resultText = `a d${max} ➔ ${totalSum}`;
+        }
+
+        return { text: `<b style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled ${resultText} ]</b>`, burnSec: null, isGame: null };
     }
+    
     if (cmd === '/glitch') {
         return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null, isGame: null };
     }
@@ -523,6 +561,7 @@ function startHosting() {
         document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
     peer.on('connection', (c) => {
+        // Explicitly map socket for the authentication handshake stabilization
         c.on('data', (data) => handleIncomingP2PPacket(data, c));
         c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
     });
@@ -541,10 +580,10 @@ function visitFriend() {
 
 function executeConnection(fId) {
     activeConn = peer.connect(fId, { reliable: true });
+    // Explicitly map socket
     activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn)); 
     activeConn.on('close', () => { disconnectNode(); });
     
-    // Fire handshake only when channel is explicitly declared OPEN by PeerJS
     activeConn.on('open', () => { 
         statusDisplay.innerText = "[ STATUS: AUTHENTICATING... ]"; 
         const visitorPwd = document.getElementById('visitor-password') ? document.getElementById('visitor-password').value : '';
@@ -576,7 +615,7 @@ function handleIncomingP2PPacket(p, conn) {
                 renderActivePeers();
                 broadcastOnlineUsers();
                 
-                // Directly authorize and send Node Profile Data on the confirmed open channel
+                // Directly reply to the explicit socket that opened the connection
                 conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
             } break;
         
