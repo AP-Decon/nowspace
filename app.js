@@ -112,7 +112,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     if (!container) return;
     container.innerHTML = wallData.map((post, index) => {
         
-        // WHISPER STYLING
         if (post.isLocalWhisper) {
             return `
             <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
@@ -131,7 +130,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = formatWallMessage(post.text);
         }
 
-        // GRID WARS (TIC-TAC-TOE) INLINE RENDERING
         if (post.isGame === 'tictactoe' && post.board) {
             let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
             let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
@@ -498,6 +496,7 @@ function insertEmoji(emoji) {
     }
 }
 
+// === MASTER DISCONNECT PROTOCOL ===
 function disconnectNode() {
     if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -509,6 +508,7 @@ function disconnectNode() {
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
 }
 
+// === HOST INITIALIZATION ENGINE ===
 function startHosting() {
     currentRole = 'HOST'; document.getElementById('btn-go-online').disabled = true; saveLocalData();
     const customId = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
@@ -524,13 +524,12 @@ function startHosting() {
     peer.on('connection', (c) => {
         c.on('data', (data) => handleIncomingP2PPacket(data, c.peer));
         c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
-        c.on('open', () => {
-            c.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
-            renderActivePeers();
-        });
+        // The host no longer sends the profile data here. 
+        // It waits for the VISITOR_HANDSHAKE to verify the password first.
     });
 }
 
+// === VISITOR CONNECTION ENGINE ===
 function visitFriend() {
     currentRole = 'VISITOR'; const fId = document.getElementById('friend-id').value.trim(); if (!fId) return;
     document.getElementById('host-setup-panel').style.display = 'none'; 
@@ -546,23 +545,47 @@ function executeConnection(fId) {
     activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn.peer)); 
     activeConn.on('close', () => { disconnectNode(); });
     activeConn.on('open', () => { 
-        statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; 
-        activeConn.send({ type: 'VISITOR_HANDSHAKE', fingerprint: myFingerprint, alias: document.getElementById('visitor-alias-input').value || 'Unknown' });
+        statusDisplay.innerText = "[ STATUS: AUTHENTICATING... ]"; 
+        const visitorPwd = document.getElementById('visitor-password') ? document.getElementById('visitor-password').value : '';
+        const visitorAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value : '';
+        activeConn.send({ type: 'VISITOR_HANDSHAKE', fingerprint: myFingerprint, alias: visitorAlias || 'Unknown', password: visitorPwd });
     });
 }
 
+// === MASTER PACKET INTERCEPTOR ===
 function handleIncomingP2PPacket(p, senderId) {
     switch(p.type) {
         case 'VISITOR_HANDSHAKE':
             if (currentRole === 'HOST') {
+                // Check if Host has a password set
+                const hostPwd = document.getElementById('my-password').value;
+                if (hostPwd && p.password !== hostPwd) {
+                    if (peer.connections[senderId]) { peer.connections[senderId].forEach(c => { c.send({type: 'AUTH_FAILED'}); setTimeout(() => c.close(), 500); }); } return;
+                }
+                
+                // Check if Visitor is Banned
                 if (bannedFingerprints.includes(p.fingerprint)) {
                     if (peer.connections[senderId]) { peer.connections[senderId].forEach(c => { c.send({type: 'BANNED'}); setTimeout(() => c.close(), 500); }); } return;
                 }
+                
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                 renderActivePeers();
                 broadcastOnlineUsers();
+                
+                // Authorize and send Node Profile Data
+                if (peer.connections[senderId]) {
+                    peer.connections[senderId].forEach(c => {
+                        c.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
+                    });
+                }
             } break;
+        
+        case 'AUTH_FAILED':
+            alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
+            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; break;
+            
         case MSG_TYPE_PROFILE:
+            statusDisplay.innerText = "[ STATUS: LINK_ESTABLISHED ]"; 
             document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
             if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
             if(p.audio) document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
@@ -651,7 +674,7 @@ function handleIncomingP2PPacket(p, senderId) {
             if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { activePoll.voters.push(p.voterId); activePoll.options[p.optionIndex].votes++; renderHostPoll(); for (let id in peer.connections) { peer.connections[id].forEach(c => c.send({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll })); } } break;
         case 'BANNED':
             alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
-            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:red;'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
+            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
     }
 }
 
@@ -723,6 +746,22 @@ function hostSendWallPacket() {
     input.value = '';
 }
 
+// === SYSTEM MASTER OVERRIDE ===
+function hostClearWall() {
+    if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
+        wallData = []; 
+        saveLocalData(); 
+        renderWall();
+        if (currentRole === 'HOST' && peer) {
+            for (let id in peer.connections) { 
+                peer.connections[id].forEach(c => { 
+                    c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+                }); 
+            }
+        }
+    }
+}
+
 // === GRID WARS (TIC-TAC-TOE) ENGINE ===
 function sendGameMove(gameId, cellIndex) {
     let alias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : document.getElementById('my-alias').value.trim();
@@ -738,12 +777,10 @@ function sendGameMove(gameId, cellIndex) {
 function processGameMove(p) {
     let game = wallData.find(m => m.gameId === p.gameId);
     if (game && !game.winner && !game.board[p.cellIndex]) {
-        // Lock player into role (First Come First Served)
         if (!game.players[game.turn]) {
             game.players[game.turn] = { fp: p.fingerprint, alias: p.senderAlias };
         }
         
-        // Validate Turn
         if (game.players[game.turn].fp === p.fingerprint) {
             game.board[p.cellIndex] = game.turn;
             checkGameWinner(game);
@@ -780,7 +817,7 @@ setInterval(() => {
     wallData = wallData.filter(p => {
         if (p.burnAt && now >= p.burnAt) {
             changed = true;
-            return false; // DESTROY THE PACKET
+            return false; 
         }
         return true;
     });
@@ -798,7 +835,7 @@ setInterval(() => {
 
 function saveLocalData() {
     if (currentRole !== 'HOST') return;
-    localStorage.setItem('nowspace_save', JSON.stringify({ alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, wall: wallData, features: featureToggles }));
+    localStorage.setItem('nowspace_save', JSON.stringify({ alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, wall: wallData, features: featureToggles, password: document.getElementById('my-password').value }));
 }
 
 function copyMagicLink() { const input = document.getElementById('magic-link-input'); input.select(); navigator.clipboard.writeText(input.value); }
@@ -812,6 +849,7 @@ window.onload = () => {
         document.getElementById('my-bio').value = saved.bio || ''; document.getElementById('my-audio').value = saved.audio || '';
         document.getElementById('my-gallery').value = saved.gallery || ''; document.getElementById('my-css').value = saved.css || '';
         document.getElementById('my-custom-sound').value = saved.customSound || ''; wallData = saved.wall || []; featureToggles = saved.features || featureToggles;
+        if (saved.password && document.getElementById('my-password')) document.getElementById('my-password').value = saved.password;
         applyFeatures(featureToggles); renderWall();
     }
     document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
@@ -878,21 +916,4 @@ function transmitCompressedImage(base64Str) {
     }
     
     document.getElementById('hidden-file-input').value = '';
-}
-// === SYSTEM MASTER OVERRIDE ===
-function hostClearWall() {
-    if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
-        wallData = []; 
-        saveLocalData(); 
-        renderWall();
-        
-        // Broadcast the wipe command to all connected peers
-        if (currentRole === 'HOST' && peer) {
-            for (let id in peer.connections) { 
-                peer.connections[id].forEach(c => { 
-                    c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
-                }); 
-            }
-        }
-    }
 }
