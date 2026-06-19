@@ -879,3 +879,20 @@ function transmitCompressedImage(base64Str) {
     
     document.getElementById('hidden-file-input').value = '';
 }
+// === SYSTEM MASTER OVERRIDE ===
+function hostClearWall() {
+    if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
+        wallData = []; 
+        saveLocalData(); 
+        renderWall();
+        
+        // Broadcast the wipe command to all connected peers
+        if (currentRole === 'HOST' && peer) {
+            for (let id in peer.connections) { 
+                peer.connections[id].forEach(c => { 
+                    c.send({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+                }); 
+            }
+        }
+    }
+}
