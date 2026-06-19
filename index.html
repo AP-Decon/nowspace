@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.37</title>
+    <title>NOWSPACE :: TRM_v1.38</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="crt-scanlines"></div>
-    <div id="secure-voice-stream-container" style="display:none;"></div>
 
+    <!-- GLOBAL HIDDEN FILE INPUT FOR IMAGE COMPRESSION -->
     <input type="file" id="hidden-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
 
+    <!-- SYSTEM MANUAL MODAL -->
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.37</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.38</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
+    <!-- TOP HEADER CONTROL REGION -->
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.37</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.38</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -30,6 +32,7 @@
         </div>
     </div>
 
+    <!-- INTERFACE 01: HOST PROVISIONING -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -52,21 +55,7 @@
         <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
 
         <label>Custom CSS Injection Framework Blueprint:</label>
-        <textarea id="my-css" rows="10">/* ENTER CUSTOM OVERRIDES HERE */
-/* QUICK REFERENCE GUIDE:
-:root {
-  --main-cyan: #00ffff;
-  --bright-magenta: #ff00ff;
-  --bg-color: #000000;
-  --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
-}
-
-TARGET EXAMPLES:
-body { font-family: "Courier New", monospace; }
-.wall-post { border-left: 2px solid var(--bright-magenta); padding-left: 10px; }
-button { border-radius: 4px; }
-#crt-scanlines { opacity: 0.15; }
-*/</textarea>
+        <textarea id="my-css" rows="10">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
@@ -83,7 +72,7 @@ button { border-radius: 4px; }
                 <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
                 <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> TOP 8 RING</label>
                 <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
-                <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> VOICE COMMS</label>
+                <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
                 <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
             </div>
         </div>
@@ -100,6 +89,7 @@ button { border-radius: 4px; }
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- INTERFACE 02: HOST CONTROL DECK -->
     <div class="panel" id="host-live-wall-panel" style="display: none;">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         
@@ -170,20 +160,21 @@ button { border-radius: 4px; }
                     <div class="voice-switch-label">COMMS: OFF</div>
                     <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                 </div>
-                <button class="btn-small mute-btn" onclick="toggleMute()">[ 🔊 MUTE ]</button>
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
+                <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
             </span>
         </div>
     </div>
 
+    <!-- INTERFACE 03: VISITOR CONNECT CONSOLE -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
-        
         <input type="password" id="visitor-password" placeholder="Enter Node Password (if required)...">
-        
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- INTERFACE 04: VISITOR CORE COMPONENT DESK -->
     <div id="visitor-view" style="display: none;">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -228,6 +219,9 @@ button { border-radius: 4px; }
                 </div>
             </div>
 
+            <!-- THE NEW A/V COMMS RENDER BOX -->
+            <div id="video-stream-container"></div>
+
             <div id="datastream-output" class="datastream-output"></div>
             
             <div class="emoji-board">
@@ -250,7 +244,8 @@ button { border-radius: 4px; }
                         <div class="voice-switch-label">COMMS: OFF</div>
                         <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                     </div>
-                    <button class="btn-small mute-btn" onclick="toggleMute()">[ 🔊 MUTE ]</button>
+                    <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
+                    <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
                 </span>
             </div>
             <label class="secure-box-label">
