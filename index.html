@@ -3,28 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.38</title>
+    <title>NOWSPACE :: TRM_v1.39</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="crt-scanlines"></div>
 
-    <!-- GLOBAL HIDDEN FILE INPUT FOR IMAGE COMPRESSION -->
     <input type="file" id="hidden-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
 
-    <!-- SYSTEM MANUAL MODAL -->
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.38</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.39</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
-    <!-- TOP HEADER CONTROL REGION -->
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.38</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.39</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -32,28 +29,22 @@
         </div>
     </div>
 
-    <!-- INTERFACE 01: HOST PROVISIONING -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
-        
         <label>Custom Access Hash (For your URL):</label>
         <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name">
-        
         <label>Node Access Password (Optional):</label>
         <input type="password" id="my-password" placeholder="Leave blank for public access...">
-        
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
-        
         <label>Custom Soundboard (MP3 URL):</label>
         <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here...">
         <label>Profile Soundtrack (Paste a YouTube Link):</label>
         <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
         <label>Profile Gallery (Paste Image/Giphy URLs, one per line):</label>
         <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
-
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="10">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
         
@@ -89,21 +80,17 @@
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- INTERFACE 02: HOST CONTROL DECK -->
     <div class="panel" id="host-live-wall-panel" style="display: none;">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
-        
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <div class="visitor-log-box" style="flex: 1; min-width: 250px;">
                 <h4>> ACCESS_RECORDS</h4>
                 <div id="host-visitor-log">> Monitoring for incoming handshakes...<br></div>
                 <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''">[ CLEAR LOG ]</button>
             </div>
-            
             <div class="visitor-log-box" style="flex: 1; min-width: 250px; border-color: var(--alert-red);">
                 <h4 style="color: var(--alert-red);">> ACTIVE_CONNECTIONS</h4>
                 <div id="host-active-peers" style="font-size: 0.8rem; margin-bottom: 10px; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active peers.</div>
-                
                 <h4 style="color: var(--alert-red); border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px;">> BANNED_FINGERPRINTS</h4>
                 <div id="host-banned-list" style="font-size: 0.8rem; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active bans.</div>
             </div>
@@ -138,6 +125,8 @@
             </div>
         </div>
 
+        <div id="host-video-stream-container" class="video-stream-container"></div>
+
         <div id="host-datastream-output" class="datastream-output"></div>
         
         <div class="emoji-board">
@@ -166,7 +155,6 @@
         </div>
     </div>
 
-    <!-- INTERFACE 03: VISITOR CONNECT CONSOLE -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
@@ -174,7 +162,6 @@
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- INTERFACE 04: VISITOR CORE COMPONENT DESK -->
     <div id="visitor-view" style="display: none;">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -219,8 +206,7 @@
                 </div>
             </div>
 
-            <!-- THE NEW A/V COMMS RENDER BOX -->
-            <div id="video-stream-container"></div>
+            <div id="visitor-video-stream-container" class="video-stream-container"></div>
 
             <div id="datastream-output" class="datastream-output"></div>
             
