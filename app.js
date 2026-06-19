@@ -94,6 +94,87 @@ function parseSlashCommand(text, senderName) {
         wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
     }
     
+    // === MULTI-DICE RNG ENGINE W/ CRITICAL BURSTS ===
+    if (cmd === '/roll') {
+        let max = 100;
+        let diceCount = 1;
+        let hasPayload = false;
+
+        if (payload.trim() !== '') {
+            hasPayload = true;
+            const cleanPayload = payload.replace(/\s+/g, '');
+            if (cleanPayload.includes('*')) {
+                const mathParts = cleanPayload.split('*');
+                max = parseInt(mathParts[0], 10) || 100;
+                diceCount = parseInt(mathParts[1], 10) || 1;
+            } else {
+                max = parseInt(cleanPayload, 10) || 100;
+            }
+        }
+
+        max = Math.max(2, max);
+        diceCount = Math.max(1, Math.min(diceCount, 50)); 
+
+        let rollsHtml = [];
+        let totalSum = 0;
+        let nat20Count = 0;
+        let nat1Count = 0;
+
+        for (let i = 0; i < diceCount; i++) {
+            let r = Math.floor(Math.random() * max) + 1;
+            totalSum += r;
+            
+            // Critical Hit & Miss detection specifically for d20s
+            if (max === 20 && r === 20) {
+                nat20Count++;
+                rollsHtml.push(`<b class="glitch-text" style="color:#0f0; font-size:1.3em; text-shadow: 0 0 8px #0f0;">20</b>`);
+            } else if (max === 20 && r === 1) {
+                nat1Count++;
+                rollsHtml.push(`<b style="color:var(--alert-red); font-size:1.3em;">1</b>`);
+            } else {
+                rollsHtml.push(r);
+            }
+        }
+
+        let resultText = '';
+        if (!hasPayload) {
+            resultText = `a ${totalSum} (1-100)`;
+        } else if (diceCount > 1) {
+            resultText = `d${max} * ${diceCount} ➔ [ ${rollsHtml.join(', ')} ] = <b style="color:#fff;">${totalSum}</b>`;
+        } else {
+            resultText = `a d${max} ➔ ${rollsHtml[0]}`;
+        }
+
+        // Apply Terminal Explosion Banners
+        let extraFlair = '';
+        if (nat20Count > 0) {
+            let multiMultiplier = nat20Count > 1 ? ` (x${nat20Count})` : '';
+            extraFlair = `<div class="glitch-text" style="color:#0f0; margin-top:8px; font-size:1.1rem; font-weight:bold; letter-spacing:1px; border-left: 3px solid #0f0; padding-left: 8px;">[ 🌟 CRITICAL OVERLOAD // NAT 20 DETECTED${multiMultiplier} 🌟 ]</div>`;
+        } else if (nat1Count > 0 && diceCount === 1) {
+            extraFlair = `<div style="color:var(--alert-red); margin-top:8px; font-weight:bold; letter-spacing:1px; border-left: 3px solid var(--alert-red); padding-left: 8px;">[ 💀 CRITICAL FAILURE // SYSTEM ERROR ]</div>`;
+        }
+
+        return { text: `<span style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled ${resultText} ]</span>${extraFlair}`, burnSec: null, isGame: null };
+    }
+    
+    if (cmd === '/glitch') {
+        return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null, isGame: null };
+    }
+    if (cmd === '/vapor') {
+        const vapor = payload.replace(/[a-zA-Z0-9!?-]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
+        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null, isGame: null };
+    }
+    if (cmd === '/burn') {
+        const sec = parseInt(parts[1], 10);
+        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null, isGame: null }; 
+        const burnMsg = parts.slice(2).join(' ');
+        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec, isGame: null };
+    }
+    if (cmd === '/tictactoe') {
+        return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe' };
+    }
+    return { text: text, burnSec: null, isGame: null };
+}
     // === MULTI-DICE RNG ENGINE ===
     if (cmd === '/roll') {
         let max = 100;
