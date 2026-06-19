@@ -236,6 +236,12 @@ function deleteWallMessage(index) {
     }
 }
 
+function getVidContainer() {
+    return currentRole === 'HOST' 
+        ? document.getElementById('host-video-stream-container') 
+        : document.getElementById('visitor-video-stream-container');
+}
+
 function applyFeatures(features) {
     document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
     document.querySelectorAll('.soundboard-container').forEach(el => el.style.display = features.soundboard ? 'flex' : 'none');
@@ -257,7 +263,8 @@ function applyFeatures(features) {
         updateVoiceTogglesVisuals(false); 
         document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
         document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
-        document.getElementById('video-stream-container').innerHTML = '';
+        document.getElementById('host-video-stream-container').innerHTML = '';
+        document.getElementById('visitor-video-stream-container').innerHTML = '';
     }
     renderVisitorPoll();
 }
@@ -377,16 +384,15 @@ function updateVoiceTogglesVisuals(isLive) {
 
 async function toggleVoice() {
     if (activeCalls.length > 0 || localStream) {
-        if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
+        activeCalls.forEach(c => c.close()); activeCalls = [];
         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
         updateVoiceTogglesVisuals(false); 
         document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
         document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
-        document.getElementById('video-stream-container').innerHTML = '';
+        getVidContainer().innerHTML = '';
         return;
     }
     try {
-        // We now request VIDEO alongside audio, but heavily throttle it to save bandwidth!
         localStream = await navigator.mediaDevices.getUserMedia({ 
             audio: true, 
             video: { width: 320, height: 240, frameRate: 15 } 
@@ -395,21 +401,18 @@ async function toggleVoice() {
         updateVoiceTogglesVisuals(true); 
         isMuted = false;
         isCamOn = false;
-        
-        // Turn the camera hardware off by default so the user has to opt-in
         localStream.getVideoTracks().forEach(t => t.enabled = false);
 
         document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert'); });
         document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
 
-        // Render your own local video feed so you can see yourself
         let localVid = document.createElement('video');
         localVid.srcObject = localStream;
         localVid.autoplay = true;
-        localVid.muted = true; // Prevents you from hearing an echo of yourself
+        localVid.muted = true;
         localVid.classList.add('video-feed', 'local-video');
         localVid.id = 'local-video-node';
-        document.getElementById('video-stream-container').appendChild(localVid);
+        getVidContainer().appendChild(localVid);
 
         if (currentRole === 'VISITOR' && activeConn) { 
             let call = peer.call(activeConn.peer, localStream); 
@@ -418,13 +421,6 @@ async function toggleVoice() {
             const peers = Object.keys(peer.connections);
             if(peers.length > 0) { 
                 peers.forEach(pId => { let call = peer.call(pId, localStream); activeCalls.push(call); handleCallEvent(call); }); 
-            } else { 
-                alert("No active visitors."); 
-                if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; } 
-                updateVoiceTogglesVisuals(false); 
-                document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
-                document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
-                document.getElementById('video-stream-container').innerHTML = '';
             }
         }
     } catch(e) { updateVoiceTogglesVisuals(false); }
@@ -432,7 +428,6 @@ async function toggleVoice() {
 
 function handleCallEvent(call) {
     call.on('stream', (remote) => {
-        // We check to make sure we haven't already drawn this peer's video feed
         if(!document.getElementById('video-node-' + call.peer)) {
             let v = document.createElement('video');
             v.autoplay = true;
@@ -440,51 +435,22 @@ function handleCallEvent(call) {
             v.srcObject = remote;
             v.id = 'video-node-' + call.peer;
             v.classList.add('video-feed');
-            document.getElementById('video-stream-container').appendChild(v);
+            getVidContainer().appendChild(v);
         }
     });
     call.on('close', () => {
         let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
-        if(activeCalls.length === 0 && localStream) {
-            localStream.getTracks().forEach(t => t.stop()); localStream = null; 
-            updateVoiceTogglesVisuals(false); 
-            document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
-            document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
-            document.getElementById('video-stream-container').innerHTML = '';
-        }
     });
 }
 
 function setupPeerCallListener() {
-    peer.on('call', async (call) => {
+    peer.on('call', (call) => {
         if(!featureToggles.voicecomms) { call.close(); return; }
-        if(confirm("INCOMING A/V COMMS LINK. ACCEPT?")) {
-            try {
-                if(!localStream) {
-                    localStream = await navigator.mediaDevices.getUserMedia({
-                        audio: true, 
-                        video: { width: 320, height: 240, frameRate: 15 }
-                    });
-                    updateVoiceTogglesVisuals(true); 
-                    isMuted = false;
-                    isCamOn = false;
-                    localStream.getVideoTracks().forEach(t => t.enabled = false);
-
-                    document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; });
-                    document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
-
-                    let localVid = document.createElement('video');
-                    localVid.srcObject = localStream;
-                    localVid.autoplay = true;
-                    localVid.muted = true;
-                    localVid.classList.add('video-feed', 'local-video');
-                    localVid.id = 'local-video-node';
-                    document.getElementById('video-stream-container').appendChild(localVid);
-                }
-                call.answer(localStream); activeCalls.push(call); handleCallEvent(call);
-            } catch(e) { call.close(); }
-        } else { call.close(); }
+        // Seamlessly auto-answer without blocking the main thread!
+        call.answer(localStream || undefined);
+        activeCalls.push(call); 
+        handleCallEvent(call);
     });
 }
 
@@ -633,7 +599,8 @@ function disconnectNode() {
     updateVoiceTogglesVisuals(false); 
     document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
     document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
-    document.getElementById('video-stream-container').innerHTML = '';
+    document.getElementById('host-video-stream-container').innerHTML = '';
+    document.getElementById('visitor-video-stream-container').innerHTML = '';
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
 }
 
