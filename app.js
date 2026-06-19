@@ -428,19 +428,22 @@ async function toggleVoice() {
 
 function handleCallEvent(call) {
     call.on('stream', (remote) => {
-        if(!document.getElementById('video-node-' + call.peer)) {
-            let v = document.createElement('video');
+        let v = document.getElementById('video-node-' + call.peer);
+        if(!v) {
+            v = document.createElement('video');
             v.autoplay = true;
             v.playsInline = true;
-            v.srcObject = remote;
             v.id = 'video-node-' + call.peer;
             v.classList.add('video-feed');
             getVidContainer().appendChild(v);
         }
+        // Force the video element to sync with the latest incoming stream data
+        v.srcObject = remote;
     });
     call.on('close', () => {
         let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
+        // Cleaned up over-aggressive stream destruction here so the Host doesn't drop comms when 1 visitor leaves!
     });
 }
 
@@ -661,6 +664,13 @@ function handleIncomingP2PPacket(p, conn) {
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                 renderActivePeers(); broadcastOnlineUsers();
                 conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
+                
+                // NEW: AUTO-CALL LATE JOINERS
+                if (localStream) {
+                    let call = peer.call(senderId, localStream);
+                    activeCalls.push(call);
+                    handleCallEvent(call);
+                }
             } break;
         
         case 'AUTH_FAILED':
