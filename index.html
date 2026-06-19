@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.36</title>
+    <title>NOWSPACE :: TRM_v1.37</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,13 +16,13 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.36</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.37</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.36</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.37</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -34,8 +34,13 @@
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
+        
         <label>Custom Access Hash (For your URL):</label>
         <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name">
+        
+        <label>Node Access Password (Optional):</label>
+        <input type="password" id="my-password" placeholder="Leave blank for public access...">
+        
         <label>Profile Datastream:</label>
         <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
         
@@ -173,6 +178,9 @@ button { border-radius: 4px; }
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
+        
+        <input type="password" id="visitor-password" placeholder="Enter Node Password (if required)...">
+        
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
