@@ -159,17 +159,18 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
 }
 
 /* === VISUAL COMMS HARDWARE === */
-#video-stream-container {
+.video-stream-container {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
     margin-top: 15px;
     margin-bottom: 15px;
+    min-height: 10px;
 }
 .video-feed {
     width: 160px;
     height: 120px;
-    background: #000;
+    background: #111; /* Dark grey placeholder so you know it's on */
     border: 1px solid var(--main-cyan);
     box-shadow: 0 0 5px var(--main-cyan);
     object-fit: cover;
