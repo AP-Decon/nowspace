@@ -853,10 +853,14 @@ window.onload = () => {
         applyFeatures(featureToggles); renderWall();
     }
     document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
-    const urlNode = new URLSearchParams(window.location.search).get('node'); if (urlNode) { document.getElementById('friend-id').value = urlNode; visitFriend(); }
+    
+    // THE FIX: Grabs the ID from the URL, pastes it in the box, but WAITS for you to click connect!
+    const urlNode = new URLSearchParams(window.location.search).get('node'); 
+    if (urlNode) { 
+        document.getElementById('friend-id').value = urlNode; 
+        document.getElementById('visitor-password').focus(); // Highlights the password box for you
+    }
 };
-document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
-document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
 
 // === HARDWARE COMPRESSION ENGINE ===
 function handleImageUpload(event) {
