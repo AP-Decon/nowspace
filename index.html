@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.35</title>
+    <title>NOWSPACE :: TRM_v1.36</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,13 +16,13 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.35</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.36</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.35</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.36</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -184,6 +184,11 @@ button { border-radius: 4px; }
             <p id="datarender-bio"></p>
         </div>
         
+        <div class="panel" id="visitor-online-panel" style="margin-top:20px; padding: 10px 15px; border-style: dashed;">
+            <h3 style="margin-top:0;">[ SYSTEM_RADAR // ONLINE_NODES ]</h3>
+            <div id="render-online-users" style="font-size: 0.85rem; color: #ccc;">Scanning for active signals...</div>
+        </div>
+
         <div class="panel poll-feature-group" id="visitor-poll-panel" style="display: none;">
             <h3>[ ACTIVE_DATA_QUERY // POLL ]</h3>
             <div id="render-poll-content"></div>
