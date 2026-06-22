@@ -557,9 +557,34 @@ function toggleManual() {
 }
 
 function exportTheme() {
-    const data = { alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, bgUrl: document.getElementById('my-bg-url').value, features: featureToggles, identityFingerprint: myFingerprint };
-    const link = document.createElement('a'); link.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
-    link.download = `nowspace_theme_${data.alias.toLowerCase()}.json`; link.click();
+    const data = { 
+        alias: document.getElementById('my-alias').value, 
+        customId: document.getElementById('my-custom-id').value, 
+        bio: document.getElementById('my-bio').value, 
+        audio: document.getElementById('my-audio').value, 
+        gallery: document.getElementById('my-gallery').value, 
+        css: document.getElementById('my-css').value, 
+        customSound: document.getElementById('my-custom-sound').value, 
+        bgUrl: document.getElementById('my-bg-url').value, 
+        features: featureToggles, 
+        identityFingerprint: myFingerprint 
+    };
+    
+    // Create a physical file blob instead of a raw text string
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a'); 
+    link.href = url;
+    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
+    
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up memory cache
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 function importTheme(event) {
