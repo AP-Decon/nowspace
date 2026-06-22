@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.39</title>
+    <title>NOWSPACE :: TRM_v1.40</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -15,13 +15,13 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.39</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.40</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.39</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.40</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -29,6 +29,7 @@
         </div>
     </div>
 
+    <!-- INTERFACE 01: HOST PROVISIONING -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -45,6 +46,11 @@
         <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
         <label>Profile Gallery (Paste Image/Giphy URLs, one per line):</label>
         <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
+        
+        <!-- NEW BACKGROUND GIF RENDERER -->
+        <label>Custom Background (Paste Image/Giphy URL):</label>
+        <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
+
         <label>Custom CSS Injection Framework Blueprint:</label>
         <textarea id="my-css" rows="12">/* ENTER CUSTOM OVERRIDES HERE */
 
@@ -55,7 +61,7 @@ Copy this entire comment block and paste it into your AI of choice along with yo
 "I am styling a custom decentralized web terminal. Please write CSS overrides based on this reference guide:
 - Root Variables: --main-cyan, --bright-magenta, --bg-color, --text-glow
 - Key Targets: body, .panel, .wall-post, button, #crt-scanlines, .glitch-text, .video-feed
-Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g., an old green Fallout Pip-Boy, a pink vaporwave OS, a sleek corporate database]."
+Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
 */</textarea>
         
         <div class="theme-actions">
@@ -90,6 +96,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g
         <div id="magic-link-container"></div>
     </div>
 
+    <!-- INTERFACE 02: HOST CONTROL DECK -->
     <div class="panel" id="host-live-wall-panel" style="display: none;">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -135,6 +142,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g
             </div>
         </div>
 
+        <!-- HOST A/V COMMS RENDER BOX -->
         <div id="host-video-stream-container" class="video-stream-container"></div>
 
         <div id="host-datastream-output" class="datastream-output"></div>
@@ -165,6 +173,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g
         </div>
     </div>
 
+    <!-- INTERFACE 03: VISITOR CONNECT CONSOLE -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
@@ -172,6 +181,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
+    <!-- INTERFACE 04: VISITOR CORE COMPONENT DESK -->
     <div id="visitor-view" style="display: none;">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -216,6 +226,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE, e.g
                 </div>
             </div>
 
+            <!-- VISITOR A/V COMMS RENDER BOX -->
             <div id="visitor-video-stream-container" class="video-stream-container"></div>
 
             <div id="datastream-output" class="datastream-output"></div>
