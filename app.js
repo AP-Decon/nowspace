@@ -10,7 +10,6 @@ let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: t
 let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
 localStorage.setItem('nowspace_identity_key', myFingerprint);
 
-// NEW: currentNetworkPeers tracks the Full Mesh roster!
 let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, currentNetworkPeers = [];
 
 // PROTOCOL DEFINITIONS
@@ -71,6 +70,32 @@ function renderAudioEmbed(input) {
     let ytId = extractYouTubeId(input);
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
 }
+
+// === NEW: DYNAMIC BACKGROUND MANAGER ===
+function applyBackground(url) {
+    if (url && url.trim() !== '') {
+        let finalUrl = url;
+        let gId = extractGiphyId(url);
+        if (gId) finalUrl = `https://media.giphy.com/media/${gId}/giphy.gif`;
+        
+        document.body.style.backgroundImage = `url('${finalUrl}')`;
+        document.body.style.backgroundSize = 'cover';
+        document.body.style.backgroundPosition = 'center';
+        document.body.style.backgroundAttachment = 'fixed';
+        
+        document.querySelectorAll('.panel').forEach(p => {
+            p.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
+            p.style.backdropFilter = 'blur(4px)';
+        });
+    } else {
+        document.body.style.backgroundImage = 'none';
+        document.querySelectorAll('.panel').forEach(p => {
+            p.style.backgroundColor = '#000000';
+            p.style.backdropFilter = 'none';
+        });
+    }
+}
+document.getElementById('my-bg-url')?.addEventListener('input', (e) => applyBackground(e.target.value));
 
 function broadcastToAll(packet) {
     if (currentRole !== 'HOST' || !peer) return;
@@ -415,7 +440,6 @@ async function toggleVoice() {
         localVid.id = 'local-video-node';
         getVidContainer().appendChild(localVid);
 
-        // MESH DIALING: Call everyone on the known active roster
         if (currentNetworkPeers.length > 0) {
             currentNetworkPeers.forEach(pId => {
                 let call = peer.call(pId, localStream);
@@ -423,7 +447,7 @@ async function toggleVoice() {
                 handleCallEvent(call);
             });
         } else if (currentRole === 'HOST') {
-            alert("No active visitors to dial. Broadcasting open channel...");
+            // alert("No active visitors to dial. Broadcasting open channel...");
         }
 
     } catch(e) { updateVoiceTogglesVisuals(false); }
@@ -457,25 +481,19 @@ function setupPeerCallListener() {
     });
 }
 
-// === SYSTEM RADAR (ONLINE STATUS) ENGINE ===
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
     const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
-    
-    // The Host adds their own ID to the roster
     const onlineUsers = [{ id: peer.id, alias: hostAlias, isHost: true }];
     
     const activePeers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
     activePeers.forEach(id => {
         if (peerFingerprintMap[id]) {
-            // Include the hidden PeerID in the roster for the Mesh auto-dialer
             onlineUsers.push({ id: id, alias: peerFingerprintMap[id].alias, isHost: false });
         }
     });
 
-    // Host updates their local roster of other peers
     currentNetworkPeers = onlineUsers.map(u => u.id).filter(id => id !== peer.id);
-    
     broadcastToAll({ type: MSG_TYPE_USER_LIST, users: onlineUsers });
 }
 
@@ -539,7 +557,7 @@ function toggleManual() {
 }
 
 function exportTheme() {
-    const data = { alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, features: featureToggles, identityFingerprint: myFingerprint };
+    const data = { alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, bgUrl: document.getElementById('my-bg-url').value, features: featureToggles, identityFingerprint: myFingerprint };
     const link = document.createElement('a'); link.href = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
     link.download = `nowspace_theme_${data.alias.toLowerCase()}.json`; link.click();
 }
@@ -551,6 +569,7 @@ function importTheme(event) {
             const p = JSON.parse(e.target.result);
             if(p.alias) document.getElementById('my-alias').value = p.alias;
             if(p.bio) document.getElementById('my-bio').value = p.bio;
+            if(p.bgUrl !== undefined) { document.getElementById('my-bg-url').value = p.bgUrl; applyBackground(p.bgUrl); }
             if(p.css) { document.getElementById('my-css').value = p.css; document.getElementById('custom-injected-css').innerText = p.css; }
             if(p.features) { featureToggles = p.features; applyFeatures(featureToggles); }
             saveLocalData(); alert("SUCCESS.");
@@ -669,9 +688,8 @@ function handleIncomingP2PPacket(p, conn) {
                 
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                 renderActivePeers(); broadcastOnlineUsers();
-                conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll });
+                conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll, bgUrl: document.getElementById('my-bg-url').value });
                 
-                // MESH OVERRIDE: Host auto-dials new visitor if Host is broadcasting
                 if (localStream) {
                     let call = peer.call(senderId, localStream);
                     activeCalls.push(call);
@@ -686,6 +704,7 @@ function handleIncomingP2PPacket(p, conn) {
         case MSG_TYPE_PROFILE:
             statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
             document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
+            if(p.bgUrl) applyBackground(p.bgUrl);
             if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
             if(p.audio) document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
             featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
@@ -693,10 +712,7 @@ function handleIncomingP2PPacket(p, conn) {
         
         case MSG_TYPE_USER_LIST:
             if (currentRole === 'VISITOR') {
-                // Filter out our own ID, create array of all OTHER active IDs
                 const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
-                
-                // MESH OVERRIDE: Visitor auto-dials new peers if Visitor is broadcasting
                 if (localStream) {
                     newPeers.forEach(newPeerId => {
                         if (!currentNetworkPeers.includes(newPeerId)) {
@@ -706,7 +722,7 @@ function handleIncomingP2PPacket(p, conn) {
                         }
                     });
                 }
-                currentNetworkPeers = newPeers; // Update local roster tracker
+                currentNetworkPeers = newPeers; 
 
                 const container = document.getElementById('render-online-users');
                 if (container) {
@@ -918,7 +934,7 @@ setInterval(() => {
 
 function saveLocalData() {
     if (currentRole !== 'HOST') return;
-    localStorage.setItem('nowspace_save', JSON.stringify({ alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, wall: wallData, features: featureToggles, password: document.getElementById('my-password').value }));
+    localStorage.setItem('nowspace_save', JSON.stringify({ alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, bgUrl: document.getElementById('my-bg-url').value, wall: wallData, features: featureToggles, password: document.getElementById('my-password').value }));
 }
 
 function copyMagicLink() { const input = document.getElementById('magic-link-input'); input.select(); navigator.clipboard.writeText(input.value); }
@@ -932,7 +948,9 @@ window.onload = () => {
         document.getElementById('my-bio').value = saved.bio || ''; document.getElementById('my-audio').value = saved.audio || '';
         document.getElementById('my-gallery').value = saved.gallery || ''; document.getElementById('my-css').value = saved.css || '';
         document.getElementById('my-custom-sound').value = saved.customSound || ''; wallData = saved.wall || []; featureToggles = saved.features || featureToggles;
+        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
         if (saved.password && document.getElementById('my-password')) document.getElementById('my-password').value = saved.password;
+        applyBackground(saved.bgUrl || '');
         applyFeatures(featureToggles); renderWall();
     }
     document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
