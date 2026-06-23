@@ -71,7 +71,6 @@ function renderAudioEmbed(input) {
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
 }
 
-// === NEW: DYNAMIC BACKGROUND MANAGER ===
 function applyBackground(url) {
     if (url && url.trim() !== '') {
         let finalUrl = url;
@@ -90,7 +89,7 @@ function applyBackground(url) {
     } else {
         document.body.style.backgroundImage = 'none';
         document.querySelectorAll('.panel').forEach(p => {
-            p.style.backgroundColor = '#000000';
+            p.style.backgroundColor = 'var(--bg-color)';
             p.style.backdropFilter = 'none';
         });
     }
@@ -379,7 +378,6 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     }
 }
 
-// === FULL MESH AUDIO/VISUAL COMMS ENGINE ===
 function toggleMute() {
     if (localStream && localStream.getAudioTracks().length > 0) {
         isMuted = !isMuted; 
@@ -446,10 +444,7 @@ async function toggleVoice() {
                 activeCalls.push(call);
                 handleCallEvent(call);
             });
-        } else if (currentRole === 'HOST') {
-            // alert("No active visitors to dial. Broadcasting open channel...");
         }
-
     } catch(e) { updateVoiceTogglesVisuals(false); }
 }
 
@@ -570,7 +565,6 @@ function exportTheme() {
         identityFingerprint: myFingerprint 
     };
     
-    // Create a physical file blob instead of a raw text string
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -582,7 +576,6 @@ function exportTheme() {
     document.body.appendChild(link);
     link.click();
     
-    // Clean up memory cache
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
@@ -622,7 +615,7 @@ function buildVisitorGallery(str) {
 }
 
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("[ 💾 P2P_TRANSFER ]")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
@@ -1021,4 +1014,40 @@ function transmitCompressedImage(base64Str) {
         activeConn.send({ type: MSG_TYPE_WALL_POST, text: imgTag, isPrivate: priv?.checked || false, sender: name, fingerprint: myFingerprint });
     }
     document.getElementById('hidden-file-input').value = '';
+}
+
+// === NEW: 5MB FILE DATA TRANFER ENGINE ===
+function handleRawFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+        alert("[ SYSTEM_ERROR ] File exceeds 5MB memory limit. Please compress data before transferring.");
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64Str = e.target.result;
+        const fileTag = `<br><div style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;">
+            <span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br>
+            <b style="color:#fff;">${file.name}</b><br>
+            <a href="${base64Str}" download="${file.name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>
+        </div>`;
+
+        if (currentRole === 'HOST') {
+            wallData.push({ sender: "[HOST]", text: fileTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+            saveLocalData(); 
+            renderWall(); 
+            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+        } else if (currentRole === 'VISITOR' && activeConn) {
+            const priv = document.getElementById('private-packet-toggle');
+            const alias = document.getElementById('visitor-alias-input').value.trim();
+            let name = alias ? alias : peer.id.substring(0,6);
+            activeConn.send({ type: MSG_TYPE_WALL_POST, text: fileTag, isPrivate: priv?.checked || false, sender: name, fingerprint: myFingerprint });
+        }
+        document.getElementById('hidden-raw-file-input').value = '';
+    }
+    reader.readAsDataURL(file);
 }
