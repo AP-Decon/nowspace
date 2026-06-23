@@ -12,8 +12,10 @@ localStorage.setItem('nowspace_identity_key', myFingerprint);
 
 let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, isScreenSharing = false, currentNetworkPeers = [];
 
-// FILE CHUNKING MEMORY BUFFER
+// HARDWARE MEMORY BUFFERS
 let incomingFiles = {};
+let radarEnabled = false;
+let currentHostEncryptedPwd = '';
 
 // PROTOCOL DEFINITIONS
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
@@ -48,17 +50,49 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             }
         ]
     }
 };
+
+// === ENCRYPTION & NOTIFICATION UTILS ===
+async function hashPassword(str) {
+    if (!str) return '';
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function toggleRadar() {
+    if (!("Notification" in window)) return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
+    if (Notification.permission === "granted") {
+        radarEnabled = !radarEnabled;
+        document.getElementById('radar-btn').innerText = radarEnabled ? "[ 📡 RADAR: ON ]" : "[ 📡 RADAR: OFF ]";
+        document.getElementById('radar-btn').classList.toggle('btn-alert', radarEnabled);
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(p => {
+            if (p === "granted") {
+                radarEnabled = true;
+                document.getElementById('radar-btn').innerText = "[ 📡 RADAR: ON ]";
+                document.getElementById('radar-btn').classList.add('btn-alert');
+            }
+        });
+    } else {
+        alert("[ ACCESS_DENIED ] Notification permissions are permanently blocked by your browser settings.");
+    }
+}
+
+function systemPing(title, body) {
+    if (radarEnabled && document.hidden) {
+        new Notification(title, { body: body });
+    }
+}
 
 function extractYouTubeId(url) {
     const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
@@ -419,10 +453,9 @@ async function toggleScreen() {
 
     // OS/HARDWARE SECURITY CHECK
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-        return alert("[ OS_RESTRICTION ] Screen broadcasting is blocked by this device's operating system. This feature requires a desktop environment.");
+        return alert("[ OS_RESTRICTION ] Screen broadcasting is blocked by this device's operating system.");
     }
 
-    // REVERT SCREEN BACK TO CAMERA
     if (isScreenSharing) {
         try {
             const newCamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } });
@@ -452,7 +485,6 @@ async function toggleScreen() {
         return;
     }
 
-    // INITIATE SCREEN SHARE EXTRACTION
     try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 } });
         const screenTrack = screenStream.getVideoTracks()[0];
@@ -470,12 +502,9 @@ async function toggleScreen() {
         const localVid = document.getElementById('local-video-node');
         if (localVid) localVid.srcObject = localStream;
 
-        screenTrack.onended = () => {
-            if(isScreenSharing) toggleScreen(); 
-        };
+        screenTrack.onended = () => { if(isScreenSharing) toggleScreen(); };
 
         isScreenSharing = true;
-        
         if (!isCamOn) toggleCam();
 
         document.querySelectorAll('.screen-btn').forEach(b => {
@@ -516,7 +545,7 @@ async function toggleVoice() {
         document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');});
         document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
         
-        // OS Hardware Check for Screen Share Button
+        // OS Hardware Check for Screen Share
         if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
             document.querySelectorAll('.screen-btn').forEach(b => { b.style.display = 'inline-block'; });
         }
@@ -525,8 +554,18 @@ async function toggleVoice() {
         localVid.srcObject = localStream;
         localVid.autoplay = true;
         localVid.muted = true;
+        localVid.setAttribute('playsinline', '');
         localVid.classList.add('video-feed', 'local-video');
         localVid.id = 'local-video-node';
+        
+        // FULLSCREEN ONCLICK HANDLER
+        localVid.style.cursor = 'pointer';
+        localVid.title = "Click to Expand";
+        localVid.onclick = () => {
+            if (localVid.requestFullscreen) localVid.requestFullscreen();
+            else if (localVid.webkitRequestFullscreen) localVid.webkitRequestFullscreen();
+        };
+
         getVidContainer().appendChild(localVid);
 
         if (currentNetworkPeers.length > 0) {
@@ -545,20 +584,23 @@ function handleCallEvent(call) {
         if(!v) {
             v = document.createElement('video');
             v.autoplay = true;
-            
-            // CRITICAL FOR MOBILE: Forces the OS to render the video inline instead of blocking it
-            v.setAttribute('playsinline', ''); 
-            
+            v.setAttribute('playsinline', '');
             v.id = 'video-node-' + call.peer;
             v.classList.add('video-feed');
+            
+            // FULLSCREEN ONCLICK HANDLER
+            v.style.cursor = 'pointer';
+            v.title = "Click to Expand";
+            v.onclick = () => {
+                if (v.requestFullscreen) v.requestFullscreen();
+                else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+            };
+
             getVidContainer().appendChild(v);
         }
         v.srcObject = remote;
-        
-        // Force the mobile browser engine to wake up and play the incoming stream
         v.play().catch(e => console.warn("Mobile autoplay restriction intercepted stream:", e));
     });
-    
     call.on('close', () => {
         let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
@@ -675,15 +717,10 @@ function exportTheme() {
 }
 
 function importTheme(event) {
-    const file = event.target.files[0]; 
-    if (!file) return; 
-    const reader = new FileReader();
-    
+    const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
     reader.onload = function(e) {
         try {
             const p = JSON.parse(e.target.result);
-            
-            // Map ALL exported data back into the terminal UI
             if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
             if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
             if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
@@ -699,20 +736,10 @@ function importTheme(event) {
                 document.getElementById('my-css').value = p.css; 
                 document.getElementById('custom-injected-css').innerText = p.css; 
             }
-            if(p.features) { 
-                featureToggles = p.features; 
-                applyFeatures(featureToggles); 
-            }
-            
-            saveLocalData(); 
-            alert("[ SYSTEM ] Profile data successfully imported.");
-        } catch (err) { 
-            alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
-        }
-    }; 
-    reader.readAsText(file);
-    
-    // Clear the input so you can re-import the exact same file later if needed
+            if(p.features) { featureToggles = p.features; applyFeatures(featureToggles); }
+            saveLocalData(); alert("[ SYSTEM ] Profile data imported.");
+        } catch (err) { alert("[ SYSTEM_ERROR ] Failed to parse theme."); }
+    }; reader.readAsText(file);
     event.target.value = '';
 }
 
@@ -775,10 +802,20 @@ function disconnectNode() {
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
 }
 
-function startHosting() {
-    currentRole = 'HOST'; document.getElementById('btn-go-online').disabled = true; saveLocalData();
+// === ENCRYPTED HOST INITIALIZATION ===
+async function startHosting() {
+    currentRole = 'HOST'; 
+    document.getElementById('btn-go-online').disabled = true; 
+    saveLocalData();
+    
+    // Scramble the host password before opening the network gate
+    const rawPwd = document.getElementById('my-password').value;
+    currentHostEncryptedPwd = await hashPassword(rawPwd);
+
     const customId = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
-    peer = customId ? new Peer(customId, peerConfig) : new Peer(peerConfig); setupPeerCallListener(); 
+    peer = customId ? new Peer(customId, peerConfig) : new Peer(peerConfig); 
+    setupPeerCallListener(); 
+    
     peer.on('open', (id) => {
         statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; globalDisconnectBtn.style.display = 'block';
         document.getElementById('my-id').innerText = id; document.getElementById('my-id-display').style.display = 'block';
@@ -787,6 +824,7 @@ function startHosting() {
         renderWall(); renderActivePeers(); renderBannedPeers();
         document.getElementById('magic-link-container').innerHTML = `<div style="margin-top:15px; display:flex; gap:10px;"><input type="text" id="magic-link-input" value="${window.location.href.split('?')[0]}?node=${id}" readonly style="border-color:#0f0; color:#0f0; margin-bottom:0;"><button onclick="copyMagicLink()" style="border-color:#0f0; color:#0f0; margin-bottom:0;">COPY</button></div>`;
     });
+    
     peer.on('connection', (c) => {
         c.on('data', (data) => handleIncomingP2PPacket(data, c));
         c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
@@ -808,11 +846,15 @@ function executeConnection(fId) {
     activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn)); 
     activeConn.on('close', () => { disconnectNode(); });
     
-    activeConn.on('open', () => { 
+    // === ENCRYPTED VISITOR HANDSHAKE ===
+    activeConn.on('open', async () => { 
         statusDisplay.innerText = "[ STATUS: AUTHENTICATING... ]"; 
-        const visitorPwd = document.getElementById('visitor-password') ? document.getElementById('visitor-password').value : '';
+        
+        const rawVisitorPwd = document.getElementById('visitor-password') ? document.getElementById('visitor-password').value : '';
+        const hashedVisitorPwd = await hashPassword(rawVisitorPwd);
         const visitorAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value : '';
-        activeConn.send({ type: 'VISITOR_HANDSHAKE', fingerprint: myFingerprint, alias: visitorAlias || 'Unknown', password: visitorPwd });
+        
+        activeConn.send({ type: 'VISITOR_HANDSHAKE', fingerprint: myFingerprint, alias: visitorAlias || 'Unknown', password: hashedVisitorPwd });
     });
 }
 
@@ -821,8 +863,7 @@ function handleIncomingP2PPacket(p, conn) {
     switch(p.type) {
         case 'VISITOR_HANDSHAKE':
             if (currentRole === 'HOST') {
-                const hostPwd = document.getElementById('my-password').value;
-                if (hostPwd && p.password !== hostPwd) {
+                if (currentHostEncryptedPwd && p.password !== currentHostEncryptedPwd) {
                     conn.send({type: 'AUTH_FAILED'}); setTimeout(() => conn.close(), 500); return;
                 }
                 if (bannedFingerprints.includes(p.fingerprint)) {
@@ -830,6 +871,8 @@ function handleIncomingP2PPacket(p, conn) {
                 }
                 
                 peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
+                systemPing("NEW LINK ESTABLISHED", `Terminal ${p.alias} has connected to your node.`);
+                
                 renderActivePeers(); broadcastOnlineUsers();
                 conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll, bgUrl: document.getElementById('my-bg-url').value });
                 
@@ -897,6 +940,7 @@ function handleIncomingP2PPacket(p, conn) {
 
         case 'INCOMING_WHISPER':
             if (currentRole === 'VISITOR') {
+                systemPing("SECURE TRANSMISSION", `Incoming Whisper from ${p.senderAlias}`);
                 wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
                 renderWall();
             } break;
@@ -1280,5 +1324,4 @@ function handleRawFileUpload(event) {
     
     readNextChunk();
 }
-
 // END
