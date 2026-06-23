@@ -1021,8 +1021,8 @@ function handleRawFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-        alert("[ SYSTEM_ERROR ] File exceeds 5MB memory limit. Please compress data before transferring.");
+    if (file.size > 25 * 1024 * 1024) {
+        alert("[ SYSTEM_ERROR ] File exceeds 25MB memory limit. Please compress data before transferring.");
         event.target.value = '';
         return;
     }
