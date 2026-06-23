@@ -41,11 +41,9 @@ const SOUND_ASSETS = {
 };
 
 const MANUAL_DATABASE = [
-    { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal. When you connect to a node, your data flows directly between your machine and the host. There are no central servers intercepting, storing, or monitoring your conversations." },
-    { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model to protect your privacy. Small data preferences are saved entirely inside your local browser cache." },
-    { h3: "HOW TO OPERATE: HOSTING", p: "Configure profile variables. Click INITIALIZE_NODE. Copy your generated Magic Link and pass it to peers to form explicit communication nodes." },
-    { h3: "HOW TO OPERATE: VISITING", p: "Connect using an explicit hash pointer. Media structures matching raw image matrices, YouTube domains, or Giphy strings will auto-render straight down the wall pipeline." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll [sides]*[count]</b> : RNG generator (e.g. /roll 20*2).<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
+    { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal." },
+    { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model." },
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll [sides]*[count]</b> : RNG generator.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
 ];
 
 const peerConfig = {
@@ -73,39 +71,45 @@ const peerConfig = {
 async function hashPassword(str) {
     if (!str) return '';
     
-    // SAFETY FALLBACK: If testing locally or on non-HTTPS, use basic Base64 encoding
+    // SAFETY FALLBACK: Reverts to basic encoding if WebCrypto fails or HTTPS is missing
     if (!window.crypto || !window.crypto.subtle) {
         console.warn("[ SYSTEM ] Secure context missing. Using fallback encryption.");
-        return btoa(str); 
+        return btoa(unescape(encodeURIComponent(str))); 
     }
     
     try {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
         return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     } catch (e) {
-        // Ultimate fallback just in case the browser rejects the specific algorithm
-        return btoa(str);
+        return btoa(unescape(encodeURIComponent(str)));
     }
 }
 
 function toggleRadar() {
     if (!("Notification" in window)) return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
     
-    if (Notification.permission === "default") {
-        Notification.requestPermission().then(p => {
-            if (p === "granted") { radarEnabled = true; updateRadarUI(); } 
-            else { alert("[ ACCESS_DENIED ] Permission rejected."); }
-        });
+    // ANDROID FIX: If they are turning it OFF, just force it off locally. Skip the permission check!
+    if (radarEnabled) {
+        radarEnabled = false;
+        updateRadarUI();
         return;
     }
     
-    if (Notification.permission === "denied") {
-        return alert("[ ACCESS_DENIED ] Notifications are blocked by your browser settings.");
-    }
-
+    // Turning it ON
     if (Notification.permission === "granted") {
-        radarEnabled = !radarEnabled;
+        radarEnabled = true;
         updateRadarUI();
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(p => {
+            if (p === "granted") { 
+                radarEnabled = true; 
+                updateRadarUI(); 
+            } else { 
+                alert("[ ACCESS_DENIED ] Permission rejected."); 
+            }
+        });
+    } else {
+        alert("[ ACCESS_DENIED ] Notifications are permanently blocked by your browser settings.");
     }
 }
 
@@ -165,7 +169,6 @@ function importTheme(event) {
         try {
             const p = JSON.parse(e.target.result);
             
-            // Map values to DOM
             if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
             if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
             if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
@@ -175,7 +178,7 @@ function importTheme(event) {
             
             if(p.bgUrl !== undefined) { 
                 document.getElementById('my-bg-url').value = p.bgUrl; 
-                applyBackground(p.bgUrl); 
+                if(typeof applyBackground === "function") applyBackground(p.bgUrl); 
             }
             if(p.css !== undefined) { 
                 document.getElementById('my-css').value = p.css; 
@@ -183,12 +186,11 @@ function importTheme(event) {
             }
             if(p.features) { 
                 featureToggles = p.features; 
-                // Visually update the checkboxes to match the imported theme
                 ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
                     const cb = document.getElementById('toggle-' + f);
                     if (cb) cb.checked = featureToggles[f];
                 });
-                if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
+                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
             }
             
             saveLocalData(); 
@@ -197,12 +199,10 @@ function importTheme(event) {
             console.error("Theme parse error:", err);
             alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
         } finally {
-            // Android Safe: Only clear the input AFTER processing is totally finished
             inputElement.value = ''; 
         }
     }; 
     
-    // Catch file read errors (if Android denies file system access)
     reader.onerror = function() {
         alert("[ SYSTEM_ERROR ] Operating system blocked file read.");
         inputElement.value = '';
@@ -272,7 +272,6 @@ window.onload = () => {
         if (typeof renderWall === "function") renderWall();
     }
     
-    // Bind CSS injector
     const cssInput = document.getElementById('my-css');
     if (cssInput) {
         cssInput.addEventListener('input', (e) => { 
@@ -281,7 +280,6 @@ window.onload = () => {
         });
     }
     
-    // Auto-connect if joining via Magic Link
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
         document.getElementById('host-setup-panel').style.display = 'none';
@@ -289,5 +287,4 @@ window.onload = () => {
         document.getElementById('visitor-password').focus(); 
     }
 };
-
 // END
