@@ -1,4 +1,6 @@
-// === SYSTEM GLOBAL DATABASE ENGINE ===
+//---------------------------------------------------------
+// 01. GLOBAL SYSTEM VARIABLES & STATE
+//---------------------------------------------------------
 let peer = null, activeConn = null, wallData = [], currentRole = null;
 let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 let bannedFingerprints = JSON.parse(localStorage.getItem('nowspace_banned')) || [];
@@ -7,17 +9,19 @@ let globalVolume = 0.5, activePoll = null;
 
 let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
 
+// Identity & Security
 let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
 localStorage.setItem('nowspace_identity_key', myFingerprint);
-
-let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, isScreenSharing = false, currentNetworkPeers = [];
-
-// HARDWARE MEMORY BUFFERS
-let incomingFiles = {};
-let radarEnabled = false;
 let currentHostEncryptedPwd = '';
 
-// PROTOCOL DEFINITIONS
+// A/V Comms State
+let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, isScreenSharing = false, currentNetworkPeers = [];
+
+// Hardware & Memory Buffers
+let incomingFiles = {};
+let radarEnabled = false;
+
+// Protocol Definitions
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
 const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE', MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
 const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE', MSG_TYPE_POLL_NEW = 'POLL_NEW';
@@ -27,6 +31,9 @@ const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
 const statusDisplay = document.getElementById('connection-status');
 const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
+//---------------------------------------------------------
+// 02. SYSTEM ASSETS & CONFIGURATION
+//---------------------------------------------------------
 const SOUND_ASSETS = {
     'airhorn': 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3',
     'boom': 'https://www.myinstants.com/media/sounds/vine-boom.mp3',
@@ -42,7 +49,6 @@ const MANUAL_DATABASE = [
     { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll [sides]*[count]</b> : RNG generator (e.g. /roll 20*2).<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
 ];
 
-// === WEBRTC GATEWAY CONFIGURATION ===
 const peerConfig = {
     config: {
         'iceServers': [
@@ -50,19 +56,21 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "PASTE_YOUR_USERNAME_HERE",
-                credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "PASTE_YOUR_USERNAME_HERE",
-                credential: "PASTE_YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             }
         ]
     }
 };
 
-// === ENCRYPTION & NOTIFICATION UTILS ===
+//---------------------------------------------------------
+// 03. SECURITY, ENCRYPTION & RADAR UTILS
+//---------------------------------------------------------
 async function hashPassword(str) {
     if (!str) return '';
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -71,20 +79,33 @@ async function hashPassword(str) {
 
 function toggleRadar() {
     if (!("Notification" in window)) return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
+    
+    if (Notification.permission === "default") {
+        Notification.requestPermission().then(p => {
+            if (p === "granted") { radarEnabled = true; updateRadarUI(); } 
+            else { alert("[ ACCESS_DENIED ] Permission rejected."); }
+        });
+        return;
+    }
+    
+    if (Notification.permission === "denied") {
+        return alert("[ ACCESS_DENIED ] Notifications are blocked by your browser settings.");
+    }
+
     if (Notification.permission === "granted") {
         radarEnabled = !radarEnabled;
-        document.getElementById('radar-btn').innerText = radarEnabled ? "[ 📡 RADAR: ON ]" : "[ 📡 RADAR: OFF ]";
-        document.getElementById('radar-btn').classList.toggle('btn-alert', radarEnabled);
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(p => {
-            if (p === "granted") {
-                radarEnabled = true;
-                document.getElementById('radar-btn').innerText = "[ 📡 RADAR: ON ]";
-                document.getElementById('radar-btn').classList.add('btn-alert');
-            }
-        });
+        updateRadarUI();
+    }
+}
+
+function updateRadarUI() {
+    const btn = document.getElementById('radar-btn');
+    if (radarEnabled) {
+        btn.innerText = "[ 📡 RADAR: ON ]";
+        btn.classList.add('btn-alert');
     } else {
-        alert("[ ACCESS_DENIED ] Notification permissions are permanently blocked by your browser settings.");
+        btn.innerText = "[ 📡 RADAR: OFF ]";
+        btn.classList.remove('btn-alert');
     }
 }
 
@@ -94,6 +115,16 @@ function systemPing(title, body) {
     }
 }
 
+function makeFullscreen(elem) {
+    if (elem.requestFullscreen) { elem.requestFullscreen().catch(err => console.log(err)); } 
+    else if (elem.webkitRequestFullscreen) { elem.webkitRequestFullscreen(); } 
+    else if (elem.webkitEnterFullscreen) { elem.webkitEnterFullscreen(); } 
+    else if (elem.msRequestFullscreen) { elem.msRequestFullscreen(); }
+}
+
+//---------------------------------------------------------
+// 04. MEDIA & PARSING ENGINES
+//---------------------------------------------------------
 function extractYouTubeId(url) {
     const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
     return match ? match[1] : null;
@@ -231,6 +262,19 @@ function parseSlashCommand(text, senderName) {
     return { text: text, burnSec: null, isGame: null };
 }
 
+//---------------------------------------------------------
+// 05. UI RENDERING & DATASTREAM PIPELINE
+//---------------------------------------------------------
+function formatWallMessage(text) {
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
+    if(text.includes("<img src=\"data:image")) return text; 
+    return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
+        let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
+        let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
+        return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? `<img src="${url}" />` : `<a href="${url}" target="_blank">${url}</a>`;
+    });
+}
+
 function renderWallStream(targetId, filterSecureText, decryptMode) {
     const container = document.getElementById(targetId);
     if (!container) return;
@@ -298,12 +342,19 @@ function deleteWallMessage(index) {
     }
 }
 
-function getVidContainer() {
-    return currentRole === 'HOST' 
-        ? document.getElementById('host-video-stream-container') 
-        : document.getElementById('visitor-video-stream-container');
+function insertEmoji(emoji) {
+    if (currentRole === 'HOST') {
+        const hostInput = document.getElementById('host-wall-input');
+        if (hostInput) { hostInput.value += emoji; hostInput.focus(); }
+    } else if (currentRole === 'VISITOR') {
+        const visitorInput = document.getElementById('wall-input-buffer');
+        if (visitorInput) { visitorInput.value += emoji; visitorInput.focus(); }
+    }
 }
 
+//---------------------------------------------------------
+// 06. FEATURE FLAGS & POLLS
+//---------------------------------------------------------
 function applyFeatures(features) {
     document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
     document.querySelectorAll('.soundboard-container').forEach(el => el.style.display = features.soundboard ? 'flex' : 'none');
@@ -414,7 +465,23 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     }
 }
 
-// === FULL MESH AUDIO/VISUAL COMMS ENGINE ===
+function toggleManual() {
+    const modal = document.getElementById('system-manual-modal');
+    const target = document.getElementById('manual-render-target');
+    if (target.innerHTML === "") {
+        target.innerHTML = MANUAL_DATABASE.map(sec => `<div class="manual-section"><h3 class="manual-h3">${sec.h3}</h3><p class="manual-text">${sec.p}</p></div>`).join('');
+    }
+    modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+}
+
+//---------------------------------------------------------
+// 07. AUDIO / VISUAL COMMS ENGINE & FULLSCREEN
+//---------------------------------------------------------
+function getVidContainer() {
+    return currentRole === 'HOST' 
+        ? document.getElementById('host-video-stream-container') 
+        : document.getElementById('visitor-video-stream-container');
+}
 
 function toggleMute() {
     if (localStream && localStream.getAudioTracks().length > 0) {
@@ -447,11 +514,9 @@ function updateVoiceTogglesVisuals(isLive) {
     });
 }
 
-// HARDWARE-AWARE SCREEN SHARE
 async function toggleScreen() {
     if (!localStream) return alert("[ SYSTEM_ERROR ] You must enable COMMS before broadcasting your display.");
 
-    // OS/HARDWARE SECURITY CHECK
     if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
         return alert("[ OS_RESTRICTION ] Screen broadcasting is blocked by this device's operating system.");
     }
@@ -545,7 +610,6 @@ async function toggleVoice() {
         document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');});
         document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
         
-        // OS Hardware Check for Screen Share
         if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
             document.querySelectorAll('.screen-btn').forEach(b => { b.style.display = 'inline-block'; });
         }
@@ -558,13 +622,11 @@ async function toggleVoice() {
         localVid.classList.add('video-feed', 'local-video');
         localVid.id = 'local-video-node';
         
-        // FULLSCREEN ONCLICK HANDLER
         localVid.style.cursor = 'pointer';
-        localVid.title = "Click to Expand";
-        localVid.onclick = () => {
-            if (localVid.requestFullscreen) localVid.requestFullscreen();
-            else if (localVid.webkitRequestFullscreen) localVid.webkitRequestFullscreen();
-        };
+        localVid.title = "Tap to Expand";
+        localVid.addEventListener('click', () => {
+            makeFullscreen(localVid);
+        });
 
         getVidContainer().appendChild(localVid);
 
@@ -588,13 +650,11 @@ function handleCallEvent(call) {
             v.id = 'video-node-' + call.peer;
             v.classList.add('video-feed');
             
-            // FULLSCREEN ONCLICK HANDLER
             v.style.cursor = 'pointer';
-            v.title = "Click to Expand";
-            v.onclick = () => {
-                if (v.requestFullscreen) v.requestFullscreen();
-                else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
-            };
+            v.title = "Tap to Expand";
+            v.addEventListener('click', () => {
+                makeFullscreen(v);
+            });
 
             getVidContainer().appendChild(v);
         }
@@ -616,6 +676,9 @@ function setupPeerCallListener() {
     });
 }
 
+//---------------------------------------------------------
+// 08. NODE ROUTING & CONNECTION MANAGEMENT
+//---------------------------------------------------------
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
     const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
@@ -682,106 +745,6 @@ function unbanFingerprint(fp) {
     renderBannedPeers();
 }
 
-function toggleManual() {
-    const modal = document.getElementById('system-manual-modal');
-    const target = document.getElementById('manual-render-target');
-    if (target.innerHTML === "") {
-        target.innerHTML = MANUAL_DATABASE.map(sec => `<div class="manual-section"><h3 class="manual-h3">${sec.h3}</h3><p class="manual-text">${sec.p}</p></div>`).join('');
-    }
-    modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
-}
-
-function exportTheme() {
-    const data = { 
-        alias: document.getElementById('my-alias').value, 
-        customId: document.getElementById('my-custom-id').value, 
-        bio: document.getElementById('my-bio').value, 
-        audio: document.getElementById('my-audio').value, 
-        gallery: document.getElementById('my-gallery').value, 
-        css: document.getElementById('my-css').value, 
-        customSound: document.getElementById('my-custom-sound').value, 
-        bgUrl: document.getElementById('my-bg-url').value, 
-        features: featureToggles, 
-        identityFingerprint: myFingerprint 
-    };
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a'); 
-    link.href = url;
-    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
-
-function importTheme(event) {
-    const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const p = JSON.parse(e.target.result);
-            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
-            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
-            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
-            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
-            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
-            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
-            
-            if(p.bgUrl !== undefined) { 
-                document.getElementById('my-bg-url').value = p.bgUrl; 
-                applyBackground(p.bgUrl); 
-            }
-            if(p.css !== undefined) { 
-                document.getElementById('my-css').value = p.css; 
-                document.getElementById('custom-injected-css').innerText = p.css; 
-            }
-            if(p.features) { featureToggles = p.features; applyFeatures(featureToggles); }
-            saveLocalData(); alert("[ SYSTEM ] Profile data imported.");
-        } catch (err) { alert("[ SYSTEM_ERROR ] Failed to parse theme."); }
-    }; reader.readAsText(file);
-    event.target.value = '';
-}
-
-function buildVisitorTop8Grid(arr) {
-    const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
-    if (!arr || arr.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
-    arr.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
-    document.getElementById('visitor-top8-panel').style.display = featureToggles.top8 ? 'block' : 'none';
-}
-function jumpToNewNode(id) { document.getElementById('friend-id').value = id; disconnectNode(); visitFriend(); }
-
-function buildVisitorGallery(str) {
-    const grid = document.getElementById('render-gallery-grid'), panel = document.getElementById('visitor-gallery-panel'); grid.innerHTML = '';
-    if(!str || str.trim() === '') { panel.style.display = 'none'; return; }
-    const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-    urls.forEach(u => { 
-        let finalUrl = u, gId = extractGiphyId(u); if(gId) finalUrl = `https://media.giphy.com/media/${gId}/giphy.gif`;
-        grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${finalUrl}', '_blank')"><img src="${finalUrl}"></div>`; 
-    });
-    panel.style.display = featureToggles.gallery ? 'block' : 'none';
-}
-
-function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
-    if(text.includes("<img src=\"data:image")) return text; 
-    return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
-        let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
-        let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
-        return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? `<img src="${url}" />` : `<a href="${url}" target="_blank">${url}</a>`;
-    });
-}
-
-function insertEmoji(emoji) {
-    if (currentRole === 'HOST') {
-        const hostInput = document.getElementById('host-wall-input');
-        if (hostInput) { hostInput.value += emoji; hostInput.focus(); }
-    } else if (currentRole === 'VISITOR') {
-        const visitorInput = document.getElementById('wall-input-buffer');
-        if (visitorInput) { visitorInput.value += emoji; visitorInput.focus(); }
-    }
-}
-
 function disconnectNode() {
     if (activeCalls.length > 0) activeCalls.forEach(c => c.close()); activeCalls = [];
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
@@ -802,13 +765,14 @@ function disconnectNode() {
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
 }
 
-// === ENCRYPTED HOST INITIALIZATION ===
+//---------------------------------------------------------
+// 09. MAIN HANDSHAKE & PACKET ROUTER (CORE LOGIC)
+//---------------------------------------------------------
 async function startHosting() {
     currentRole = 'HOST'; 
     document.getElementById('btn-go-online').disabled = true; 
     saveLocalData();
     
-    // Scramble the host password before opening the network gate
     const rawPwd = document.getElementById('my-password').value;
     currentHostEncryptedPwd = await hashPassword(rawPwd);
 
@@ -846,7 +810,6 @@ function executeConnection(fId) {
     activeConn.on('data', (data) => handleIncomingP2PPacket(data, activeConn)); 
     activeConn.on('close', () => { disconnectNode(); });
     
-    // === ENCRYPTED VISITOR HANDSHAKE ===
     activeConn.on('open', async () => { 
         statusDisplay.innerText = "[ STATUS: AUTHENTICATING... ]"; 
         
@@ -1041,6 +1004,9 @@ function handleIncomingP2PPacket(p, conn) {
     }
 }
 
+//---------------------------------------------------------
+// 10. WALL DATASTREAM & TIC-TAC-TOE ENGINE
+//---------------------------------------------------------
 function visitorSendWallPacket() {
     const input = document.getElementById('wall-input-buffer');
     const priv = document.getElementById('private-packet-toggle');
@@ -1169,38 +1135,9 @@ setInterval(() => {
     }
 }, 1000);
 
-function saveLocalData() {
-    if (currentRole !== 'HOST') return;
-    localStorage.setItem('nowspace_save', JSON.stringify({ alias: document.getElementById('my-alias').value, customId: document.getElementById('my-custom-id').value, bio: document.getElementById('my-bio').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, css: document.getElementById('my-css').value, customSound: document.getElementById('my-custom-sound').value, bgUrl: document.getElementById('my-bg-url').value, wall: wallData, features: featureToggles, password: document.getElementById('my-password').value }));
-}
-
-function copyMagicLink() { const input = document.getElementById('magic-link-input'); input.select(); navigator.clipboard.writeText(input.value); }
-function resetDefaultTemplate() { if(confirm("Purge node memory cache?")) { localStorage.clear(); window.location.reload(); } }
-
-window.onload = () => {
-    const saved = JSON.parse(localStorage.getItem('nowspace_save')), vAlias = localStorage.getItem('nowspace_visitor_alias');
-    if (vAlias && document.getElementById('visitor-alias-input')) document.getElementById('visitor-alias-input').value = vAlias;
-    if (saved) {
-        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; document.getElementById('my-custom-id').value = saved.customId || '';
-        document.getElementById('my-bio').value = saved.bio || ''; document.getElementById('my-audio').value = saved.audio || '';
-        document.getElementById('my-gallery').value = saved.gallery || ''; document.getElementById('my-css').value = saved.css || '';
-        document.getElementById('my-custom-sound').value = saved.customSound || ''; wallData = saved.wall || []; featureToggles = saved.features || featureToggles;
-        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
-        if (saved.password && document.getElementById('my-password')) document.getElementById('my-password').value = saved.password;
-        applyBackground(saved.bgUrl || '');
-        applyFeatures(featureToggles); renderWall();
-    }
-    document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
-    const urlNode = new URLSearchParams(window.location.search).get('node'); 
-    if (urlNode) { 
-        document.getElementById('host-setup-panel').style.display = 'none';
-        document.getElementById('friend-id').value = urlNode; 
-        document.getElementById('visitor-password').focus(); 
-    }
-};
-document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
-document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
-
+//---------------------------------------------------------
+// 11. FILE TRANSFER CHUNKING & LOCAL STORAGE
+//---------------------------------------------------------
 function handleImageUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -1324,4 +1261,135 @@ function handleRawFileUpload(event) {
     
     readNextChunk();
 }
+
+//---------------------------------------------------------
+// 12. THEME EXPORT, IMPORT & NODE REFRESH
+//---------------------------------------------------------
+function exportTheme() {
+    const data = { 
+        alias: document.getElementById('my-alias').value, 
+        customId: document.getElementById('my-custom-id').value, 
+        bio: document.getElementById('my-bio').value, 
+        audio: document.getElementById('my-audio').value, 
+        gallery: document.getElementById('my-gallery').value, 
+        css: document.getElementById('my-css').value, 
+        customSound: document.getElementById('my-custom-sound').value, 
+        bgUrl: document.getElementById('my-bg-url').value, 
+        features: featureToggles, 
+        identityFingerprint: myFingerprint 
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); 
+    link.href = url;
+    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function importTheme(event) {
+    const file = event.target.files[0]; 
+    if (!file) return; 
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const p = JSON.parse(e.target.result);
+            
+            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
+            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
+            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
+            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
+            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
+            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
+            
+            if(p.bgUrl !== undefined) { 
+                document.getElementById('my-bg-url').value = p.bgUrl; 
+                applyBackground(p.bgUrl); 
+            }
+            if(p.css !== undefined) { 
+                document.getElementById('my-css').value = p.css; 
+                document.getElementById('custom-injected-css').innerText = p.css; 
+            }
+            if(p.features) { 
+                featureToggles = p.features; 
+                applyFeatures(featureToggles); 
+            }
+            
+            saveLocalData(); 
+            alert("[ SYSTEM ] Profile data successfully imported.");
+        } catch (err) { 
+            alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
+        }
+    }; 
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function saveLocalData() {
+    if (currentRole !== 'HOST') return;
+    localStorage.setItem('nowspace_save', JSON.stringify({ 
+        alias: document.getElementById('my-alias').value, 
+        customId: document.getElementById('my-custom-id').value, 
+        bio: document.getElementById('my-bio').value, 
+        audio: document.getElementById('my-audio').value, 
+        gallery: document.getElementById('my-gallery').value, 
+        css: document.getElementById('my-css').value, 
+        customSound: document.getElementById('my-custom-sound').value, 
+        bgUrl: document.getElementById('my-bg-url').value, 
+        wall: wallData, 
+        features: featureToggles, 
+        password: document.getElementById('my-password').value 
+    }));
+}
+
+function copyMagicLink() { const input = document.getElementById('magic-link-input'); input.select(); navigator.clipboard.writeText(input.value); }
+function resetDefaultTemplate() { if(confirm("Purge node memory cache?")) { localStorage.clear(); window.location.reload(); } }
+
+function buildVisitorTop8Grid(arr) {
+    const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
+    if (!arr || arr.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
+    arr.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
+    document.getElementById('visitor-top8-panel').style.display = featureToggles.top8 ? 'block' : 'none';
+}
+function jumpToNewNode(id) { document.getElementById('friend-id').value = id; disconnectNode(); visitFriend(); }
+
+function buildVisitorGallery(str) {
+    const grid = document.getElementById('render-gallery-grid'), panel = document.getElementById('visitor-gallery-panel'); grid.innerHTML = '';
+    if(!str || str.trim() === '') { panel.style.display = 'none'; return; }
+    const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+    urls.forEach(u => { 
+        let finalUrl = u, gId = extractGiphyId(u); if(gId) finalUrl = `https://media.giphy.com/media/${gId}/giphy.gif`;
+        grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${finalUrl}', '_blank')"><img src="${finalUrl}"></div>`; 
+    });
+    panel.style.display = featureToggles.gallery ? 'block' : 'none';
+}
+
+window.onload = () => {
+    const saved = JSON.parse(localStorage.getItem('nowspace_save')), vAlias = localStorage.getItem('nowspace_visitor_alias');
+    if (vAlias && document.getElementById('visitor-alias-input')) document.getElementById('visitor-alias-input').value = vAlias;
+    if (saved) {
+        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; document.getElementById('my-custom-id').value = saved.customId || '';
+        document.getElementById('my-bio').value = saved.bio || ''; document.getElementById('my-audio').value = saved.audio || '';
+        document.getElementById('my-gallery').value = saved.gallery || ''; document.getElementById('my-css').value = saved.css || '';
+        document.getElementById('my-custom-sound').value = saved.customSound || ''; wallData = saved.wall || []; featureToggles = saved.features || featureToggles;
+        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
+        if (saved.password && document.getElementById('my-password')) document.getElementById('my-password').value = saved.password;
+        applyBackground(saved.bgUrl || '');
+        applyFeatures(featureToggles); renderWall();
+    }
+    document.getElementById('my-css').addEventListener('input', (e) => { document.getElementById('custom-injected-css').innerText = e.target.value; });
+    const urlNode = new URLSearchParams(window.location.search).get('node'); 
+    if (urlNode) { 
+        document.getElementById('host-setup-panel').style.display = 'none';
+        document.getElementById('friend-id').value = urlNode; 
+        document.getElementById('visitor-password').focus(); 
+    }
+};
+document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
+document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+
 // END
