@@ -1,9 +1,12 @@
-﻿// === 01. GLOBAL VARIABLES & STATE ===
+//---------------------------------------------------------
+// 01. GLOBAL SYSTEM VARIABLES & STATE
+//---------------------------------------------------------
 let peer = null, activeConn = null, wallData = [], currentRole = null;
 let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 let bannedFingerprints = JSON.parse(localStorage.getItem('nowspace_banned')) || [];
 let peerFingerprintMap = {}; 
 let globalVolume = 0.5, activePoll = null;
+
 let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
 
 // Identity & Security
@@ -18,12 +21,17 @@ let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, isSc
 let incomingFiles = {};
 let radarEnabled = false;
 
-// === 02. CONSTANTS ===
+//---------------------------------------------------------
+// 02. CONSTANTS & DOM REFERENCES
+//---------------------------------------------------------
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
 const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE', MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
 const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE', MSG_TYPE_POLL_NEW = 'POLL_NEW';
 const MSG_TYPE_POLL_VOTE = 'POLL_VOTE', MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
 const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
+
+const statusDisplay = document.getElementById('connection-status');
+const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
 const SOUND_ASSETS = {
     'airhorn': 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3',
@@ -47,18 +55,130 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             }
         ]
     }
 };
 
-// DOM References loaded globally
-const statusDisplay = document.getElementById('connection-status');
-const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
+//---------------------------------------------------------
+// 03. THEME EXPORT, IMPORT & NODE REFRESH
+//---------------------------------------------------------
+function exportTheme() {
+    const data = { 
+        alias: document.getElementById('my-alias').value, 
+        customId: document.getElementById('my-custom-id').value, 
+        bio: document.getElementById('my-bio').value, 
+        audio: document.getElementById('my-audio').value, 
+        gallery: document.getElementById('my-gallery').value, 
+        css: document.getElementById('my-css').value, 
+        customSound: document.getElementById('my-custom-sound').value, 
+        bgUrl: document.getElementById('my-bg-url').value, 
+        features: featureToggles, 
+        identityFingerprint: myFingerprint 
+    };
+    const jsonString = JSON.stringify(data, null, 2);
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); 
+    link.href = url;
+    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+function importTheme(event) {
+    const inputElement = event.target;
+    const file = inputElement.files[0]; 
+    if (!file) return; 
+    
+    const reader = new FileReader();
+    
+    reader.onload = function(e) {
+        try {
+            const p = JSON.parse(e.target.result);
+            
+            // Map values to DOM
+            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
+            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
+            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
+            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
+            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
+            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
+            
+            if(p.bgUrl !== undefined) { 
+                document.getElementById('my-bg-url').value = p.bgUrl; 
+                applyBackground(p.bgUrl); 
+            }
+            if(p.css !== undefined) { 
+                document.getElementById('my-css').value = p.css; 
+                document.getElementById('custom-injected-css').innerText = p.css; 
+            }
+            if(p.features) { 
+                featureToggles = p.features; 
+                // Visually update the checkboxes to match the imported theme
+                ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
+                    const cb = document.getElementById('toggle-' + f);
+                    if (cb) cb.checked = featureToggles[f];
+                });
+                applyFeatures(featureToggles); 
+            }
+            
+            saveLocalData(); 
+            alert("[ SYSTEM ] Profile data successfully imported.");
+        } catch (err) { 
+            console.error("Theme parse error:", err);
+            alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
+        } finally {
+            // Android Safe: Only clear the input AFTER processing is totally finished
+            inputElement.value = ''; 
+        }
+    }; 
+    
+    // Catch file read errors (if Android denies file system access)
+    reader.onerror = function() {
+        alert("[ SYSTEM_ERROR ] Operating system blocked file read.");
+        inputElement.value = '';
+    };
+    
+    reader.readAsText(file);
+}
+
+function saveLocalData() {
+    if (currentRole !== 'HOST') return;
+    localStorage.setItem('nowspace_save', JSON.stringify({ 
+        alias: document.getElementById('my-alias').value, 
+        customId: document.getElementById('my-custom-id').value, 
+        bio: document.getElementById('my-bio').value, 
+        audio: document.getElementById('my-audio').value, 
+        gallery: document.getElementById('my-gallery').value, 
+        css: document.getElementById('my-css').value, 
+        customSound: document.getElementById('my-custom-sound').value, 
+        bgUrl: document.getElementById('my-bg-url').value, 
+        wall: wallData, 
+        features: featureToggles, 
+        password: document.getElementById('my-password').value 
+    }));
+}
+
+function copyMagicLink() { 
+    const input = document.getElementById('magic-link-input'); 
+    input.select(); 
+    navigator.clipboard.writeText(input.value); 
+}
+
+function resetDefaultTemplate() { 
+    if(confirm("Purge node memory cache?")) { 
+        localStorage.clear(); 
+        window.location.reload(); 
+    } 
+}
+// END
