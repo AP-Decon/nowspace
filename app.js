@@ -11,6 +11,7 @@ let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + M
 localStorage.setItem('nowspace_identity_key', myFingerprint);
 
 let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, currentNetworkPeers = [];
+let isScreenSharing = false;
 
 // NEW: FILE CHUNKING MEMORY BUFFER
 let incomingFiles = {};
@@ -288,9 +289,9 @@ function applyFeatures(features) {
     if (!features.voicecomms && localStream) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
+        isScreenSharing = false;
         updateVoiceTogglesVisuals(false); 
-        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
-        document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+        document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => b.style.display = 'none');
         document.getElementById('host-video-stream-container').innerHTML = '';
         document.getElementById('visitor-video-stream-container').innerHTML = '';
     }
@@ -395,6 +396,7 @@ function toggleMute() {
 function toggleCam() {
     if (localStream && localStream.getVideoTracks().length > 0) {
         isCamOn = !isCamOn;
+        // Even if we are screen sharing, this allows us to mute the display output!
         localStream.getVideoTracks()[0].enabled = isCamOn;
         document.querySelectorAll('.cam-btn').forEach(b => {
             b.innerText = isCamOn ? "[ 📷 CAM: ON ]" : "[ 📷 CAM: OFF ]";
@@ -409,13 +411,92 @@ function updateVoiceTogglesVisuals(isLive) {
     });
 }
 
+// === NEW: TRACK SPLICING SCREEN SHARE ===
+async function toggleScreen() {
+    if (!localStream) return alert("[ SYSTEM_ERROR ] You must enable COMMS before broadcasting your display.");
+
+    // REVERT TO CAMERA
+    if (isScreenSharing) {
+        try {
+            const newCamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } });
+            const newCamTrack = newCamStream.getVideoTracks()[0];
+            newCamTrack.enabled = isCamOn; // Keep camera hidden if user toggled it off
+            
+            const oldVideoTrack = localStream.getVideoTracks()[0];
+            
+            // Seamlessly swap the track for all active peers
+            activeCalls.forEach(call => {
+                const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(newCamTrack);
+            });
+            
+            // Swap it out of our local memory stream
+            localStream.removeTrack(oldVideoTrack);
+            localStream.addTrack(newCamTrack);
+            oldVideoTrack.stop(); // Turn off the screen capture hardware
+
+            const localVid = document.getElementById('local-video-node');
+            if (localVid) localVid.srcObject = localStream;
+            
+            isScreenSharing = false;
+            document.querySelectorAll('.screen-btn').forEach(b => {
+                b.innerText = "[ 🖥️ SCREEN ]";
+                b.classList.remove('btn-alert');
+            });
+        } catch(e) { console.error("Failed to revert to camera:", e); }
+        return;
+    }
+
+    // INITIATE SCREEN SHARE
+    try {
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 } });
+        const screenTrack = screenStream.getVideoTracks()[0];
+        const oldVideoTrack = localStream.getVideoTracks()[0];
+        
+        // Seamlessly broadcast the desktop track to the room
+        activeCalls.forEach(call => {
+            const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(screenTrack);
+        });
+
+        // Swap it into our local stream so new joiners get it automatically
+        localStream.removeTrack(oldVideoTrack);
+        localStream.addTrack(screenTrack);
+        oldVideoTrack.stop(); // Turn off the camera hardware light
+
+        const localVid = document.getElementById('local-video-node');
+        if (localVid) localVid.srcObject = localStream;
+
+        // If user clicks the browser's built-in "Stop sharing" bubble
+        screenTrack.onended = () => {
+            if(isScreenSharing) toggleScreen(); 
+        };
+
+        isScreenSharing = true;
+        
+        // Auto-enable video output if they had it muted, so they don't share a black screen
+        if (!isCamOn) toggleCam();
+
+        document.querySelectorAll('.screen-btn').forEach(b => {
+            b.innerText = "[ 🖥️ SHARING ]";
+            b.classList.add('btn-alert');
+        });
+    } catch (err) {
+        console.error("Screen share failed or was canceled:", err);
+    }
+}
+
 async function toggleVoice() {
     if (activeCalls.length > 0 || localStream) {
         activeCalls.forEach(c => c.close()); activeCalls = [];
         if(localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
         updateVoiceTogglesVisuals(false); 
-        document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none'); 
-        document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+        isScreenSharing = false;
+        document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => {
+            b.style.display = 'none';
+            b.classList.remove('btn-alert');
+        });
+        document.querySelectorAll('.screen-btn').forEach(b => b.innerText = "[ 🖥️ SCREEN ]");
         getVidContainer().innerHTML = '';
         return;
     }
@@ -428,10 +509,12 @@ async function toggleVoice() {
         updateVoiceTogglesVisuals(true); 
         isMuted = false;
         isCamOn = false;
+        isScreenSharing = false;
         localStream.getVideoTracks().forEach(t => t.enabled = false);
 
-        document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert'); });
+        document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; });
         document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
+        document.querySelectorAll('.screen-btn').forEach(b => { b.style.display = 'inline-block'; });
 
         let localVid = document.createElement('video');
         localVid.srcObject = localStream;
@@ -613,7 +696,6 @@ function buildVisitorGallery(str) {
     panel.style.display = featureToggles.gallery ? 'block' : 'none';
 }
 
-// Updated Wall formatter to ignore our new chunking tags
 function formatWallMessage(text) {
     if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
@@ -642,9 +724,13 @@ function disconnectNode() {
     document.getElementById('host-setup-panel').style.display = 'block'; document.getElementById('visitor-connect-panel').style.display = 'block';
     document.getElementById('btn-go-online').disabled = false; document.getElementById('my-id-display').style.display = 'none';
     globalDisconnectBtn.style.display = 'none'; 
+    isScreenSharing = false;
     updateVoiceTogglesVisuals(false); 
-    document.querySelectorAll('.mute-btn').forEach(b => b.style.display = 'none');
-    document.querySelectorAll('.cam-btn').forEach(b => b.style.display = 'none');
+    document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => {
+        b.style.display = 'none';
+        b.classList.remove('btn-alert');
+    });
+    document.querySelectorAll('.screen-btn').forEach(b => b.innerText = "[ 🖥️ SCREEN ]");
     document.getElementById('host-video-stream-container').innerHTML = '';
     document.getElementById('visitor-video-stream-container').innerHTML = '';
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; window.history.pushState({}, document.title, window.location.pathname);
@@ -812,10 +898,8 @@ function handleIncomingP2PPacket(p, conn) {
                 renderWall(); 
             } break;
             
-        // === RECEIVING FILE CHUNKS (MESH ROUTER) ===
         case 'FILE_START':
             incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
-            // Host acts as router, forwards chunking metadata to everyone else
             if (currentRole === 'HOST') {
                 broadcastToAll(p); 
                 wallData.push({ sender: p.senderAlias, text: `<div id="file-${p.id}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ INCOMING DATA ]</span><br><b style="color:#fff;">${p.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${p.id}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${p.id}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
@@ -829,13 +913,11 @@ function handleIncomingP2PPacket(p, conn) {
                 incomingFiles[p.id].received += p.data.byteLength;
                 let pct = Math.floor((incomingFiles[p.id].received / incomingFiles[p.id].total) * 100);
                 
-                // Update local UI
                 let bar = document.getElementById(`bar-${p.id}`);
                 let txt = document.getElementById(`pct-${p.id}`);
                 if(bar) bar.style.width = pct + '%';
                 if(txt) txt.innerText = pct + '%';
 
-                // Host forwards the binary array chunk to the room
                 if (currentRole === 'HOST') broadcastToAll(p);
             }
             break;
@@ -852,16 +934,15 @@ function handleIncomingP2PPacket(p, conn) {
                     <a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
                 }
 
-                // If host, update the master wall array so new joiners get the download link too
                 if (currentRole === 'HOST') {
                     let entry = wallData.find(w => w.text.includes(`id="file-${p.id}"`));
                     if (entry) entry.text = fileUI.outerHTML;
                     saveLocalData();
                     broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                    broadcastToAll(p); // Send FILE_END signal
+                    broadcastToAll(p); 
                 }
                 
-                delete incomingFiles[p.id]; // Free RAM
+                delete incomingFiles[p.id]; 
             }
             break;
 
@@ -1071,12 +1152,10 @@ function transmitCompressedImage(base64Str) {
     document.getElementById('hidden-file-input').value = '';
 }
 
-// === NEW: MASSIVE FILE CHUNKING TRANSFER ENGINE ===
 function handleRawFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
     
-    // Clear input so you can send the same file twice if needed
     document.getElementById('hidden-raw-file-input').value = '';
     
     const transferId = Date.now().toString();
@@ -1093,7 +1172,6 @@ function handleRawFileUpload(event) {
         senderAlias: alias
     };
 
-    // Initialize local receiver so we see our own progress bar
     incomingFiles[transferId] = { chunks: [], received: 0, total: file.size, name: file.name, type: file.type };
     
     let uiHTML = `<div id="file-${transferId}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;">
@@ -1108,12 +1186,10 @@ function handleRawFileUpload(event) {
         renderWall();
         broadcastToAll(startPacket);
     } else if (currentRole === 'VISITOR' && activeConn) {
-        // Visitor just sends the command up to the host router
         activeConn.send(startPacket);
     }
 
-    // Begin asynchronous chunking
-    const chunkSize = 16 * 1024; // 16KB per chunk (Safe for WebRTC buffers)
+    const chunkSize = 16 * 1024; 
     let offset = 0;
 
     function readNextChunk() {
@@ -1124,11 +1200,9 @@ function handleRawFileUpload(event) {
             const arrayBuffer = e.target.result;
             const chunkPacket = { type: 'FILE_CHUNK', id: transferId, data: arrayBuffer };
             
-            // Route packet
             if (currentRole === 'HOST') broadcastToAll(chunkPacket);
             else if (currentRole === 'VISITOR' && activeConn) activeConn.send(chunkPacket);
 
-            // Update local UI
             incomingFiles[transferId].chunks.push(arrayBuffer);
             incomingFiles[transferId].received += arrayBuffer.byteLength;
             let pct = Math.floor((incomingFiles[transferId].received / file.size) * 100);
@@ -1140,14 +1214,12 @@ function handleRawFileUpload(event) {
 
             offset += chunkSize;
             if (offset < file.size) {
-                // Short timeout prevents freezing the browser main thread!
                 setTimeout(readNextChunk, 1); 
             } else {
                 const endPacket = { type: 'FILE_END', id: transferId };
                 if (currentRole === 'HOST') broadcastToAll(endPacket);
                 else if (currentRole === 'VISITOR' && activeConn) activeConn.send(endPacket);
                 
-                // Finalize local file
                 const blob = new Blob(incomingFiles[transferId].chunks, { type: file.type });
                 const url = URL.createObjectURL(blob);
                 let finalUI = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br><b style="color:#fff;">${file.name}</b><br><a href="${url}" download="${file.name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
@@ -1167,6 +1239,5 @@ function handleRawFileUpload(event) {
         reader.readAsArrayBuffer(slice);
     }
     
-    // Kick off the slice loop
     readNextChunk();
 }
