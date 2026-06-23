@@ -545,13 +545,20 @@ function handleCallEvent(call) {
         if(!v) {
             v = document.createElement('video');
             v.autoplay = true;
-            v.playsInline = true;
+            
+            // CRITICAL FOR MOBILE: Forces the OS to render the video inline instead of blocking it
+            v.setAttribute('playsinline', ''); 
+            
             v.id = 'video-node-' + call.peer;
             v.classList.add('video-feed');
             getVidContainer().appendChild(v);
         }
         v.srcObject = remote;
+        
+        // Force the mobile browser engine to wake up and play the incoming stream
+        v.play().catch(e => console.warn("Mobile autoplay restriction intercepted stream:", e));
     });
+    
     call.on('close', () => {
         let v = document.getElementById('video-node-' + call.peer); if(v) v.remove();
         activeCalls = activeCalls.filter(c => c !== call);
