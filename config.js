@@ -68,7 +68,66 @@ const peerConfig = {
 };
 
 //---------------------------------------------------------
-// 03. THEME EXPORT, IMPORT & NODE REFRESH
+// 03. SECURITY, ENCRYPTION & RADAR UTILS
+//---------------------------------------------------------
+async function hashPassword(str) {
+    if (!str) return '';
+    
+    // SAFETY FALLBACK: If testing locally or on non-HTTPS, use basic Base64 encoding
+    if (!window.crypto || !window.crypto.subtle) {
+        console.warn("[ SYSTEM ] Secure context missing. Using fallback encryption.");
+        return btoa(str); 
+    }
+    
+    try {
+        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+        // Ultimate fallback just in case the browser rejects the specific algorithm
+        return btoa(str);
+    }
+}
+
+function toggleRadar() {
+    if (!("Notification" in window)) return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
+    
+    if (Notification.permission === "default") {
+        Notification.requestPermission().then(p => {
+            if (p === "granted") { radarEnabled = true; updateRadarUI(); } 
+            else { alert("[ ACCESS_DENIED ] Permission rejected."); }
+        });
+        return;
+    }
+    
+    if (Notification.permission === "denied") {
+        return alert("[ ACCESS_DENIED ] Notifications are blocked by your browser settings.");
+    }
+
+    if (Notification.permission === "granted") {
+        radarEnabled = !radarEnabled;
+        updateRadarUI();
+    }
+}
+
+function updateRadarUI() {
+    const btn = document.getElementById('radar-btn');
+    if (radarEnabled) {
+        btn.innerText = "[ 📡 RADAR: ON ]";
+        btn.classList.add('btn-alert');
+    } else {
+        btn.innerText = "[ 📡 RADAR: OFF ]";
+        btn.classList.remove('btn-alert');
+    }
+}
+
+function systemPing(title, body) {
+    if (radarEnabled && document.hidden) {
+        new Notification(title, { body: body });
+    }
+}
+
+//---------------------------------------------------------
+// 04. THEME EXPORT, IMPORT & NODE REFRESH
 //---------------------------------------------------------
 function exportTheme() {
     const data = { 
@@ -129,7 +188,7 @@ function importTheme(event) {
                     const cb = document.getElementById('toggle-' + f);
                     if (cb) cb.checked = featureToggles[f];
                 });
-                applyFeatures(featureToggles); 
+                if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
             }
             
             saveLocalData(); 
@@ -181,4 +240,54 @@ function resetDefaultTemplate() {
         window.location.reload(); 
     } 
 }
+
+//---------------------------------------------------------
+// 05. INITIALIZATION (window.onload)
+//---------------------------------------------------------
+window.onload = () => {
+    const saved = JSON.parse(localStorage.getItem('nowspace_save'));
+    const vAlias = localStorage.getItem('nowspace_visitor_alias');
+    
+    if (vAlias && document.getElementById('visitor-alias-input')) {
+        document.getElementById('visitor-alias-input').value = vAlias;
+    }
+    
+    if (saved) {
+        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
+        document.getElementById('my-custom-id').value = saved.customId || '';
+        document.getElementById('my-bio').value = saved.bio || ''; 
+        document.getElementById('my-audio').value = saved.audio || '';
+        document.getElementById('my-gallery').value = saved.gallery || ''; 
+        document.getElementById('my-css').value = saved.css || '';
+        document.getElementById('my-custom-sound').value = saved.customSound || ''; 
+        
+        wallData = saved.wall || []; 
+        featureToggles = saved.features || featureToggles;
+        
+        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
+        if (saved.password && document.getElementById('my-password')) document.getElementById('my-password').value = saved.password;
+        
+        if (typeof applyBackground === "function") applyBackground(saved.bgUrl || '');
+        if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
+        if (typeof renderWall === "function") renderWall();
+    }
+    
+    // Bind CSS injector
+    const cssInput = document.getElementById('my-css');
+    if (cssInput) {
+        cssInput.addEventListener('input', (e) => { 
+            const inject = document.getElementById('custom-injected-css');
+            if(inject) inject.innerText = e.target.value; 
+        });
+    }
+    
+    // Auto-connect if joining via Magic Link
+    const urlNode = new URLSearchParams(window.location.search).get('node'); 
+    if (urlNode) { 
+        document.getElementById('host-setup-panel').style.display = 'none';
+        document.getElementById('friend-id').value = urlNode; 
+        document.getElementById('visitor-password').focus(); 
+    }
+};
+
 // END
