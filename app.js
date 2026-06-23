@@ -10,10 +10,9 @@ let featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: t
 let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
 localStorage.setItem('nowspace_identity_key', myFingerprint);
 
-let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, currentNetworkPeers = [];
-let isScreenSharing = false;
+let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, isScreenSharing = false, currentNetworkPeers = [];
 
-// NEW: FILE CHUNKING MEMORY BUFFER
+// FILE CHUNKING MEMORY BUFFER
 let incomingFiles = {};
 
 // PROTOCOL DEFINITIONS
@@ -289,7 +288,6 @@ function applyFeatures(features) {
     if (!features.voicecomms && localStream) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
-        isScreenSharing = false;
         updateVoiceTogglesVisuals(false); 
         document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => b.style.display = 'none');
         document.getElementById('host-video-stream-container').innerHTML = '';
@@ -382,6 +380,8 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     }
 }
 
+// === FULL MESH AUDIO/VISUAL COMMS ENGINE ===
+
 function toggleMute() {
     if (localStream && localStream.getAudioTracks().length > 0) {
         isMuted = !isMuted; 
@@ -394,15 +394,17 @@ function toggleMute() {
 }
 
 function toggleCam() {
-    if (localStream && localStream.getVideoTracks().length > 0) {
-        isCamOn = !isCamOn;
-        // Even if we are screen sharing, this allows us to mute the display output!
-        localStream.getVideoTracks()[0].enabled = isCamOn;
-        document.querySelectorAll('.cam-btn').forEach(b => {
-            b.innerText = isCamOn ? "[ 📷 CAM: ON ]" : "[ 📷 CAM: OFF ]";
-            b.classList.toggle('btn-alert', !isCamOn);
-        });
+    if (!localStream) return;
+    if (isScreenSharing) {
+        alert("[ SYSTEM NOTICE ] Cannot activate camera while screen sharing is active.");
+        return;
     }
+    isCamOn = !isCamOn;
+    localStream.getVideoTracks()[0].enabled = isCamOn;
+    document.querySelectorAll('.cam-btn').forEach(b => {
+        b.innerText = isCamOn ? "[ 📷 CAM: ON ]" : "[ 📷 CAM: OFF ]";
+        b.classList.toggle('btn-alert', !isCamOn);
+    });
 }
 
 function updateVoiceTogglesVisuals(isLive) {
@@ -411,29 +413,32 @@ function updateVoiceTogglesVisuals(isLive) {
     });
 }
 
-// === NEW: TRACK SPLICING SCREEN SHARE ===
+// HARDWARE-AWARE SCREEN SHARE
 async function toggleScreen() {
     if (!localStream) return alert("[ SYSTEM_ERROR ] You must enable COMMS before broadcasting your display.");
 
-    // REVERT TO CAMERA
+    // OS/HARDWARE SECURITY CHECK
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+        return alert("[ OS_RESTRICTION ] Screen broadcasting is blocked by this device's operating system. This feature requires a desktop environment.");
+    }
+
+    // REVERT SCREEN BACK TO CAMERA
     if (isScreenSharing) {
         try {
             const newCamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 240, frameRate: 15 } });
             const newCamTrack = newCamStream.getVideoTracks()[0];
-            newCamTrack.enabled = isCamOn; // Keep camera hidden if user toggled it off
+            newCamTrack.enabled = isCamOn; 
             
             const oldVideoTrack = localStream.getVideoTracks()[0];
             
-            // Seamlessly swap the track for all active peers
             activeCalls.forEach(call => {
                 const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
                 if (sender) sender.replaceTrack(newCamTrack);
             });
             
-            // Swap it out of our local memory stream
             localStream.removeTrack(oldVideoTrack);
             localStream.addTrack(newCamTrack);
-            oldVideoTrack.stop(); // Turn off the screen capture hardware
+            oldVideoTrack.stop(); 
 
             const localVid = document.getElementById('local-video-node');
             if (localVid) localVid.srcObject = localStream;
@@ -443,38 +448,34 @@ async function toggleScreen() {
                 b.innerText = "[ 🖥️ SCREEN ]";
                 b.classList.remove('btn-alert');
             });
-        } catch(e) { console.error("Failed to revert to camera:", e); }
+        } catch(e) { console.error("Failed to revert to camera stream:", e); }
         return;
     }
 
-    // INITIATE SCREEN SHARE
+    // INITIATE SCREEN SHARE EXTRACTION
     try {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 } });
         const screenTrack = screenStream.getVideoTracks()[0];
         const oldVideoTrack = localStream.getVideoTracks()[0];
         
-        // Seamlessly broadcast the desktop track to the room
         activeCalls.forEach(call => {
             const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
             if (sender) sender.replaceTrack(screenTrack);
         });
 
-        // Swap it into our local stream so new joiners get it automatically
         localStream.removeTrack(oldVideoTrack);
         localStream.addTrack(screenTrack);
-        oldVideoTrack.stop(); // Turn off the camera hardware light
+        oldVideoTrack.stop(); 
 
         const localVid = document.getElementById('local-video-node');
         if (localVid) localVid.srcObject = localStream;
 
-        // If user clicks the browser's built-in "Stop sharing" bubble
         screenTrack.onended = () => {
             if(isScreenSharing) toggleScreen(); 
         };
 
         isScreenSharing = true;
         
-        // Auto-enable video output if they had it muted, so they don't share a black screen
         if (!isCamOn) toggleCam();
 
         document.querySelectorAll('.screen-btn').forEach(b => {
@@ -482,7 +483,7 @@ async function toggleScreen() {
             b.classList.add('btn-alert');
         });
     } catch (err) {
-        console.error("Screen share failed or was canceled:", err);
+        console.error("Screen share deployment skipped or rejected:", err);
     }
 }
 
@@ -512,9 +513,13 @@ async function toggleVoice() {
         isScreenSharing = false;
         localStream.getVideoTracks().forEach(t => t.enabled = false);
 
-        document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; });
+        document.querySelectorAll('.mute-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 🔊 MUTE ]"; b.classList.remove('btn-alert');});
         document.querySelectorAll('.cam-btn').forEach(b => { b.style.display = 'inline-block'; b.innerText = "[ 📷 CAM: OFF ]"; b.classList.add('btn-alert'); });
-        document.querySelectorAll('.screen-btn').forEach(b => { b.style.display = 'inline-block'; });
+        
+        // OS Hardware Check for Screen Share Button
+        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            document.querySelectorAll('.screen-btn').forEach(b => { b.style.display = 'inline-block'; });
+        }
 
         let localVid = document.createElement('video');
         localVid.srcObject = localStream;
@@ -1241,3 +1246,5 @@ function handleRawFileUpload(event) {
     
     readNextChunk();
 }
+
+// END
