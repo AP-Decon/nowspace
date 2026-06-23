@@ -12,6 +12,9 @@ localStorage.setItem('nowspace_identity_key', myFingerprint);
 
 let localStream = null, activeCalls = [], isMuted = false, isCamOn = false, currentNetworkPeers = [];
 
+// NEW: FILE CHUNKING MEMORY BUFFER
+let incomingFiles = {};
+
 // PROTOCOL DEFINITIONS
 const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD', MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
 const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE', MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
@@ -564,18 +567,14 @@ function exportTheme() {
         features: featureToggles, 
         identityFingerprint: myFingerprint 
     };
-    
     const jsonString = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
     const link = document.createElement('a'); 
     link.href = url;
     link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
-    
     document.body.appendChild(link);
     link.click();
-    
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 }
@@ -614,8 +613,9 @@ function buildVisitorGallery(str) {
     panel.style.display = featureToggles.gallery ? 'block' : 'none';
 }
 
+// Updated Wall formatter to ignore our new chunking tags
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("[ 💾 P2P_TRANSFER ]")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
         let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
@@ -803,6 +803,7 @@ function handleIncomingP2PPacket(p, conn) {
                 saveLocalData(); renderWall(); 
                 broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
             } break;
+            
         case MSG_TYPE_WALL_UPDATE:
             if (currentRole === 'VISITOR') { 
                 const localWhispers = wallData.filter(m => m.isLocalWhisper);
@@ -810,6 +811,60 @@ function handleIncomingP2PPacket(p, conn) {
                 if (localWhispers.length > 0) wallData.push(...localWhispers); 
                 renderWall(); 
             } break;
+            
+        // === RECEIVING FILE CHUNKS (MESH ROUTER) ===
+        case 'FILE_START':
+            incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
+            // Host acts as router, forwards chunking metadata to everyone else
+            if (currentRole === 'HOST') {
+                broadcastToAll(p); 
+                wallData.push({ sender: p.senderAlias, text: `<div id="file-${p.id}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ INCOMING DATA ]</span><br><b style="color:#fff;">${p.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${p.id}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${p.id}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+                renderWall();
+            }
+            break;
+            
+        case 'FILE_CHUNK':
+            if (incomingFiles[p.id]) {
+                incomingFiles[p.id].chunks.push(p.data);
+                incomingFiles[p.id].received += p.data.byteLength;
+                let pct = Math.floor((incomingFiles[p.id].received / incomingFiles[p.id].total) * 100);
+                
+                // Update local UI
+                let bar = document.getElementById(`bar-${p.id}`);
+                let txt = document.getElementById(`pct-${p.id}`);
+                if(bar) bar.style.width = pct + '%';
+                if(txt) txt.innerText = pct + '%';
+
+                // Host forwards the binary array chunk to the room
+                if (currentRole === 'HOST') broadcastToAll(p);
+            }
+            break;
+            
+        case 'FILE_END':
+            if (incomingFiles[p.id]) {
+                const blob = new Blob(incomingFiles[p.id].chunks, { type: incomingFiles[p.id].type });
+                const url = URL.createObjectURL(blob);
+                
+                let fileUI = document.getElementById(`file-${p.id}`);
+                if (fileUI) {
+                    fileUI.innerHTML = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br>
+                    <b style="color:#fff;">${incomingFiles[p.id].name}</b><br>
+                    <a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
+                }
+
+                // If host, update the master wall array so new joiners get the download link too
+                if (currentRole === 'HOST') {
+                    let entry = wallData.find(w => w.text.includes(`id="file-${p.id}"`));
+                    if (entry) entry.text = fileUI.outerHTML;
+                    saveLocalData();
+                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                    broadcastToAll(p); // Send FILE_END signal
+                }
+                
+                delete incomingFiles[p.id]; // Free RAM
+            }
+            break;
+
         case MSG_TYPE_SOUNDBOARD: triggerSound(p.soundId, false, p.sender, p.customUrl); break;
         case MSG_TYPE_FEATURE_UPDATE: if (currentRole === 'VISITOR') { featureToggles = p.features; applyFeatures(featureToggles); } break;
         case MSG_TYPE_POLL_NEW:
@@ -1016,38 +1071,102 @@ function transmitCompressedImage(base64Str) {
     document.getElementById('hidden-file-input').value = '';
 }
 
-// === NEW: 5MB FILE DATA TRANFER ENGINE ===
+// === NEW: MASSIVE FILE CHUNKING TRANSFER ENGINE ===
 function handleRawFileUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
+    
+    // Clear input so you can send the same file twice if needed
+    document.getElementById('hidden-raw-file-input').value = '';
+    
+    const transferId = Date.now().toString();
+    let alias = '';
+    if (currentRole === 'HOST') alias = document.getElementById('my-alias').value.trim() || '[HOST]';
+    if (currentRole === 'VISITOR') alias = document.getElementById('visitor-alias-input').value.trim() || peer.id.substring(0,6);
 
-    if (file.size > 25 * 1024 * 1024) {
-        alert("[ SYSTEM_ERROR ] File exceeds 25MB memory limit. Please compress data before transferring.");
-        event.target.value = '';
-        return;
+    const startPacket = { 
+        type: 'FILE_START', 
+        id: transferId, 
+        name: file.name, 
+        size: file.size, 
+        fileType: file.type,
+        senderAlias: alias
+    };
+
+    // Initialize local receiver so we see our own progress bar
+    incomingFiles[transferId] = { chunks: [], received: 0, total: file.size, name: file.name, type: file.type };
+    
+    let uiHTML = `<div id="file-${transferId}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;">
+        <span style="color:var(--main-cyan);">[ ⚠️ TRANSMITTING DATA ]</span><br>
+        <b style="color:#fff;">${file.name}</b><br>
+        <div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${transferId}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div>
+        <span id="pct-${transferId}" style="font-size:0.8rem; color:#aaa;">0%</span>
+    </div>`;
+
+    if (currentRole === 'HOST') {
+        wallData.push({ sender: alias, text: uiHTML, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+        renderWall();
+        broadcastToAll(startPacket);
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        // Visitor just sends the command up to the host router
+        activeConn.send(startPacket);
     }
 
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64Str = e.target.result;
-        const fileTag = `<br><div style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;">
-            <span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br>
-            <b style="color:#fff;">${file.name}</b><br>
-            <a href="${base64Str}" download="${file.name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>
-        </div>`;
+    // Begin asynchronous chunking
+    const chunkSize = 16 * 1024; // 16KB per chunk (Safe for WebRTC buffers)
+    let offset = 0;
 
-        if (currentRole === 'HOST') {
-            wallData.push({ sender: "[HOST]", text: fileTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-            saveLocalData(); 
-            renderWall(); 
-            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-        } else if (currentRole === 'VISITOR' && activeConn) {
-            const priv = document.getElementById('private-packet-toggle');
-            const alias = document.getElementById('visitor-alias-input').value.trim();
-            let name = alias ? alias : peer.id.substring(0,6);
-            activeConn.send({ type: MSG_TYPE_WALL_POST, text: fileTag, isPrivate: priv?.checked || false, sender: name, fingerprint: myFingerprint });
-        }
-        document.getElementById('hidden-raw-file-input').value = '';
+    function readNextChunk() {
+        const slice = file.slice(offset, offset + chunkSize);
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const arrayBuffer = e.target.result;
+            const chunkPacket = { type: 'FILE_CHUNK', id: transferId, data: arrayBuffer };
+            
+            // Route packet
+            if (currentRole === 'HOST') broadcastToAll(chunkPacket);
+            else if (currentRole === 'VISITOR' && activeConn) activeConn.send(chunkPacket);
+
+            // Update local UI
+            incomingFiles[transferId].chunks.push(arrayBuffer);
+            incomingFiles[transferId].received += arrayBuffer.byteLength;
+            let pct = Math.floor((incomingFiles[transferId].received / file.size) * 100);
+            
+            let bar = document.getElementById(`bar-${transferId}`);
+            let txt = document.getElementById(`pct-${transferId}`);
+            if(bar) bar.style.width = pct + '%';
+            if(txt) txt.innerText = pct + '%';
+
+            offset += chunkSize;
+            if (offset < file.size) {
+                // Short timeout prevents freezing the browser main thread!
+                setTimeout(readNextChunk, 1); 
+            } else {
+                const endPacket = { type: 'FILE_END', id: transferId };
+                if (currentRole === 'HOST') broadcastToAll(endPacket);
+                else if (currentRole === 'VISITOR' && activeConn) activeConn.send(endPacket);
+                
+                // Finalize local file
+                const blob = new Blob(incomingFiles[transferId].chunks, { type: file.type });
+                const url = URL.createObjectURL(blob);
+                let finalUI = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br><b style="color:#fff;">${file.name}</b><br><a href="${url}" download="${file.name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
+                
+                let fileUI = document.getElementById(`file-${transferId}`);
+                if (fileUI) fileUI.innerHTML = finalUI;
+                
+                if (currentRole === 'HOST') {
+                    let entry = wallData.find(w => w.text.includes(`id="file-${transferId}"`));
+                    if (entry) entry.text = fileUI.outerHTML;
+                    saveLocalData();
+                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                }
+                delete incomingFiles[transferId];
+            }
+        };
+        reader.readAsArrayBuffer(slice);
     }
-    reader.readAsDataURL(file);
+    
+    // Kick off the slice loop
+    readNextChunk();
 }
