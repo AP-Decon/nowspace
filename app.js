@@ -675,18 +675,45 @@ function exportTheme() {
 }
 
 function importTheme(event) {
-    const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
+    const file = event.target.files[0]; 
+    if (!file) return; 
+    const reader = new FileReader();
+    
     reader.onload = function(e) {
         try {
             const p = JSON.parse(e.target.result);
-            if(p.alias) document.getElementById('my-alias').value = p.alias;
-            if(p.bio) document.getElementById('my-bio').value = p.bio;
-            if(p.bgUrl !== undefined) { document.getElementById('my-bg-url').value = p.bgUrl; applyBackground(p.bgUrl); }
-            if(p.css) { document.getElementById('my-css').value = p.css; document.getElementById('custom-injected-css').innerText = p.css; }
-            if(p.features) { featureToggles = p.features; applyFeatures(featureToggles); }
-            saveLocalData(); alert("SUCCESS.");
-        } catch (err) { alert("FAIL."); }
-    }; reader.readAsText(file);
+            
+            // Map ALL exported data back into the terminal UI
+            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
+            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
+            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
+            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
+            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
+            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
+            
+            if(p.bgUrl !== undefined) { 
+                document.getElementById('my-bg-url').value = p.bgUrl; 
+                applyBackground(p.bgUrl); 
+            }
+            if(p.css !== undefined) { 
+                document.getElementById('my-css').value = p.css; 
+                document.getElementById('custom-injected-css').innerText = p.css; 
+            }
+            if(p.features) { 
+                featureToggles = p.features; 
+                applyFeatures(featureToggles); 
+            }
+            
+            saveLocalData(); 
+            alert("[ SYSTEM ] Profile data successfully imported.");
+        } catch (err) { 
+            alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
+        }
+    }; 
+    reader.readAsText(file);
+    
+    // Clear the input so you can re-import the exact same file later if needed
+    event.target.value = '';
 }
 
 function buildVisitorTop8Grid(arr) {
