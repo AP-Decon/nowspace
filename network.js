@@ -1,6 +1,17 @@
 //---------------------------------------------------------
 // 01. NODE ROUTING & CONNECTION MANAGEMENT
 //---------------------------------------------------------
+
+// THE MISSING LINK: The master network broadcaster
+function broadcastToAll(packet) {
+    if (currentRole !== 'HOST' || !peer) return;
+    for (let id in peer.connections) {
+        peer.connections[id].forEach(c => {
+            if (c.open) c.send(packet);
+        });
+    }
+}
+
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
     const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
@@ -174,202 +185,211 @@ function executeConnection(fId) {
             alert("[ AUTH_CRASH ] " + err.message);
         }
     });
+    
+    activeConn.on('error', (err) => {
+        alert("[ CONNECTION_ERROR ] " + err.message);
+    });
 }
 
 //---------------------------------------------------------
 // 03. INCOMING PACKET ROUTER
 //---------------------------------------------------------
 function handleIncomingP2PPacket(p, conn) {
-    const senderId = conn.peer;
-    switch(p.type) {
-        case 'VISITOR_HANDSHAKE':
-            if (currentRole === 'HOST') {
-                if (currentHostEncryptedPwd && p.password !== currentHostEncryptedPwd) {
-                    conn.send({type: 'AUTH_FAILED'}); setTimeout(() => conn.close(), 500); return;
-                }
-                if (bannedFingerprints.includes(p.fingerprint)) {
-                    conn.send({type: 'BANNED'}); setTimeout(() => conn.close(), 500); return;
-                }
-                
-                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
-                systemPing("NEW LINK ESTABLISHED", `Terminal ${p.alias} has connected to your node.`);
-                
-                renderActivePeers(); broadcastOnlineUsers();
-                conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll, bgUrl: document.getElementById('my-bg-url').value });
-                
-                if (localStream) {
-                    let call = peer.call(senderId, localStream);
-                    activeCalls.push(call);
-                    if(typeof handleCallEvent === "function") handleCallEvent(call);
-                }
-            } break;
-        
-        case 'AUTH_FAILED':
-            alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
-            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; break;
-            
-        case MSG_TYPE_PROFILE:
-            statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
-            document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
-            if(p.bgUrl && typeof applyBackground === "function") applyBackground(p.bgUrl);
-            if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
-            if(p.audio && typeof renderAudioEmbed === "function") document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
-            featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
-            if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
-            if(typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery); 
-            if(typeof buildVisitorTop8Grid === "function") buildVisitorTop8Grid(p.top8); 
-            wallData = p.currentWall; 
-            if(typeof renderWall === "function") renderWall(); 
-            break;
-        
-        case MSG_TYPE_USER_LIST:
-            if (currentRole === 'VISITOR') {
-                const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
-                if (localStream) {
-                    newPeers.forEach(newPeerId => {
-                        if (!currentNetworkPeers.includes(newPeerId)) {
-                            let call = peer.call(newPeerId, localStream);
-                            activeCalls.push(call);
-                            if(typeof handleCallEvent === "function") handleCallEvent(call);
-                        }
-                    });
-                }
-                currentNetworkPeers = newPeers; 
-
-                const container = document.getElementById('render-online-users');
-                if (container) {
-                    container.innerHTML = p.users.map(u => 
-                        `<span style="display:inline-block; margin-right:15px; margin-bottom:5px;">
-                            <span style="color:${u.isHost ? 'var(--main-cyan)' : '#0f0'}; text-shadow:0 0 5px ${u.isHost ? 'var(--main-cyan)' : '#0f0'};">●</span> 
-                            <b style="color:${u.isHost ? 'var(--main-cyan)' : '#fff'};">${u.alias} ${u.isHost ? '[HOST]' : ''}</b>
-                        </span>`
-                    ).join('');
-                }
-            } break;
-
-        case 'RELAY_WHISPER':
-            if (currentRole === 'HOST') {
-                let targetConnId = null;
-                for (let id in peerFingerprintMap) {
-                    if (peerFingerprintMap[id].alias.toLowerCase() === p.targetAlias.toLowerCase()) { targetConnId = id; break; }
-                }
-                
-                if (targetConnId && peer.connections[targetConnId]) {
-                    peer.connections[targetConnId].forEach(c => { if(c.open) c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }); });
-                    const hostDiv = document.getElementById('host-datastream-output');
-                    hostDiv.innerHTML += `<div class="wall-post" style="padding: 2px 5px;"><span style="color:#555; font-size:0.8rem;">[ ROUTER: ${p.senderAlias} whispered ${p.targetAlias} ]</span></div>`;
-                    hostDiv.scrollTop = hostDiv.scrollHeight;
-                } else {
-                    conn.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` });
-                }
-            } break;
-
-        case 'INCOMING_WHISPER':
-            if (currentRole === 'VISITOR') {
-                systemPing("SECURE TRANSMISSION", `Incoming Whisper from ${p.senderAlias}`);
-                wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
-                if(typeof renderWall === "function") renderWall();
-            } break;
-            
-        case 'GAME_MOVE':
-            if (currentRole === 'HOST') { processGameMove(p); } 
-            break;
-
-        case MSG_TYPE_WALL_POST:
-            if (currentRole === 'HOST') { 
-                if (bannedFingerprints.includes(p.fingerprint)) return;
-                peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
-                
-                const packet = { 
-                    sender: p.sender, 
-                    text: p.text, 
-                    isPrivate: p.isPrivate, 
-                    timestamp: new Date().toLocaleTimeString(),
-                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null,
-                    isGame: p.isGame,
-                    gameId: p.isGame ? Date.now().toString() : null,
-                    board: p.isGame ? Array(9).fill(null) : null,
-                    turn: p.isGame ? 'X' : null,
-                    winner: null,
-                    players: p.isGame ? { X: null, O: null } : null
-                };
-
-                wallData.push(packet); 
-                saveLocalData(); 
-                if(typeof renderWall === "function") renderWall(); 
-                broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
-            } break;
-            
-        case MSG_TYPE_WALL_UPDATE:
-            if (currentRole === 'VISITOR') { 
-                const localWhispers = wallData.filter(m => m.isLocalWhisper);
-                wallData = p.updatedWall; 
-                if (localWhispers.length > 0) wallData.push(...localWhispers); 
-                if(typeof renderWall === "function") renderWall(); 
-            } break;
-            
-        case 'FILE_START':
-            incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
-            if (currentRole === 'HOST') {
-                broadcastToAll(p); 
-                wallData.push({ sender: p.senderAlias, text: `<div id="file-${p.id}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ INCOMING DATA ]</span><br><b style="color:#fff;">${p.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${p.id}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${p.id}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-                if(typeof renderWall === "function") renderWall();
-            }
-            break;
-            
-        case 'FILE_CHUNK':
-            if (incomingFiles[p.id]) {
-                incomingFiles[p.id].chunks.push(p.data);
-                incomingFiles[p.id].received += p.data.byteLength;
-                let pct = Math.floor((incomingFiles[p.id].received / incomingFiles[p.id].total) * 100);
-                
-                let bar = document.getElementById(`bar-${p.id}`);
-                let txt = document.getElementById(`pct-${p.id}`);
-                if(bar) bar.style.width = pct + '%';
-                if(txt) txt.innerText = pct + '%';
-
-                if (currentRole === 'HOST') broadcastToAll(p);
-            }
-            break;
-            
-        case 'FILE_END':
-            if (incomingFiles[p.id]) {
-                const blob = new Blob(incomingFiles[p.id].chunks, { type: incomingFiles[p.id].type });
-                const url = URL.createObjectURL(blob);
-                
-                let fileUI = document.getElementById(`file-${p.id}`);
-                if (fileUI) {
-                    fileUI.innerHTML = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br>
-                    <b style="color:#fff;">${incomingFiles[p.id].name}</b><br>
-                    <a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
-                }
-
+    try {
+        const senderId = conn.peer;
+        switch(p.type) {
+            case 'VISITOR_HANDSHAKE':
                 if (currentRole === 'HOST') {
-                    let entry = wallData.find(w => w.text.includes(`id="file-${p.id}"`));
-                    if (entry) entry.text = fileUI.outerHTML;
-                    saveLocalData();
-                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                    broadcastToAll(p); 
-                }
+                    if (currentHostEncryptedPwd && p.password !== currentHostEncryptedPwd) {
+                        conn.send({type: 'AUTH_FAILED'}); setTimeout(() => conn.close(), 500); return;
+                    }
+                    if (bannedFingerprints.includes(p.fingerprint)) {
+                        conn.send({type: 'BANNED'}); setTimeout(() => conn.close(), 500); return;
+                    }
+                    
+                    peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
+                    systemPing("NEW LINK ESTABLISHED", `Terminal ${p.alias} has connected to your node.`);
+                    
+                    renderActivePeers(); broadcastOnlineUsers();
+                    conn.send({ type: MSG_TYPE_PROFILE, alias: document.getElementById('my-alias').value, bio: document.getElementById('my-bio').value, css: document.getElementById('my-css').value, audio: document.getElementById('my-audio').value, gallery: document.getElementById('my-gallery').value, top8: top8, currentWall: wallData, features: featureToggles, hostFingerprint: myFingerprint, activePoll: activePoll, bgUrl: document.getElementById('my-bg-url').value });
+                    
+                    if (localStream) {
+                        let call = peer.call(senderId, localStream);
+                        activeCalls.push(call);
+                        if(typeof handleCallEvent === "function") handleCallEvent(call);
+                    }
+                } break;
+            
+            case 'AUTH_FAILED':
+                alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
+                disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; break;
                 
-                delete incomingFiles[p.id]; 
-            }
-            break;
+            case MSG_TYPE_PROFILE:
+                statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
+                document.getElementById('render-alias').innerText = p.alias; document.getElementById('datarender-bio').innerText = p.bio;
+                if(p.bgUrl && typeof applyBackground === "function") applyBackground(p.bgUrl);
+                if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
+                if(p.audio && typeof renderAudioEmbed === "function") document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
+                featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
+                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
+                if(typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery); 
+                if(typeof buildVisitorTop8Grid === "function") buildVisitorTop8Grid(p.top8); 
+                wallData = p.currentWall; 
+                if(typeof renderWall === "function") renderWall(); 
+                break;
+            
+            case MSG_TYPE_USER_LIST:
+                if (currentRole === 'VISITOR') {
+                    const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
+                    if (localStream) {
+                        newPeers.forEach(newPeerId => {
+                            if (!currentNetworkPeers.includes(newPeerId)) {
+                                let call = peer.call(newPeerId, localStream);
+                                activeCalls.push(call);
+                                if(typeof handleCallEvent === "function") handleCallEvent(call);
+                            }
+                        });
+                    }
+                    currentNetworkPeers = newPeers; 
 
-        case MSG_TYPE_SOUNDBOARD: if(typeof triggerSound === "function") triggerSound(p.soundId, false, p.sender, p.customUrl); break;
-        case MSG_TYPE_FEATURE_UPDATE: if (currentRole === 'VISITOR') { featureToggles = p.features; if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
-        case MSG_TYPE_POLL_NEW:
-        case MSG_TYPE_POLL_UPDATE: if (currentRole === 'VISITOR') { activePoll = p.poll; if(typeof renderVisitorPoll === "function") renderVisitorPoll(); } break;
-        case MSG_TYPE_POLL_VOTE:
-            if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { 
-                activePoll.voters.push(p.voterId); 
-                activePoll.options[p.optionIndex].votes++; 
-                if(typeof renderHostPoll === "function") renderHostPoll(); 
-                broadcastToAll({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll }); 
-            } break;
-        case 'BANNED':
-            alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
-            disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
+                    const container = document.getElementById('render-online-users');
+                    if (container) {
+                        container.innerHTML = p.users.map(u => 
+                            `<span style="display:inline-block; margin-right:15px; margin-bottom:5px;">
+                                <span style="color:${u.isHost ? 'var(--main-cyan)' : '#0f0'}; text-shadow:0 0 5px ${u.isHost ? 'var(--main-cyan)' : '#0f0'};">●</span> 
+                                <b style="color:${u.isHost ? 'var(--main-cyan)' : '#fff'};">${u.alias} ${u.isHost ? '[HOST]' : ''}</b>
+                            </span>`
+                        ).join('');
+                    }
+                } break;
+
+            case 'RELAY_WHISPER':
+                if (currentRole === 'HOST') {
+                    let targetConnId = null;
+                    for (let id in peerFingerprintMap) {
+                        if (peerFingerprintMap[id].alias.toLowerCase() === p.targetAlias.toLowerCase()) { targetConnId = id; break; }
+                    }
+                    
+                    if (targetConnId && peer.connections[targetConnId]) {
+                        peer.connections[targetConnId].forEach(c => { if(c.open) c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }); });
+                        const hostDiv = document.getElementById('host-datastream-output');
+                        hostDiv.innerHTML += `<div class="wall-post" style="padding: 2px 5px;"><span style="color:#555; font-size:0.8rem;">[ ROUTER: ${p.senderAlias} whispered ${p.targetAlias} ]</span></div>`;
+                        hostDiv.scrollTop = hostDiv.scrollHeight;
+                    } else {
+                        conn.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` });
+                    }
+                } break;
+
+            case 'INCOMING_WHISPER':
+                if (currentRole === 'VISITOR') {
+                    systemPing("SECURE TRANSMISSION", `Incoming Whisper from ${p.senderAlias}`);
+                    wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
+                    if(typeof renderWall === "function") renderWall();
+                } break;
+                
+            case 'GAME_MOVE':
+                if (currentRole === 'HOST') { processGameMove(p); } 
+                break;
+
+            case MSG_TYPE_WALL_POST:
+                if (currentRole === 'HOST') { 
+                    if (bannedFingerprints.includes(p.fingerprint)) return;
+                    peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
+                    
+                    const packet = { 
+                        sender: p.sender, 
+                        text: p.text, 
+                        isPrivate: p.isPrivate, 
+                        timestamp: new Date().toLocaleTimeString(),
+                        burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null,
+                        isGame: p.isGame,
+                        gameId: p.isGame ? Date.now().toString() : null,
+                        board: p.isGame ? Array(9).fill(null) : null,
+                        turn: p.isGame ? 'X' : null,
+                        winner: null,
+                        players: p.isGame ? { X: null, O: null } : null
+                    };
+
+                    wallData.push(packet); 
+                    saveLocalData(); 
+                    if(typeof renderWall === "function") renderWall(); 
+                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+                } break;
+                
+            case MSG_TYPE_WALL_UPDATE:
+                if (currentRole === 'VISITOR') { 
+                    const localWhispers = wallData.filter(m => m.isLocalWhisper);
+                    wallData = p.updatedWall; 
+                    if (localWhispers.length > 0) wallData.push(...localWhispers); 
+                    if(typeof renderWall === "function") renderWall(); 
+                } break;
+                
+            case 'FILE_START':
+                incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
+                if (currentRole === 'HOST') {
+                    broadcastToAll(p); 
+                    wallData.push({ sender: p.senderAlias, text: `<div id="file-${p.id}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ INCOMING DATA ]</span><br><b style="color:#fff;">${p.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${p.id}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${p.id}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+                    if(typeof renderWall === "function") renderWall();
+                }
+                break;
+                
+            case 'FILE_CHUNK':
+                if (incomingFiles[p.id]) {
+                    incomingFiles[p.id].chunks.push(p.data);
+                    incomingFiles[p.id].received += p.data.byteLength;
+                    let pct = Math.floor((incomingFiles[p.id].received / incomingFiles[p.id].total) * 100);
+                    
+                    let bar = document.getElementById(`bar-${p.id}`);
+                    let txt = document.getElementById(`pct-${p.id}`);
+                    if(bar) bar.style.width = pct + '%';
+                    if(txt) txt.innerText = pct + '%';
+
+                    if (currentRole === 'HOST') broadcastToAll(p);
+                }
+                break;
+                
+            case 'FILE_END':
+                if (incomingFiles[p.id]) {
+                    const blob = new Blob(incomingFiles[p.id].chunks, { type: incomingFiles[p.id].type });
+                    const url = URL.createObjectURL(blob);
+                    
+                    let fileUI = document.getElementById(`file-${p.id}`);
+                    if (fileUI) {
+                        fileUI.innerHTML = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br>
+                        <b style="color:#fff;">${incomingFiles[p.id].name}</b><br>
+                        <a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
+                    }
+
+                    if (currentRole === 'HOST') {
+                        let entry = wallData.find(w => w.text.includes(`id="file-${p.id}"`));
+                        if (entry) entry.text = fileUI.outerHTML;
+                        saveLocalData();
+                        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                        broadcastToAll(p); 
+                    }
+                    
+                    delete incomingFiles[p.id]; 
+                }
+                break;
+
+            case MSG_TYPE_SOUNDBOARD: if(typeof triggerSound === "function") triggerSound(p.soundId, false, p.sender, p.customUrl); break;
+            case MSG_TYPE_FEATURE_UPDATE: if (currentRole === 'VISITOR') { featureToggles = p.features; if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
+            case MSG_TYPE_POLL_NEW:
+            case MSG_TYPE_POLL_UPDATE: if (currentRole === 'VISITOR') { activePoll = p.poll; if(typeof renderVisitorPoll === "function") renderVisitorPoll(); } break;
+            case MSG_TYPE_POLL_VOTE:
+                if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { 
+                    activePoll.voters.push(p.voterId); 
+                    activePoll.options[p.optionIndex].votes++; 
+                    if(typeof renderHostPoll === "function") renderHostPoll(); 
+                    broadcastToAll({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll }); 
+                } break;
+            case 'BANNED':
+                alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
+                disconnectNode(); document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
+        }
+    } catch(err) {
+        alert("[ DATASTREAM ERROR ] Packet router crashed!\n" + err.message);
+        console.error(err);
     }
 }
 
@@ -465,53 +485,4 @@ function handleRawFileUpload(event) {
 
             incomingFiles[transferId].chunks.push(arrayBuffer);
             incomingFiles[transferId].received += arrayBuffer.byteLength;
-            let pct = Math.floor((incomingFiles[transferId].received / file.size) * 100);
-            
-            let bar = document.getElementById(`bar-${transferId}`);
-            let txt = document.getElementById(`pct-${transferId}`);
-            if(bar) bar.style.width = pct + '%';
-            if(txt) txt.innerText = pct + '%';
-
-            offset += chunkSize;
-            if (offset < file.size) {
-                setTimeout(readNextChunk, 1); 
-            } else {
-                const endPacket = { type: 'FILE_END', id: transferId };
-                if (currentRole === 'HOST') broadcastToAll(endPacket);
-                else if (currentRole === 'VISITOR' && activeConn) activeConn.send(endPacket);
-                
-                const blob = new Blob(incomingFiles[transferId].chunks, { type: file.type });
-                const url = URL.createObjectURL(blob);
-                let finalUI = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br><b style="color:#fff;">${file.name}</b><br><a href="${url}" download="${file.name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
-                
-                let fileUI = document.getElementById(`file-${transferId}`);
-                if (fileUI) fileUI.innerHTML = finalUI;
-                
-                if (currentRole === 'HOST') {
-                    let entry = wallData.find(w => w.text.includes(`id="file-${transferId}"`));
-                    if (entry) entry.text = fileUI.outerHTML;
-                    saveLocalData();
-                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                }
-                delete incomingFiles[transferId];
-            }
-        };
-        reader.readAsArrayBuffer(slice);
-    }
-    
-    readNextChunk();
-}
-
-setInterval(() => {
-    if (wallData.length === 0) return;
-    let changed = false; const now = Date.now();
-    wallData = wallData.filter(p => {
-        if (p.burnAt && now >= p.burnAt) { changed = true; return false; }
-        return true;
-    });
-    if (changed) {
-        if(typeof renderWall === "function") renderWall();
-        if (currentRole === 'HOST' && peer) { saveLocalData(); broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); }
-    }
-}, 1000);
-// END
+            let pct = Math.floor((incomingFiles[transferId].received / file.size) * 10
