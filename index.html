@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.40</title>
+    <title>NOWSPACE :: TRM_v1.41</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -11,17 +11,18 @@
     <div id="crt-scanlines"></div>
 
     <input type="file" id="hidden-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+    <input type="file" id="hidden-raw-file-input" style="display:none;" onchange="handleRawFileUpload(event)">
 
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.40</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.41</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.40</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.41</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -29,7 +30,6 @@
         </div>
     </div>
 
-    <!-- INTERFACE 01: HOST PROVISIONING -->
     <div class="panel" id="host-setup-panel">
         <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
         <label>System Alias (Display Name):</label>
@@ -47,7 +47,6 @@
         <label>Profile Gallery (Paste Image/Giphy URLs, one per line):</label>
         <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
         
-        <!-- NEW BACKGROUND GIF RENDERER -->
         <label>Custom Background (Paste Image/Giphy URL):</label>
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
@@ -96,7 +95,6 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
         <div id="magic-link-container"></div>
     </div>
 
-    <!-- INTERFACE 02: HOST CONTROL DECK -->
     <div class="panel" id="host-live-wall-panel" style="display: none;">
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
@@ -142,9 +140,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
             </div>
         </div>
 
-        <!-- HOST A/V COMMS RENDER BOX -->
         <div id="host-video-stream-container" class="video-stream-container"></div>
-
         <div id="host-datastream-output" class="datastream-output"></div>
         
         <div class="emoji-board">
@@ -158,7 +154,8 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
         
         <div class="input-transmit-bar">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
-            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()">[ 📎 ]</button>
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File (Max 5MB)">[ 💾 DATA ]</button>
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE ALL ]</button>
             
@@ -173,7 +170,6 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
         </div>
     </div>
 
-    <!-- INTERFACE 03: VISITOR CONNECT CONSOLE -->
     <div class="panel" id="visitor-connect-panel">
         <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
         <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
@@ -181,7 +177,6 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
         <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
     </div>
 
-    <!-- INTERFACE 04: VISITOR CORE COMPONENT DESK -->
     <div id="visitor-view" style="display: none;">
         <div id="audio-container"></div>
         <div id="render-profile-header">
@@ -226,9 +221,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
                 </div>
             </div>
 
-            <!-- VISITOR A/V COMMS RENDER BOX -->
             <div id="visitor-video-stream-container" class="video-stream-container"></div>
-
             <div id="datastream-output" class="datastream-output"></div>
             
             <div class="emoji-board">
@@ -243,7 +236,8 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
             <div class="input-transmit-bar">
                 <input type="text" id="visitor-alias-input" placeholder="Set Alias...">
                 <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="flex-grow: 1;">
-                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()">[ 📎 ]</button>
+                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
+                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File (Max 5MB)">[ 💾 DATA ]</button>
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
                 <span class="voice-feature-group">
