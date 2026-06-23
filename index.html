@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.42</title>
+    <title>NOWSPACE :: TRM_v1.43</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,13 +16,13 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.42</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.43</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.42</h1>
+        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.43</h1>
         <div class="header-controls">
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
@@ -155,7 +155,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
         <div class="input-transmit-bar">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
-            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 DATA ]</button>
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 DATA ]</button>
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE ALL ]</button>
             
@@ -166,6 +166,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
                 </div>
                 <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
                 <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
+                <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
             </span>
         </div>
     </div>
@@ -247,6 +248,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
                     </div>
                     <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
                     <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
+                    <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
                 </span>
             </div>
             <label class="secure-box-label">
