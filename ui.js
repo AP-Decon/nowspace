@@ -47,13 +47,13 @@ document.getElementById('my-bg-url')?.addEventListener('input', (e) => applyBack
 // 02. SLASH COMMANDS & FORMATTING
 //---------------------------------------------------------
 function parseSlashCommand(text, senderName) {
-    if (!text.startsWith('/')) return { text: text, burnSec: null, isGame: null };
+    if (!text.startsWith('/')) return { text: text, burnSec: null, isGame: null, payload: null };
     const parts = text.split(' ');
     const cmd = parts[0].toLowerCase();
     const payload = parts.slice(1).join(' ');
 
     if (cmd === '/clear') {
-        wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null };
+        wallData = []; renderWall(); return { text: null, burnSec: null, isGame: null, payload: null };
     }
     
     if (cmd === '/roll') {
@@ -92,27 +92,43 @@ function parseSlashCommand(text, senderName) {
         } else if (nat1Count > 0 && diceCount === 1) {
             extraFlair = `<div style="color:var(--alert-red); margin-top:8px; font-weight:bold; letter-spacing:1px; border-left: 3px solid var(--alert-red); padding-left: 8px;">[ 💀 CRITICAL FAILURE // SYSTEM ERROR ]</div>`;
         }
-        return { text: `<span style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled ${resultText} ]</span>${extraFlair}`, burnSec: null, isGame: null };
+        return { text: `<span style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled ${resultText} ]</span>${extraFlair}`, burnSec: null, isGame: null, payload: null };
     }
     
-    if (cmd === '/glitch') return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null, isGame: null };
+    if (cmd === '/8ball') {
+        const answers = ["PROBABILITY OF CATASTROPHE IS HIGH", "OUTCOME LOOKS OPTIMAL", "SYSTEM ERROR: CANNOT COMPUTE", "SIGNS POINT TO YES", "GHOSTS IN THE MACHINE SAY NO", "AWAIT FURTHER DATA", "ACCESS GRANTED", "ACCESS DENIED"];
+        const ans = answers[Math.floor(Math.random() * answers.length)];
+        return { text: `<span style="color:#ffaa00;">[ 🔮 THE ORACLE DECLARES: ${ans} ]</span>`, burnSec: null, isGame: null, payload: null };
+    }
+
+    if (cmd === '/glitch') return { text: `<span class="glitch-text" style="display:inline-block;">${payload}</span>`, burnSec: null, isGame: null, payload: null };
+    
     if (cmd === '/vapor') {
         const vapor = payload.replace(/[a-zA-Z0-9!?-]/g, c => String.fromCharCode(c.charCodeAt(0) + 0xFEE0));
-        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null, isGame: null };
+        return { text: `<span style="color:var(--main-cyan); font-weight:bold; letter-spacing: 2px;">${vapor}</span>`, burnSec: null, isGame: null, payload: null };
     }
+    
     if (cmd === '/burn') {
         const sec = parseInt(parts[1], 10);
-        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null, isGame: null }; 
+        if (isNaN(sec) || sec <= 0) return { text: text, burnSec: null, isGame: null, payload: null }; 
         const burnMsg = parts.slice(2).join(' ');
-        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec, isGame: null };
+        return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec, isGame: null, payload: null };
     }
-    if (cmd === '/tictactoe') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe' };
     
-    return { text: text, burnSec: null, isGame: null };
+    // THE ARCADE MODULES
+    if (cmd === '/tictactoe') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe', payload: null };
+    if (cmd === '/connect4') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING CONNECT_4.EXE ]</b>', burnSec: null, isGame: 'connect4', payload: null };
+    if (cmd === '/rps') {
+        const w = payload.toLowerCase();
+        if (!['rock','paper','scissors'].includes(w)) return { text: null, burnSec: null, isGame: null, payload: null };
+        return { text: '[ INIT SECURE DUEL ]', burnSec: null, isGame: 'rps', payload: w };
+    }
+    
+    return { text: text, burnSec: null, isGame: null, payload: null };
 }
 
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("INITIALIZING CONNECT_4") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("SECURE DUEL") || text.includes("progress-bar")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
@@ -122,7 +138,6 @@ function formatWallMessage(text) {
         let gId = extractGiphyId(url); 
         if (gId) return `<br><div style="display:inline-block; resize:both; overflow:hidden; width:250px; min-width:100px; max-width:100%;"><img src="https://media.giphy.com/media/${gId}/giphy.gif" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`;
         
-        // Adds the resize handle to standard pasted image URLs
         return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 
             `<br><div style="display:inline-block; resize:both; overflow:hidden; width:250px; min-width:100px; max-width:100%; border:1px solid var(--main-cyan); border-radius:4px; margin-top:5px;"><img src="${url}" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>` 
             : `<a href="${url}" target="_blank">${url}</a>`;
@@ -159,18 +174,16 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
 
         if (post.isPrivate) {
             if (decryptMode) {
-                // Host sees the decrypted message + Padlock
                 textOut = formatWallMessage(post.text);
                 secureBadge = `<span style="color:var(--alert-red); margin-right:5px; text-shadow: 0 0 5px var(--alert-red);" title="Secure Packet">🔒</span>`;
             } else {
-                // Visitor sees a compact locked message
                 textOut = `<span class="blurred-text" style="color:#555; letter-spacing: 2px;">🔒 ENCRYPTED</span>`;
             }
         } else {
             textOut = formatWallMessage(post.text);
         }
 
-        // Render Game Boards
+        // --- GAME RENDERING MODULE ---
         if (post.isGame === 'tictactoe' && post.board) {
             let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
             let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
@@ -181,6 +194,27 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             grid += `</div>`;
             textOut += `<br><div style="border: 1px dashed #333; padding: 10px; display:inline-block; margin-top:5px; background:rgba(0,0,0,0.5);">
                 <div style="font-size:0.8rem; margin-bottom:5px; color:#aaa;">[ GRID_WARS.EXE // TERMINAL_SYNC_ACTIVE ]</div>
+                ${grid}
+                <div style="font-size:0.8rem;">${statusText}</div>
+            </div>`;
+        }
+        
+        if (post.isGame === 'connect4' && post.board) {
+            let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING DROP: PLAYER ${post.turn}</span>`;
+            let grid = `<div style="display:grid; grid-template-columns: repeat(7, 30px); gap: 4px; margin-top: 10px; margin-bottom: 10px; background:#222; padding:5px; border-radius:4px; border:1px solid #555;">`;
+            post.board.forEach((cell, i) => {
+                let colIndex = i % 7;
+                let color = '#000';
+                let shadow = 'none';
+                if (cell === 'R') { color = 'var(--alert-red)'; shadow = '0 0 5px var(--alert-red)'; }
+                else if (cell === 'Y') { color = '#ffeb3b'; shadow = '0 0 5px #ffeb3b'; }
+                
+                let clickAttr = `onclick="sendGameMove('${post.gameId}', ${colIndex})"`;
+                grid += `<div ${clickAttr} style="width:30px; height:30px; border-radius:50%; background:${color}; box-shadow:${shadow}; border:1px solid #111; cursor:pointer;"></div>`;
+            });
+            grid += `</div>`;
+            textOut += `<br><div style="border: 1px dashed #333; padding: 10px; display:inline-block; margin-top:5px; background:rgba(0,0,0,0.5);">
+                <div style="font-size:0.8rem; margin-bottom:5px; color:#aaa;">[ CONNECT_4.EXE // GRAVITY_MATRIX_ACTIVE ]</div>
                 ${grid}
                 <div style="font-size:0.8rem;">${statusText}</div>
             </div>`;
@@ -222,7 +256,6 @@ function deleteWallMessage(index) {
 }
 
 function insertEmoji(emoji) {
-    // Format it to be slightly larger so it stands out as a reaction
     const formattedEmoji = `<span style="font-size: 1.5rem; line-height: 1;">${emoji}</span>`;
     
     if (currentRole === 'HOST') {
@@ -281,7 +314,7 @@ function handleTypingEvent() {
     clearTimeout(typingTimeout);
     typingTimeout = setTimeout(() => {
         sendTypingState(false);
-    }, 2000); // 2 seconds of inactivity clears it
+    }, 2000); 
 }
 
 function showTypingIndicator(sender, isTyping) {
@@ -296,7 +329,6 @@ function showTypingIndicator(sender, isTyping) {
     if (indVis) indVis.innerText = txt;
 }
 
-// Ensure typing indicators clear cleanly when transmit buttons are clicked
 window.addEventListener('load', () => {
     const vInput = document.getElementById('wall-input-buffer');
     if (vInput) {
@@ -322,7 +354,6 @@ window.addEventListener('load', () => {
         hInput.addEventListener('input', handleTypingEvent);
     }
 
-    // Attach to the physical Transmit buttons
     const buttons = document.querySelectorAll('button');
     buttons.forEach(btn => {
         if(btn.innerText === 'TRANSMIT') {
@@ -475,14 +506,6 @@ function submitVote(idx) {
     renderVisitorPoll();
 }
 
-//---------------------------------------------------------
-// 06. SOUNDBOARD & SYSTEM MANUAL
-//---------------------------------------------------------
-function updateMasterVolume(val) { 
-    globalVolume = parseFloat(val); 
-    document.querySelectorAll('.vol-slider-wrap input[type="range"]').forEach(i => i.value = val); 
-}
-
 function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
     let src = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
     if (src) { let a = new Audio(src); a.volume = globalVolume; a.play().catch(e => {}); }
@@ -626,49 +649,30 @@ function draw(e) {
     const color = colorInput ? colorInput.value : '#00ffff';
     const size = sizeInput ? sizeInput.value : 3;
     
-    // Draw locally
     executeDraw(lastX, lastY, coords.x, coords.y, color, size);
     
-    // Transmit to network
     if (typeof MSG_TYPE_DRAWING !== 'undefined') {
-        const packet = {
-            type: MSG_TYPE_DRAWING,
-            x0: lastX, y0: lastY,
-            x1: coords.x, y1: coords.y,
-            color: color, size: size
-        };
-        
-        if (currentRole === 'HOST' && typeof broadcastToAll === "function") {
-            broadcastToAll(packet);
-        } else if (currentRole === 'VISITOR' && activeConn) {
-            activeConn.send(packet);
-        }
+        const packet = { type: MSG_TYPE_DRAWING, x0: lastX, y0: lastY, x1: coords.x, y1: coords.y, color: color, size: size };
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(packet);
+        else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
     }
     
     lastX = coords.x;
     lastY = coords.y;
 }
 
-function stopDrawing() {
-    isDrawing = false;
-}
+function stopDrawing() { isDrawing = false; }
 
 function executeDraw(x0, y0, x1, y1, color, size) {
     if (!ctx) return;
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = size;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.closePath();
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1);
+    ctx.strokeStyle = color; ctx.lineWidth = size; ctx.lineCap = 'round';
+    ctx.stroke(); ctx.closePath();
 }
 
 function wipeCanvas(isLocalClick = false) {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
     if (isLocalClick && typeof MSG_TYPE_CANVAS_WIPE !== 'undefined') {
         const packet = { type: MSG_TYPE_CANVAS_WIPE };
         if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(packet);
@@ -676,11 +680,9 @@ function wipeCanvas(isLocalClick = false) {
     }
 }
 
-// Tactical Map Image Logic
 function handleMapUpload(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
@@ -688,20 +690,17 @@ function handleMapUpload(event) {
             const MAX_WIDTH = 1000; 
             let newWidth = img.width; 
             let newHeight = img.height;
-            
             if (img.width > MAX_WIDTH) { 
                 const scaleSize = MAX_WIDTH / img.width; 
                 newWidth = MAX_WIDTH; 
                 newHeight = img.height * scaleSize; 
             }
-            
             const tmpCanvas = document.createElement('canvas'); 
             tmpCanvas.width = newWidth; 
             tmpCanvas.height = newHeight;
             const tCtx = tmpCanvas.getContext('2d'); 
             tCtx.drawImage(img, 0, 0, newWidth, newHeight);
             
-            // Convert to base64, heavily compress to ensure fast P2P transmission
             const base64Str = tmpCanvas.toDataURL('image/jpeg', 0.6);
             applyTacticalMap(base64Str);
             
@@ -714,17 +713,14 @@ function handleMapUpload(event) {
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
-    event.target.value = ''; // Reset input
+    event.target.value = ''; 
 }
 
 function applyTacticalMap(base64Str) {
     const canvasEl = document.getElementById('sync-canvas');
     if(canvasEl) {
-        if(base64Str) {
-            canvasEl.style.backgroundImage = `url('${base64Str}')`;
-        } else {
-            canvasEl.style.backgroundImage = 'none';
-        }
+        if(base64Str) canvasEl.style.backgroundImage = `url('${base64Str}')`;
+        else canvasEl.style.backgroundImage = 'none';
     }
 }
 
@@ -737,13 +733,11 @@ function clearTacticalMap(isLocalClick = false) {
     }
 }
 
-// Bind Canvas Event Listeners
 if (canvas) {
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
     canvas.addEventListener('mouseup', stopDrawing);
     canvas.addEventListener('mouseout', stopDrawing);
-    
     canvas.addEventListener('touchstart', startDrawing, { passive: false });
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
