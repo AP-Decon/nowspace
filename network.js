@@ -429,6 +429,19 @@ function handleIncomingP2PPacket(p, conn) {
                 if (currentRole === 'HOST') broadcastToAll(p); 
                 break;
 
+            case MSG_TYPE_TYPING:
+                if (typeof showTypingIndicator === "function") {
+                    showTypingIndicator(p.sender, p.isTyping);
+                }
+                if (currentRole === 'HOST') broadcastToAll(p); 
+                break;
+                
+            case MSG_TYPE_CANVAS_BG:
+                if (typeof applyTacticalMap === "function") {
+                    applyTacticalMap(p.bgData);
+                }
+                if (currentRole === 'HOST') broadcastToAll(p); 
+                break;
             case MSG_TYPE_WALL_POST:
                 if (currentRole === 'HOST') { 
                     if (bannedFingerprints.includes(p.fingerprint)) return;
