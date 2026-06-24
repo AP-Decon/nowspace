@@ -53,6 +53,8 @@ const MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
 const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
 const MSG_TYPE_DRAWING = 'SYNC_DRAWING'; 
 const MSG_TYPE_CANVAS_WIPE = 'CANVAS_WIPE';
+const MSG_TYPE_TYPING = 'TYPING_INDICATOR'; 
+const MSG_TYPE_CANVAS_BG = 'CANVAS_BACKGROUND'; 
 
 const statusDisplay = document.getElementById('connection-status');
 const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
