@@ -64,8 +64,16 @@ function updateVoiceTogglesVisuals(isActive) {
         el.classList.toggle('active', isActive);
     });
     
-    document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => {
+    // MOBILE DETECTION ALGORITHM: Checks if the user is on a phone/tablet
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    document.querySelectorAll('.mute-btn, .cam-btn').forEach(b => {
         b.style.display = isActive ? 'inline-block' : 'none';
+    });
+
+    // Only show the screen share button if they are NOT on a mobile device
+    document.querySelectorAll('.screen-btn').forEach(b => {
+        b.style.display = (isActive && !isMobile) ? 'inline-block' : 'none';
     });
 
     if (!isActive) {
@@ -284,7 +292,6 @@ function handleCallEvent(call) {
         // Dynamic audio adjustment
         volSlider.oninput = (e) => { 
             mediaEl.volume = e.target.value; 
-            // If they manually slide it to 0, update the button icon
             if (e.target.value == 0) {
                 muteBtn.innerText = '🔇';
                 muteBtn.classList.add('btn-alert');
@@ -295,7 +302,7 @@ function handleCallEvent(call) {
         };
 
         const muteBtn = document.createElement('button');
-        muteBtn.innerText = '🔊'; // FIXED: Starts as Sound ON
+        muteBtn.innerText = '🔊'; 
         muteBtn.className = 'btn-small';
         muteBtn.style.padding = '0 6px';
         muteBtn.style.fontSize = '0.8rem';
@@ -306,12 +313,12 @@ function handleCallEvent(call) {
                 mediaEl.dataset.oldVol = mediaEl.volume;
                 mediaEl.volume = 0;
                 volSlider.value = 0;
-                muteBtn.innerText = '🔇'; // FIXED: Changes to Muted
+                muteBtn.innerText = '🔇'; 
                 muteBtn.classList.add('btn-alert');
             } else {
                 mediaEl.volume = mediaEl.dataset.oldVol || 1;
                 volSlider.value = mediaEl.volume;
-                muteBtn.innerText = '🔊'; // FIXED: Changes back to Sound ON
+                muteBtn.innerText = '🔊'; 
                 muteBtn.classList.remove('btn-alert');
             }
         };
