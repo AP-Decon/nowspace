@@ -121,6 +121,8 @@ function formatWallMessage(text) {
     });
 }
 
+
+
 //---------------------------------------------------------
 // 03. WALL DATASTREAM RENDERING
 //---------------------------------------------------------
@@ -135,8 +137,8 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
                 <div style="flex-grow:1; min-width: 0;">
                     <div style="font-size: 0.85rem; margin-bottom: 4px; overflow-wrap: break-word;">
-                        <span style="color:#555;">[${post.timestamp}]</span> 
-                        <b style="color:var(--bright-magenta);">[WHISPER] ${post.sender}</b>
+                        <span style="color:#555;">[${post.timestamp}]</span><br>
+                        <b class="wall-post-sender" style="color:var(--bright-magenta);">[WHISPER] ${post.sender}</b>
                     </div>
                     <div style="color:var(--bright-magenta); overflow-wrap: anywhere; word-break: break-word;">
                         ${formatWallMessage(post.text)}
@@ -185,7 +187,7 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
                 ${deleteBtnHTML}
                 <div style="flex-grow:1; min-width: 0;">
                     <div style="font-size: 0.85rem; margin-bottom: 4px; overflow-wrap: break-word;">
-                        <span style="color:#555;">[${post.timestamp}]</span> 
+                        <span style="color:#555;">[${post.timestamp}]</span><br>
                         ${secureBadge}<b class="wall-post-sender" style="color:var(--main-cyan);">${post.sender}</b>
                     </div>
                     <div style="color:#ccc; overflow-wrap: anywhere; word-break: break-word;">
@@ -198,6 +200,8 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     
     container.scrollTop = container.scrollHeight;
 }
+
+
 function renderWall() {
     renderWallStream('datastream-output', true, false);
     renderWallStream('host-datastream-output', false, true);
