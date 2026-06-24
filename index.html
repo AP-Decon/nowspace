@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NOWSPACE :: TRM_v1.45</title>
-<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,6 +12,7 @@
 
     <input type="file" id="hidden-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
     <input type="file" id="hidden-raw-file-input" style="display:none;" onchange="handleRawFileUpload(event)">
+    <input type="file" id="hidden-map-input" accept="image/*" style="display:none;" onchange="handleMapUpload(event)">
 
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
@@ -40,9 +41,11 @@
             <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer; height: 30px;">
             <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
             <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;">
-            <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE BOARD ]</button>
+            <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE STROKES ]</button>
+            <button class="btn-small" onclick="document.getElementById('hidden-map-input').click()">[ 🗺️ TACTICAL MAP ]</button>
+            <button class="btn-small btn-alert" onclick="clearTacticalMap(true)">[ X MAP ]</button>
         </div>
-        <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background: #000; border: 1px solid #333; cursor: crosshair; touch-action: none;"></canvas>
+        <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background-color: #000; border: 1px solid #333; cursor: crosshair; touch-action: none; background-size: contain; background-position: center; background-repeat: no-repeat;"></canvas>
     </div>
 
     <div class="panel" id="host-setup-panel">
@@ -50,7 +53,7 @@
         <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
         <label>Custom Access Hash (For your URL):</label>
-        <input type="text" id="my-custom-id" placeholder="Leave blank for random, or type a custom name">
+        <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
         <label>Node Access Password (Optional):</label>
         <input type="password" id="my-password" placeholder="Leave blank for public access...">
         <label>Profile Datastream:</label>
@@ -59,14 +62,14 @@
         <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here...">
         <label>Profile Soundtrack (Paste a YouTube Link):</label>
         <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
-        <label>Profile Gallery (Paste Image/Giphy URLs, one per line):</label>
-        <textarea id="my-gallery" rows="3">https://giphy.com/gifs/retro-loop-9zExs2Q2h1EHfE4P6G</textarea>
+        <label>Profile Gallery (URLs, one per line):</label>
+        <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
         
-        <label>Custom Background (Paste Image/Giphy URL):</label>
+        <label>Custom Background (Image URL):</label>
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
-        <label>Custom CSS Injection Framework Blueprint:</label>
-        <textarea id="my-css" rows="12">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
+        <label>Custom CSS Injection Framework:</label>
+        <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
@@ -87,16 +90,9 @@
                 <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
             </div>
         </div>
-
-        <div id="host-top8-wrapper" class="top8-wrapper">
-            <h4>[ CONFIG_NETWORK_RING // TOP_8 ]</h4>
-            <div id="host-top8-display"></div>
-            <button class="btn-small" onclick="addToTop8()">+ ADD TARGET NODE</button>
-            <button class="btn-small" onclick="clearTop8()">[ WIPE RING ]</button>
-        </div>
         
         <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
-        <p id="my-id-display" style="display:none;">Your Unique Access Hash: <span class="id-display" id="my-id"></span></p>
+        <p id="my-id-display" style="display:none;">Unique Hash: <span class="id-display" id="my-id"></span></p>
         <div id="magic-link-container"></div>
     </div>
 
@@ -104,15 +100,10 @@
         <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
             <div class="visitor-log-box" style="flex: 1; min-width: 250px;">
-                <h4>> ACCESS_RECORDS</h4>
-                <div id="host-visitor-log">> Monitoring for incoming handshakes...<br></div>
-                <button class="btn-small" onclick="document.getElementById('host-visitor-log').innerHTML=''">[ CLEAR LOG ]</button>
-            </div>
-            <div class="visitor-log-box" style="flex: 1; min-width: 250px; border-color: var(--alert-red);">
                 <h4 style="color: var(--alert-red);">> ACTIVE_CONNECTIONS</h4>
-                <div id="host-active-peers" style="font-size: 0.8rem; margin-bottom: 10px; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active peers.</div>
-                <h4 style="color: var(--alert-red); border-top: 1px dashed #333; padding-top: 10px; margin-top: 10px;">> BANNED_FINGERPRINTS</h4>
-                <div id="host-banned-list" style="font-size: 0.8rem; color: #ccc; max-height: 100px; overflow-y: auto; padding: 5px;">No active bans.</div>
+                <div id="host-active-peers" style="font-size: 0.8rem; margin-bottom: 10px; color: #ccc;">No active peers.</div>
+                <h4 style="color: var(--alert-red);">> BANNED_FINGERPRINTS</h4>
+                <div id="host-banned-list" style="font-size: 0.8rem; color: #ccc;">No active bans.</div>
             </div>
         </div>
 
@@ -123,7 +114,6 @@
                 <div class="poll-options-inputs">
                     <input type="text" id="poll-o1" placeholder="Option 1">
                     <input type="text" id="poll-o2" placeholder="Option 2">
-                    <input type="text" id="poll-o3" placeholder="Option 3 (Optional)">
                 </div>
                 <button class="btn-small" onclick="deployPoll()">LAUNCH POLL</button>
             </div>
@@ -138,7 +128,6 @@
             <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
             <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
-            <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('my-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
             <div class="vol-slider-wrap">
                 <span>VOLUME:</span>
                 <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
@@ -151,16 +140,16 @@
         <div class="emoji-board">
             <button onclick="insertEmoji('👽')">👽</button>
             <button onclick="insertEmoji('💀')">💀</button>
-            <button onclick="insertEmoji('👾')">👾</button>
             <button onclick="insertEmoji('⚡')">⚡</button>
             <button onclick="insertEmoji('🔥')">🔥</button>
-            <button onclick="insertEmoji('💾')">💾</button>
         </div>
         
+        <div id="host-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
+
         <div class="input-transmit-bar">
             <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
-            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 DATA ]</button>
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 ]</button>
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
             <button class="btn-alert" onclick="hostClearWall()">[ WIPE ALL ]</button>
             
@@ -187,7 +176,6 @@
         <div id="audio-container"></div>
         <div id="render-profile-header">
             <h2 id="render-alias" class="glitch-text"></h2>
-            <div id="identity-badge"></div>
             <p id="datarender-bio"></p>
         </div>
         
@@ -205,11 +193,6 @@
             <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
             <div class="gallery-grid" id="render-gallery-grid"></div>
         </div>
-        
-        <div class="panel" id="visitor-top8-panel" style="display: none;">
-            <h3>[ HOST_NETWORK_RING // TOP_8 ]</h3>
-            <div class="top8-grid" id="render-top8-grid"></div>
-        </div>
 
         <div class="panel" id="datastream-container">
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
@@ -219,8 +202,6 @@
                 <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
                 <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
-                <input type="text" id="visitor-custom-sound" placeholder="Paste custom MP3 URL...">
-                <button class="btn-small sound-btn" onclick="triggerSound('custom', true, null, document.getElementById('visitor-custom-sound').value)">[ 🎛️ CUSTOM ]</button>
                 <div class="vol-slider-wrap">
                     <span>VOLUME:</span>
                     <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
@@ -233,17 +214,17 @@
             <div class="emoji-board">
                 <button onclick="insertEmoji('👽')">👽</button>
                 <button onclick="insertEmoji('💀')">💀</button>
-                <button onclick="insertEmoji('👾')">👾</button>
                 <button onclick="insertEmoji('⚡')">⚡</button>
                 <button onclick="insertEmoji('🔥')">🔥</button>
-                <button onclick="insertEmoji('💾')">💾</button>
             </div>
 
+            <div id="visitor-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
+
             <div class="input-transmit-bar">
-                <input type="text" id="visitor-alias-input" placeholder="Set Alias...">
-                <input type="text" id="wall-input-buffer" placeholder="Type data... Paste direct image links here" style="flex-grow: 1;">
+                <input type="text" id="visitor-alias-input" placeholder="Set Alias..." style="max-width: 120px;">
+                <input type="text" id="wall-input-buffer" placeholder="Type data..." style="flex-grow: 1;">
                 <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
-                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 DATA ]</button>
+                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 ]</button>
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
                 
                 <span class="voice-feature-group">
@@ -264,11 +245,9 @@
 
     <style id="custom-injected-css"></style>
     
-    <script src="config.js?v=9"></script>
-    <script src="media.js?v=9"></script>
-    <script src="ui.js?v=9"></script>
-    <script src="network.js?v=9"></script>
-
-            
+    <script src="config.js?v=10"></script>
+    <script src="media.js?v=10"></script>
+    <script src="ui.js?v=10"></script>
+    <script src="network.js?v=10"></script>
 </body>
 </html>
