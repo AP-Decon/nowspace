@@ -214,12 +214,40 @@ function deleteWallMessage(index) {
 }
 
 function insertEmoji(emoji) {
-    const inputId = currentRole === 'HOST' ? 'host-wall-input' : 'wall-input-buffer';
-    const input = document.getElementById(inputId);
-    if (input) { 
-        input.value += emoji; 
-        input.focus(); 
-        handleTypingEvent(); 
+    // Format it to be slightly larger so it stands out as a reaction
+    const formattedEmoji = `<span style="font-size: 1.5rem; line-height: 1;">${emoji}</span>`;
+    
+    if (currentRole === 'HOST') {
+        const aliasInput = document.getElementById('my-alias');
+        const alias = aliasInput ? aliasInput.value.trim() || "[HOST]" : "[HOST]";
+        
+        const packet = { 
+            sender: alias, 
+            text: formattedEmoji, 
+            isPrivate: false, 
+            timestamp: new Date().toLocaleTimeString(),
+            burnAt: null, isGame: null, gameId: null, board: null, turn: null, winner: null, players: null
+        };
+
+        wallData.push(packet);
+        if(typeof saveLocalData === "function") saveLocalData(); 
+        if(typeof renderWall === "function") renderWall(); 
+        if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+        
+    } else if (currentRole === 'VISITOR' && typeof activeConn !== 'undefined' && activeConn) {
+        const priv = document.getElementById('private-packet-toggle');
+        const aliasInput = document.getElementById('visitor-alias-input');
+        const alias = aliasInput ? aliasInput.value.trim() || peer.id.substring(0,6) : peer.id.substring(0,6);
+        
+        activeConn.send({ 
+            type: typeof MSG_TYPE_WALL_POST !== 'undefined' ? MSG_TYPE_WALL_POST : 'NEW_WALL_PACKET', 
+            text: formattedEmoji, 
+            isPrivate: priv ? priv.checked : false, 
+            sender: alias, 
+            fingerprint: typeof myFingerprint !== 'undefined' ? myFingerprint : 'unknown', 
+            burnSec: null, 
+            isGame: null 
+        });
     }
 }
 
