@@ -467,4 +467,112 @@ function buildVisitorGallery(str) {
 document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
 document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
 
+//---------------------------------------------------------
+// 07. SYNCHRONIZED CANVAS ENGINE
+//---------------------------------------------------------
+function toggleCanvas() {
+    const panel = document.getElementById('shared-canvas-panel');
+    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+const canvas = document.getElementById('sync-canvas');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let isDrawing = false;
+let lastX = 0, lastY = 0;
+
+function getCanvasCoordinates(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    let clientX = e.clientX;
+    let clientY = e.clientY;
+    
+    if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    }
+    
+    return {
+        x: (clientX - rect.left) * scaleX,
+        y: (clientY - rect.top) * scaleY
+    };
+}
+
+function startDrawing(e) {
+    if (!ctx) return;
+    isDrawing = true;
+    const coords = getCanvasCoordinates(e);
+    lastX = coords.x;
+    lastY = coords.y;
+}
+
+function draw(e) {
+    if (!isDrawing || !ctx) return;
+    e.preventDefault(); // Prevent scrolling on touch devices
+    
+    const coords = getCanvasCoordinates(e);
+    const color = document.getElementById('brush-color').value;
+    const size = document.getElementById('brush-size').value;
+    
+    // Draw locally
+    executeDraw(lastX, lastY, coords.x, coords.y, color, size);
+    
+    // Transmit to network
+    const packet = {
+        type: MSG_TYPE_DRAWING,
+        x0: lastX, y0: lastY,
+        x1: coords.x, y1: coords.y,
+        color: color, size: size
+    };
+    
+    if (currentRole === 'HOST') {
+        broadcastToAll(packet);
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        activeConn.send(packet);
+    }
+    
+    lastX = coords.x;
+    lastY = coords.y;
+}
+
+function stopDrawing() {
+    isDrawing = false;
+}
+
+function executeDraw(x0, y0, x1, y1, color, size) {
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.moveTo(x0, y0);
+    ctx.lineTo(x1, y1);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = size;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function wipeCanvas(isLocalClick = false) {
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (isLocalClick) {
+        const packet = { type: MSG_TYPE_CANVAS_WIPE };
+        if (currentRole === 'HOST') broadcastToAll(packet);
+        else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
+    }
+}
+
+// Bind Event Listeners
+if (canvas) {
+    canvas.addEventListener('mousedown', startDrawing);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', stopDrawing);
+    canvas.addEventListener('mouseout', stopDrawing);
+    
+    canvas.addEventListener('touchstart', startDrawing, { passive: false });
+    canvas.addEventListener('touchmove', draw, { passive: false });
+    canvas.addEventListener('touchend', stopDrawing);
+}
+
 // END
