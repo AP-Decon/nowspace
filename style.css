@@ -181,3 +181,60 @@ button:hover { background: var(--bright-magenta); color: #000; box-shadow: var(-
     box-shadow: 0 0 5px var(--bright-magenta);
     transform: scaleX(-1); /* Mirrors your own camera so it feels natural */
 }
+
+/* =========================================
+   UI POLISH & TERMINAL AESTHETICS
+   ========================================= */
+
+/* 1. Custom Neon Scrollbars for all panels */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.5); 
+    border-left: 1px solid #333;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--main-cyan, #00ffff);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bright-magenta, #ff00ff);
+    box-shadow: 0 0 10px var(--bright-magenta, #ff00ff);
+}
+
+/* 2. Active Command Prompt Focus */
+input[type="text"]:focus, 
+input[type="password"]:focus, 
+textarea:focus {
+    outline: none;
+    border-color: var(--main-cyan, #00ffff) !important;
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+    background: rgba(0, 255, 255, 0.05);
+    transition: all 0.2s ease-in-out;
+}
+
+/* 3. Datastream Hover Interactivity */
+.wall-post {
+    padding: 6px;
+    margin-bottom: 4px;
+    border-left: 2px solid transparent;
+    transition: all 0.1s ease;
+}
+.wall-post:hover {
+    background: rgba(255, 255, 255, 0.03);
+    border-left: 2px solid var(--main-cyan, #00ffff);
+}
+
+/* 4. Smooth Button Transitions */
+button {
+    transition: all 0.1s ease-in-out;
+}
+button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+}
+button:active {
+    transform: translateY(1px);
+}
