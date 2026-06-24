@@ -149,7 +149,7 @@
         <div id="host-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
 
         <div class="input-transmit-bar">
-            <input type="text" id="host-wall-input" placeholder="Broadcast master packet to wall...">
+            <input type="text" id="host-wall-input" placeholder="Type /connect4 or /8ball to play...">
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 ]</button>
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
@@ -226,7 +226,7 @@
 
             <div class="input-transmit-bar">
                 <input type="text" id="visitor-alias-input" placeholder="Set Alias..." style="max-width: 120px;">
-                <input type="text" id="wall-input-buffer" placeholder="Type data..." style="flex-grow: 1;">
+                <input type="text" id="wall-input-buffer" placeholder="Type /connect4 or /8ball to play..." style="flex-grow: 1;">  
                 <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
                 <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 ]</button>
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
