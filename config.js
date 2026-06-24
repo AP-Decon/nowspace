@@ -29,7 +29,7 @@ const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE', MSG_TYPE_SOUNDBOARD = 'SO
 const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE', MSG_TYPE_POLL_NEW = 'POLL_NEW';
 const MSG_TYPE_POLL_VOTE = 'POLL_VOTE', MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
 const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
-
+const MSG_TYPE_DRAWING = 'SYNC_DRAWING', MSG_TYPE_CANVAS_WIPE = 'CANVAS_WIPE'; 
 const statusDisplay = document.getElementById('connection-status');
 const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
 
