@@ -336,7 +336,7 @@ function handleIncomingP2PPacket(p, conn) {
                     if (bannedFingerprints.includes(p.fingerprint)) return;
                     peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
                     
-                    // NEW: RPS Matchmaking Check
+                    // --- ARCADE: RPS MATCHMAKING ROUTER ---
                     if (p.isGame === 'rps') {
                         let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
                         if (openDuel) {
@@ -478,7 +478,7 @@ function hostSendWallPacket() {
     const parsed = parseSlashCommand(rawText, alias);
     if (parsed.text === null) { input.value = ''; return; }
 
-    // Host RPS Local Resolution Check
+    // --- ARCADE: HOST RPS LOCAL MATCHMAKING ---
     if (parsed.isGame === 'rps') {
         let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== myFingerprint);
         if (openDuel) {
@@ -552,10 +552,11 @@ function processGameMove(p) {
             broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
     } 
+    // --- ARCADE: CONNECT 4 GRAVITY ENGINE ---
     else if (game.isGame === 'connect4') {
         let col = p.cellIndex;
         let placedRow = -1;
-        // Gravity Drop Logic
+        // Gravity Drop: Find the lowest available slot in the clicked column
         for(let r = 5; r >= 0; r--) {
             if (!game.board[r*7 + col]) { placedRow = r; break; }
         }
@@ -591,10 +592,14 @@ function checkC4Winner(game) {
             let idx = r * 7 + c;
             let t = b[idx];
             if (!t) continue;
-            if (c <= 3 && t === b[idx+1] && t === b[idx+2] && t === b[idx+3]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } // horizontal right
-            if (r <= 2 && t === b[idx+7] && t === b[idx+14] && t === b[idx+21]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } // vertical down
-            if (r <= 2 && c <= 3 && t === b[idx+8] && t === b[idx+16] && t === b[idx+24]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } // diag down-right
-            if (r <= 2 && c >= 3 && t === b[idx+6] && t === b[idx+12] && t === b[idx+18]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } // diag down-left
+            // horizontal right
+            if (c <= 3 && t === b[idx+1] && t === b[idx+2] && t === b[idx+3]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
+            // vertical down
+            if (r <= 2 && t === b[idx+7] && t === b[idx+14] && t === b[idx+21]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
+            // diag down-right
+            if (r <= 2 && c <= 3 && t === b[idx+8] && t === b[idx+16] && t === b[idx+24]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
+            // diag down-left
+            if (r <= 2 && c >= 3 && t === b[idx+6] && t === b[idx+12] && t === b[idx+18]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
         }
     }
     if (!b.includes(null)) game.winner = 'DRAW // STALEMATE';
