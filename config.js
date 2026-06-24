@@ -53,7 +53,7 @@ const MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
 const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
 const MSG_TYPE_DRAWING = 'SYNC_DRAWING'; 
 const MSG_TYPE_CANVAS_WIPE = 'CANVAS_WIPE';
-const MSG_TYPE_TYPING = 'TYPING_INDICATOR'; 
+const MSG_TYPE_TYPING = 'TYPING_INDICATOR';
 const MSG_TYPE_CANVAS_BG = 'CANVAS_BACKGROUND'; 
 
 const statusDisplay = document.getElementById('connection-status');
@@ -68,8 +68,9 @@ const SOUND_ASSETS = {
 
 const MANUAL_DATABASE = [
     { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal." },
-    { h3: "PRIVACY & LOCAL DATA USAGE", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Sends a secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes your local screen.<br><b style='color:var(--main-cyan)'>/roll [sides]*[count]</b> : RNG generator.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#ff0055'>/burn [seconds] [Msg]</b> : Self-destructing packet.<br><b style='color:#0f0'>/tictactoe</b> : Spawns an interactive game board on the wall." }
+    { h3: "PRIVACY & LOCAL DATA", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model." },
+    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes local screen.<br><b style='color:#ff0055'>/burn [sec] [Msg]</b> : Self-destructing packet.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#0f0'>/roll [sides]*[count]</b> : RNG generator.<br><b style='color:#0f0'>/8ball [Question]</b> : Consult the oracle." },
+    { h3: "NETWORK GAMES", p: "Spawn interactive modules directly on the wall:<br><b style='color:#0f0'>/tictactoe</b> : Classic GRID_WARS.EXE.<br><b style='color:#0f0'>/connect4</b> : Advanced gravity mechanics.<br><b style='color:#0f0'>/rps [rock/paper/scissors]</b> : Initiates a blind, secure duel against the next peer to accept." }
 ];
 
 const peerConfig = {
@@ -96,13 +97,10 @@ const peerConfig = {
 //---------------------------------------------------------
 async function hashPassword(str) {
     if (!str) return '';
-    
-    // SAFETY FALLBACK: Reverts to basic encoding if WebCrypto fails or HTTPS is missing
     if (!window.crypto || !window.crypto.subtle) {
         console.warn("[ SYSTEM ] Secure context missing. Using fallback encryption.");
         return btoa(unescape(encodeURIComponent(str))); 
     }
-    
     try {
         const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
         return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -116,14 +114,12 @@ function toggleRadar() {
         return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
     }
     
-    // ANDROID FIX: If they are turning it OFF, just force it off locally.
     if (radarEnabled) {
         radarEnabled = false;
         updateRadarUI();
         return;
     }
     
-    // Turning it ON
     if (Notification.permission === "granted") {
         radarEnabled = true;
         updateRadarUI();
@@ -286,7 +282,6 @@ function resetDefaultTemplate() {
 window.onload = () => {
     let saved = null;
     
-    // Protected JSON parsing to prevent cache corruption crashes
     try {
         const savedStr = localStorage.getItem('nowspace_save');
         if (savedStr) saved = JSON.parse(savedStr);
@@ -295,7 +290,6 @@ window.onload = () => {
     }
     
     const vAlias = localStorage.getItem('nowspace_visitor_alias');
-    
     if (vAlias && document.getElementById('visitor-alias-input')) {
         document.getElementById('visitor-alias-input').value = vAlias;
     }
