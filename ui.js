@@ -12,7 +12,8 @@ function extractGiphyId(url) {
 }
 
 function renderAudioEmbed(input) {
-    if(!input) return ""; if(input.includes("<iframe")) return input; 
+    if(!input) return ""; 
+    if(input.includes("<iframe")) return input; 
     let ytId = extractYouTubeId(input);
     return ytId ? `<iframe width="100%" height="150" src="https://www.youtube-nocookie.com/embed/${ytId}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>` : "";
 }
@@ -39,114 +40,6 @@ function applyBackground(url) {
             p.style.backdropFilter = 'none';
         });
     }
-
-    //---------------------------------------------------------
-// 07. SYNCHRONIZED CANVAS ENGINE
-//---------------------------------------------------------
-function toggleCanvas() {
-    const panel = document.getElementById('shared-canvas-panel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-}
-
-const canvas = document.getElementById('sync-canvas');
-const ctx = canvas ? canvas.getContext('2d') : null;
-let isDrawing = false;
-let lastX = 0, lastY = 0;
-
-function getCanvasCoordinates(e) {
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    
-    let clientX = e.clientX;
-    let clientY = e.clientY;
-    
-    if (e.touches && e.touches.length > 0) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    }
-    
-    return {
-        x: (clientX - rect.left) * scaleX,
-        y: (clientY - rect.top) * scaleY
-    };
-}
-
-function startDrawing(e) {
-    if (!ctx) return;
-    isDrawing = true;
-    const coords = getCanvasCoordinates(e);
-    lastX = coords.x;
-    lastY = coords.y;
-}
-
-function draw(e) {
-    if (!isDrawing || !ctx) return;
-    e.preventDefault(); // Prevent scrolling on touch devices
-    
-    const coords = getCanvasCoordinates(e);
-    const color = document.getElementById('brush-color').value;
-    const size = document.getElementById('brush-size').value;
-    
-    // Draw locally
-    executeDraw(lastX, lastY, coords.x, coords.y, color, size);
-    
-    // Transmit to network
-    const packet = {
-        type: MSG_TYPE_DRAWING,
-        x0: lastX, y0: lastY,
-        x1: coords.x, y1: coords.y,
-        color: color, size: size
-    };
-    
-    if (currentRole === 'HOST') {
-        broadcastToAll(packet);
-    } else if (currentRole === 'VISITOR' && activeConn) {
-        activeConn.send(packet);
-    }
-    
-    lastX = coords.x;
-    lastY = coords.y;
-}
-
-function stopDrawing() {
-    isDrawing = false;
-}
-
-function executeDraw(x0, y0, x1, y1, color, size) {
-    if (!ctx) return;
-    ctx.beginPath();
-    ctx.moveTo(x0, y0);
-    ctx.lineTo(x1, y1);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = size;
-    ctx.lineCap = 'round';
-    ctx.stroke();
-    ctx.closePath();
-}
-
-function wipeCanvas(isLocalClick = false) {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (isLocalClick) {
-        const packet = { type: MSG_TYPE_CANVAS_WIPE };
-        if (currentRole === 'HOST') broadcastToAll(packet);
-        else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
-    }
-}
-
-// Bind Event Listeners
-if (canvas) {
-    canvas.addEventListener('mousedown', startDrawing);
-    canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('mouseup', stopDrawing);
-    canvas.addEventListener('mouseout', stopDrawing);
-    
-    canvas.addEventListener('touchstart', startDrawing, { passive: false });
-    canvas.addEventListener('touchmove', draw, { passive: false });
-    canvas.addEventListener('touchend', stopDrawing);
-}
 }
 document.getElementById('my-bg-url')?.addEventListener('input', (e) => applyBackground(e.target.value));
 
@@ -292,9 +185,9 @@ function renderWall() {
 function deleteWallMessage(index) {
     if(confirm("DELETE THIS PACKET? It will be wiped for all connected nodes.")) {
         wallData.splice(index, 1);
-        saveLocalData();
+        if(typeof saveLocalData === "function") saveLocalData();
         renderWall();
-        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+        if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
 }
 
@@ -312,24 +205,43 @@ function insertEmoji(emoji) {
 // 04. FEATURE FLAGS & POLLS
 //---------------------------------------------------------
 function applyFeatures(features) {
-    document.getElementById('crt-scanlines').style.display = features.scanlines ? 'block' : 'none';
+    const crt = document.getElementById('crt-scanlines');
+    if (crt) crt.style.display = features.scanlines ? 'block' : 'none';
+    
     document.querySelectorAll('.soundboard-container').forEach(el => el.style.display = features.soundboard ? 'flex' : 'none');
+    
     ['visitor-gallery-panel', 'visitor-top8-panel', 'visitor-poll-panel'].forEach(id => {
         const el = document.getElementById(id); if (el) el.style.display = 'none';
     });
-    if (features.gallery && document.getElementById('render-gallery-grid').innerHTML !== '') document.getElementById('visitor-gallery-panel').style.display = 'block';
-    if (features.top8 && document.getElementById('render-top8-grid').innerHTML !== '') document.getElementById('visitor-top8-panel').style.display = 'block';
-    if (features.polls && activePoll) document.getElementById('visitor-poll-panel').style.display = 'block';
     
-    const hostTop8 = document.getElementById('host-top8-wrapper'); if (hostTop8) hostTop8.style.display = features.top8 ? 'block' : 'none';
-    const hostOutput = document.getElementById('host-datastream-output'); if (hostOutput) hostOutput.classList.toggle('hide-usernames', !features.usernames);
-    const visitorOutput = document.getElementById('datastream-output'); if (visitorOutput) visitorOutput.classList.toggle('hide-usernames', !features.usernames);
+    const galleryGrid = document.getElementById('render-gallery-grid');
+    if (features.gallery && galleryGrid && galleryGrid.innerHTML !== '') {
+        const p = document.getElementById('visitor-gallery-panel'); if (p) p.style.display = 'block';
+    }
+    
+    const top8Grid = document.getElementById('render-top8-grid');
+    if (features.top8 && top8Grid && top8Grid.innerHTML !== '') {
+        const p = document.getElementById('visitor-top8-panel'); if (p) p.style.display = 'block';
+    }
+    
+    const pollPanel = document.getElementById('visitor-poll-panel');
+    if (features.polls && activePoll && pollPanel) pollPanel.style.display = 'block';
+    
+    const hostTop8 = document.getElementById('host-top8-wrapper'); 
+    if (hostTop8) hostTop8.style.display = features.top8 ? 'block' : 'none';
+    
+    const hostOutput = document.getElementById('host-datastream-output'); 
+    if (hostOutput) hostOutput.classList.toggle('hide-usernames', !features.usernames);
+    
+    const visitorOutput = document.getElementById('datastream-output'); 
+    if (visitorOutput) visitorOutput.classList.toggle('hide-usernames', !features.usernames);
+    
     document.querySelectorAll('.voice-feature-group').forEach(el => el.style.display = features.voicecomms ? 'flex' : 'none');
 
     if (!features.voicecomms && localStream) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
-        updateVoiceTogglesVisuals(false); 
+        if(typeof updateVoiceTogglesVisuals === "function") updateVoiceTogglesVisuals(false); 
         document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => b.style.display = 'none');
         document.getElementById('host-video-stream-container').innerHTML = '';
         document.getElementById('visitor-video-stream-container').innerHTML = '';
@@ -339,20 +251,32 @@ function applyFeatures(features) {
 
 function updateHostFeatures() {
     ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
-        featureToggles[f] = document.getElementById('toggle-' + f).checked;
+        const cb = document.getElementById('toggle-' + f);
+        if (cb) featureToggles[f] = cb.checked;
     });
-    applyFeatures(featureToggles); saveLocalData();
-    broadcastToAll({ type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles });
+    applyFeatures(featureToggles); 
+    if(typeof saveLocalData === "function") saveLocalData();
+    if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_FEATURE_UPDATE, features: featureToggles });
 }
 
 function deployPoll() {
-    const q = document.getElementById('poll-q').value.trim(), o1 = document.getElementById('poll-o1').value.trim(), o2 = document.getElementById('poll-o2').value.trim(), o3 = document.getElementById('poll-o3').value.trim();
+    const q = document.getElementById('poll-q').value.trim();
+    const o1 = document.getElementById('poll-o1').value.trim();
+    const o2 = document.getElementById('poll-o2').value.trim();
+    const o3 = document.getElementById('poll-o3').value.trim();
+    
     if(!q || !o1 || !o2) return alert("Requires data strings.");
-    let opts = [{text: o1, votes: 0}, {text: o2, votes: 0}]; if(o3) opts.push({text: o3, votes: 0});
+    
+    let opts = [{text: o1, votes: 0}, {text: o2, votes: 0}]; 
+    if(o3) opts.push({text: o3, votes: 0});
+    
     activePoll = { question: q, options: opts, voters: [] };
-    document.getElementById('host-poll-builder').style.display = 'none'; document.getElementById('host-poll-active').style.display = 'block';
+    
+    document.getElementById('host-poll-builder').style.display = 'none'; 
+    document.getElementById('host-poll-active').style.display = 'block';
+    
     renderHostPoll();
-    broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: activePoll });
+    if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: activePoll });
 }
 
 function closePoll() {
@@ -364,12 +288,17 @@ function closePoll() {
             txt += `<span style="color:#aaa;">> ${o.text}:</span> <b style="color:var(--bright-magenta);">${pct}%</b><br>`;
         });
         wallData.push({ sender: "[SYSTEM]", text: txt, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
-        saveLocalData(); renderWall();
-        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+        if(typeof saveLocalData === "function") saveLocalData(); 
+        renderWall();
+        if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
     }
-    activePoll = null; ['q','o1','o2','o3'].forEach(id => document.getElementById('poll-'+id).value = '');
-    document.getElementById('host-poll-builder').style.display = 'block'; document.getElementById('host-poll-active').style.display = 'none';
-    broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: null });
+    activePoll = null; 
+    ['q','o1','o2','o3'].forEach(id => { const el = document.getElementById('poll-'+id); if(el) el.value = ''; });
+    
+    document.getElementById('host-poll-builder').style.display = 'block'; 
+    document.getElementById('host-poll-active').style.display = 'none';
+    
+    if(typeof broadcastToAll === "function") broadcastToAll({ type: MSG_TYPE_POLL_NEW, poll: null });
     renderVisitorPoll();
 }
 
@@ -381,25 +310,35 @@ function renderHostPoll() {
         const pct = total === 0 ? 0 : Math.round((o.votes / total) * 100);
         html += `<div style="display:flex; justify-content:space-between; font-size:0.8rem; margin-bottom:2px;"><span>${o.text} <span style="color:#aaa;">(${pct}%)</span></span><span style="color:var(--bright-magenta);">${o.votes}</span></div><div class="poll-bar" style="width:${pct}%;"></div>`;
     });
-    document.getElementById('render-host-poll-results').innerHTML = html;
+    const res = document.getElementById('render-host-poll-results');
+    if (res) res.innerHTML = html;
 }
 
 function renderVisitorPoll() {
-    const panel = document.getElementById('visitor-poll-panel'), content = document.getElementById('render-poll-content');
+    const panel = document.getElementById('visitor-poll-panel');
+    const content = document.getElementById('render-poll-content');
+    if(!panel || !content) return;
+    
     if(!activePoll || !featureToggles.polls) { panel.style.display = 'none'; return; }
     panel.style.display = 'block';
-    const voted = activePoll.voters.includes(myFingerprint), total = activePoll.options.reduce((s, o) => s + o.votes, 0);
+    
+    const voted = activePoll.voters.includes(myFingerprint);
+    const total = activePoll.options.reduce((s, o) => s + o.votes, 0);
+    
     let html = `<div style="color:var(--main-cyan); margin-bottom:10px; font-weight:bold;">> ${activePoll.question}</div>`;
     activePoll.options.forEach((o, idx) => {
         const pct = total === 0 ? 0 : Math.round((o.votes / total) * 100);
-        html += voted ? `<div class="poll-option poll-locked"><span>${o.text} <span style="color:#aaa; font-size:0.8rem;">(${pct}%)</span></span><span style="color:var(--bright-magenta);">${o.votes}</span></div><div class="poll-bar" style="width:${pct}%;"></div>` : `<div class="poll-option" onclick="submitVote(${idx})"><span>> ${o.text}</span><span style="font-size:0.8rem; color:#555;">[ VOTE ]</span></div>`;
+        html += voted 
+            ? `<div class="poll-option poll-locked"><span>${o.text} <span style="color:#aaa; font-size:0.8rem;">(${pct}%)</span></span><span style="color:var(--bright-magenta);">${o.votes}</span></div><div class="poll-bar" style="width:${pct}%;"></div>` 
+            : `<div class="poll-option" onclick="submitVote(${idx})"><span>> ${o.text}</span><span style="font-size:0.8rem; color:#555;">[ VOTE ]</span></div>`;
     });
     content.innerHTML = html;
 }
 
 function submitVote(idx) {
     if(!activePoll || !activeConn || activePoll.voters.includes(myFingerprint)) return;
-    activePoll.voters.push(myFingerprint); activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: idx });
+    activePoll.voters.push(myFingerprint); 
+    activeConn.send({ type: MSG_TYPE_POLL_VOTE, voterId: myFingerprint, optionIndex: idx });
     renderVisitorPoll();
 }
 
@@ -414,14 +353,20 @@ function updateMasterVolume(val) {
 function triggerSound(soundId, isLocalClick = true, originalSender = null, customUrl = null) {
     let src = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
     if (src) { let a = new Audio(src); a.volume = globalVolume; a.play().catch(e => {}); }
+    
     if (isLocalClick) {
-        const p = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: peer.id, customUrl: customUrl };
-        if (currentRole === 'HOST') { broadcastToAll(p); } 
-        else if (currentRole === 'VISITOR' && activeConn) { activeConn.send(p); }
-    } else if (currentRole === 'HOST') {
+        const p = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: (peer ? peer.id : 'unknown'), customUrl: customUrl };
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") { 
+            broadcastToAll(p); 
+        } else if (currentRole === 'VISITOR' && activeConn) { 
+            activeConn.send(p); 
+        }
+    } else if (currentRole === 'HOST' && peer) {
         for (let id in peer.connections) { 
             if (id !== originalSender) { 
-                peer.connections[id].forEach(c => { if(c.open) c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); }); 
+                peer.connections[id].forEach(c => { 
+                    if(c.open) c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); 
+                }); 
             } 
         }
     }
@@ -430,6 +375,8 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
 function toggleManual() {
     const modal = document.getElementById('system-manual-modal');
     const target = document.getElementById('manual-render-target');
+    if (!modal || !target) return;
+    
     if (target.innerHTML === "") {
         target.innerHTML = MANUAL_DATABASE.map(sec => `<div class="manual-section"><h3 class="manual-h3">${sec.h3}</h3><p class="manual-text">${sec.p}</p></div>`).join('');
     }
@@ -440,39 +387,75 @@ function toggleManual() {
 // 06. PROFILE VISUALS (TOP 8 & GALLERY)
 //---------------------------------------------------------
 function buildVisitorTop8Grid(arr) {
-    const grid = document.getElementById('render-top8-grid'); grid.innerHTML = '';
-    if (!arr || arr.length === 0) { document.getElementById('visitor-top8-panel').style.display = 'none'; return; }
-    arr.forEach(id => { grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; });
-    document.getElementById('visitor-top8-panel').style.display = featureToggles.top8 ? 'block' : 'none';
+    const grid = document.getElementById('render-top8-grid'); 
+    const panel = document.getElementById('visitor-top8-panel');
+    if(!grid || !panel) return;
+    
+    grid.innerHTML = '';
+    if (!arr || arr.length === 0) { panel.style.display = 'none'; return; }
+    
+    arr.forEach(id => { 
+        grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; 
+    });
+    panel.style.display = featureToggles.top8 ? 'block' : 'none';
 }
 
 function jumpToNewNode(id) { 
-    document.getElementById('friend-id').value = id; 
-    disconnectNode(); 
-    visitFriend(); 
+    const fInput = document.getElementById('friend-id');
+    if(fInput) fInput.value = id; 
+    if(typeof disconnectNode === "function") disconnectNode(); 
+    if(typeof visitFriend === "function") visitFriend(); 
 }
 
 function buildVisitorGallery(str) {
-    const grid = document.getElementById('render-gallery-grid'), panel = document.getElementById('visitor-gallery-panel'); grid.innerHTML = '';
+    const grid = document.getElementById('render-gallery-grid');
+    const panel = document.getElementById('visitor-gallery-panel'); 
+    if(!grid || !panel) return;
+    
+    grid.innerHTML = '';
     if(!str || str.trim() === '') { panel.style.display = 'none'; return; }
+    
     const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
     urls.forEach(u => { 
-        let finalUrl = u, gId = extractGiphyId(u); if(gId) finalUrl = `https://media.giphy.com/media/${gId}/giphy.gif`;
+        let finalUrl = u;
+        let gId = extractGiphyId(u); 
+        if(gId) finalUrl = `https://media.giphy.com/media/${gId}/giphy.gif`;
         grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${finalUrl}', '_blank')"><img src="${finalUrl}"></div>`; 
     });
     panel.style.display = featureToggles.gallery ? 'block' : 'none';
 }
 
+// MUSIC INJECTOR FOR THE HOST!
+function renderHostAudio() {
+    if (currentRole !== 'HOST') return;
+    const hostWall = document.getElementById('host-live-wall-panel');
+    const audioUrl = document.getElementById('my-audio')?.value;
+    
+    if (hostWall && audioUrl && audioUrl.trim() !== '') {
+        let hostAudioCont = document.getElementById('host-audio-container');
+        if (!hostAudioCont) {
+            hostAudioCont = document.createElement('div');
+            hostAudioCont.id = 'host-audio-container';
+            hostAudioCont.style.marginBottom = '15px';
+            hostWall.insertBefore(hostAudioCont, hostWall.firstChild.nextSibling);
+        }
+        hostAudioCont.innerHTML = renderAudioEmbed(audioUrl);
+    }
+}
+
 // Transmit handlers (Bound to UI input boxes)
-document.getElementById('wall-input-buffer')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
-document.getElementById('host-wall-input')?.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
+const vInput = document.getElementById('wall-input-buffer');
+if (vInput) vInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
+
+const hInput = document.getElementById('host-wall-input');
+if (hInput) hInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
 
 //---------------------------------------------------------
 // 07. SYNCHRONIZED CANVAS ENGINE
 //---------------------------------------------------------
 function toggleCanvas() {
     const panel = document.getElementById('shared-canvas-panel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    if(panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 const canvas = document.getElementById('sync-canvas');
@@ -509,27 +492,32 @@ function startDrawing(e) {
 
 function draw(e) {
     if (!isDrawing || !ctx) return;
-    e.preventDefault(); // Prevent scrolling on touch devices
+    e.preventDefault(); 
     
     const coords = getCanvasCoordinates(e);
-    const color = document.getElementById('brush-color').value;
-    const size = document.getElementById('brush-size').value;
+    const colorInput = document.getElementById('brush-color');
+    const sizeInput = document.getElementById('brush-size');
+    
+    const color = colorInput ? colorInput.value : '#00ffff';
+    const size = sizeInput ? sizeInput.value : 3;
     
     // Draw locally
     executeDraw(lastX, lastY, coords.x, coords.y, color, size);
     
     // Transmit to network
-    const packet = {
-        type: MSG_TYPE_DRAWING,
-        x0: lastX, y0: lastY,
-        x1: coords.x, y1: coords.y,
-        color: color, size: size
-    };
-    
-    if (currentRole === 'HOST') {
-        broadcastToAll(packet);
-    } else if (currentRole === 'VISITOR' && activeConn) {
-        activeConn.send(packet);
+    if (typeof MSG_TYPE_DRAWING !== 'undefined') {
+        const packet = {
+            type: MSG_TYPE_DRAWING,
+            x0: lastX, y0: lastY,
+            x1: coords.x, y1: coords.y,
+            color: color, size: size
+        };
+        
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") {
+            broadcastToAll(packet);
+        } else if (currentRole === 'VISITOR' && activeConn) {
+            activeConn.send(packet);
+        }
     }
     
     lastX = coords.x;
@@ -556,9 +544,9 @@ function wipeCanvas(isLocalClick = false) {
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (isLocalClick) {
+    if (isLocalClick && typeof MSG_TYPE_CANVAS_WIPE !== 'undefined') {
         const packet = { type: MSG_TYPE_CANVAS_WIPE };
-        if (currentRole === 'HOST') broadcastToAll(packet);
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(packet);
         else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
     }
 }
@@ -574,5 +562,3 @@ if (canvas) {
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 }
-
-// END
