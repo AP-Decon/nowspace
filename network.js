@@ -798,9 +798,9 @@ function handleImageUpload(event) {
     };
     reader.readAsDataURL(file);
 }
-
 function transmitCompressedImage(base64Str) {
-    const imgTag = `<br><img src="${base64Str}" style="max-width:100%; border: 1px solid var(--main-cyan); border-radius: 4px; margin-top: 5px; box-shadow: var(--text-glow);" />`;
+    // Wrapped the image in a resizable container with a drag-handle
+    const imgTag = `<br><div style="display:inline-block; resize:both; overflow:hidden; min-width:100px; min-height:100px; width:300px; max-width:100%; border:1px solid var(--main-cyan); border-radius:4px; margin-top:5px; box-shadow:var(--text-glow); background:#000;"><img src="${base64Str}" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`;
     
     if (currentRole === 'HOST') {
         wallData.push({ sender: "[HOST]", text: imgTag, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
@@ -817,11 +817,11 @@ function transmitCompressedImage(base64Str) {
         let name = alias ? alias : peer.id.substring(0,6);
         
         activeConn.send({ 
-            type: MSG_TYPE_WALL_POST, 
+            type: typeof MSG_TYPE_WALL_POST !== 'undefined' ? MSG_TYPE_WALL_POST : 'NEW_WALL_PACKET', 
             text: imgTag, 
             isPrivate: priv ? priv.checked : false, 
             sender: name, 
-            fingerprint: myFingerprint 
+            fingerprint: typeof myFingerprint !== 'undefined' ? myFingerprint : 'unknown' 
         });
     }
     
