@@ -276,7 +276,7 @@ function handleCallEvent(call) {
         volSlider.min = '0';
         volSlider.max = '1';
         volSlider.step = '0.05';
-        volSlider.value = '1'; // Default full volume
+        volSlider.value = '1'; 
         volSlider.style.width = '70px';
         volSlider.style.margin = '0 5px';
         volSlider.style.cursor = 'pointer';
@@ -284,10 +284,18 @@ function handleCallEvent(call) {
         // Dynamic audio adjustment
         volSlider.oninput = (e) => { 
             mediaEl.volume = e.target.value; 
+            // If they manually slide it to 0, update the button icon
+            if (e.target.value == 0) {
+                muteBtn.innerText = '🔇';
+                muteBtn.classList.add('btn-alert');
+            } else if (muteBtn.innerText === '🔇') {
+                muteBtn.innerText = '🔊';
+                muteBtn.classList.remove('btn-alert');
+            }
         };
 
         const muteBtn = document.createElement('button');
-        muteBtn.innerText = '🔇';
+        muteBtn.innerText = '🔊'; // FIXED: Starts as Sound ON
         muteBtn.className = 'btn-small';
         muteBtn.style.padding = '0 6px';
         muteBtn.style.fontSize = '0.8rem';
@@ -298,12 +306,12 @@ function handleCallEvent(call) {
                 mediaEl.dataset.oldVol = mediaEl.volume;
                 mediaEl.volume = 0;
                 volSlider.value = 0;
-                muteBtn.innerText = '🔊';
+                muteBtn.innerText = '🔇'; // FIXED: Changes to Muted
                 muteBtn.classList.add('btn-alert');
             } else {
                 mediaEl.volume = mediaEl.dataset.oldVol || 1;
                 volSlider.value = mediaEl.volume;
-                muteBtn.innerText = '🔇';
+                muteBtn.innerText = '🔊'; // FIXED: Changes back to Sound ON
                 muteBtn.classList.remove('btn-alert');
             }
         };
@@ -325,7 +333,6 @@ function handleCallEvent(call) {
     });
 
     call.on('close', () => {
-        // Automatically delete the user's video box if they hang up or disconnect
         const wrappers = document.querySelectorAll('.remote-stream-wrapper');
         wrappers.forEach(w => {
             const vid = w.querySelector('video');
