@@ -114,10 +114,18 @@ function parseSlashCommand(text, senderName) {
 function formatWallMessage(text) {
     if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("progress-bar")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
+    
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
-        let ytId = extractYouTubeId(url); if (ytId) return `<br><iframe width="250" height="140" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen style="border: 1px solid var(--main-cyan); margin-top:5px; box-shadow: var(--text-glow);"></iframe><br>`;
-        let gId = extractGiphyId(url); if (gId) return `<img src="https://media.giphy.com/media/${gId}/giphy.gif" />`;
-        return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? `<img src="${url}" />` : `<a href="${url}" target="_blank">${url}</a>`;
+        let ytId = extractYouTubeId(url); 
+        if (ytId) return `<br><div style="display:inline-block; resize:both; overflow:hidden; width:250px; min-width:150px; max-width:100%; border:1px solid var(--main-cyan); margin-top:5px; box-shadow:var(--text-glow);"><iframe width="100%" height="100%" style="min-height:140px;" src="https://www.youtube-nocookie.com/embed/${ytId}" frameborder="0" allowfullscreen></iframe></div><br>`;
+        
+        let gId = extractGiphyId(url); 
+        if (gId) return `<br><div style="display:inline-block; resize:both; overflow:hidden; width:250px; min-width:100px; max-width:100%;"><img src="https://media.giphy.com/media/${gId}/giphy.gif" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>`;
+        
+        // Adds the resize handle to standard pasted image URLs
+        return url.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? 
+            `<br><div style="display:inline-block; resize:both; overflow:hidden; width:250px; min-width:100px; max-width:100%; border:1px solid var(--main-cyan); border-radius:4px; margin-top:5px;"><img src="${url}" style="width:100%; height:100%; object-fit:contain; display:block;" /></div>` 
+            : `<a href="${url}" target="_blank">${url}</a>`;
     });
 }
 
