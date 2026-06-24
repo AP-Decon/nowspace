@@ -95,6 +95,7 @@ function parseSlashCommand(text, senderName) {
         return { text: `<span style="color:#ffaa00;">[ 🎲 SYSTEM: ${senderName} rolled ${resultText} ]</span>${extraFlair}`, burnSec: null, isGame: null, payload: null };
     }
     
+    // ARCADE: THE ORACLE
     if (cmd === '/8ball') {
         const answers = ["PROBABILITY OF CATASTROPHE IS HIGH", "OUTCOME LOOKS OPTIMAL", "SYSTEM ERROR: CANNOT COMPUTE", "SIGNS POINT TO YES", "GHOSTS IN THE MACHINE SAY NO", "AWAIT FURTHER DATA", "ACCESS GRANTED", "ACCESS DENIED"];
         const ans = answers[Math.floor(Math.random() * answers.length)];
@@ -115,7 +116,7 @@ function parseSlashCommand(text, senderName) {
         return { text: `<span style="color:#ff0055; font-weight:bold;">[ 🔥 BURNER PACKET (${sec}s): ${burnMsg} ]</span>`, burnSec: sec, isGame: null, payload: null };
     }
     
-    // THE ARCADE MODULES
+    // ARCADE: MULTIPLAYER MODULES
     if (cmd === '/tictactoe') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe', payload: null };
     if (cmd === '/connect4') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING CONNECT_4.EXE ]</b>', burnSec: null, isGame: 'connect4', payload: null };
     if (cmd === '/rps') {
