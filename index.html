@@ -25,6 +25,7 @@
         <h1 class="glitch-text">// NOWSPACE :: TRM_v1.44</h1>
         <div class="header-controls">
             <button id="radar-btn" class="btn-small" onclick="toggleRadar()">[ 📡 RADAR: OFF ]</button>
+            <button class="btn-small" onclick="toggleCanvas()" style="border-color:var(--main-cyan); color:var(--main-cyan);">[ 🎨 CANVAS ]</button> <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             <div id="connection-status">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none;">[ X KILL_LINK ]</button>
@@ -207,7 +208,18 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
             <div class="top8-grid" id="render-top8-grid"></div>
         </div>
 
+        <div class="panel" id="shared-canvas-panel" style="display: none; border-style: dotted; border-color: var(--main-cyan);">
+            <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer;">
+                <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
+                <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;">
+                <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE BOARD ]</button>
+            </div>
+            <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background: #000; border: 1px solid #333; cursor: crosshair; touch-action: none;"></canvas>
+        </div>
         <div class="panel" id="datastream-container">
+
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             
             <div class="soundboard-container">
