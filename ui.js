@@ -121,8 +121,6 @@ function formatWallMessage(text) {
     });
 }
 
-
-
 //---------------------------------------------------------
 // 03. WALL DATASTREAM RENDERING
 //---------------------------------------------------------
@@ -201,7 +199,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     container.scrollTop = container.scrollHeight;
 }
 
-
 function renderWall() {
     renderWallStream('datastream-output', true, false);
     renderWallStream('host-datastream-output', false, true);
@@ -217,17 +214,92 @@ function deleteWallMessage(index) {
 }
 
 function insertEmoji(emoji) {
-    if (currentRole === 'HOST') {
-        const hostInput = document.getElementById('host-wall-input');
-        if (hostInput) { hostInput.value += emoji; hostInput.focus(); }
-    } else if (currentRole === 'VISITOR') {
-        const visitorInput = document.getElementById('wall-input-buffer');
-        if (visitorInput) { visitorInput.value += emoji; visitorInput.focus(); }
+    const inputId = currentRole === 'HOST' ? 'host-wall-input' : 'wall-input-buffer';
+    const input = document.getElementById(inputId);
+    if (input) { 
+        input.value += emoji; 
+        input.focus(); 
+        handleTypingEvent(); 
     }
 }
 
 //---------------------------------------------------------
-// 04. FEATURE FLAGS & POLLS
+// 04. TYPING INDICATOR ENGINE (RADAR)
+//---------------------------------------------------------
+let typingTimeout = null;
+let activeTypers = new Set();
+
+function sendTypingState(isTyping) {
+    const aliasInput = document.getElementById(currentRole === 'HOST' ? 'my-alias' : 'visitor-alias-input');
+    const alias = aliasInput ? aliasInput.value.trim() || 'PEER' : 'PEER';
+    
+    if (typeof MSG_TYPE_TYPING !== 'undefined') {
+        const p = { type: MSG_TYPE_TYPING, isTyping: isTyping, sender: alias };
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(p);
+        else if (currentRole === 'VISITOR' && activeConn) activeConn.send(p);
+    }
+}
+
+function handleTypingEvent() {
+    sendTypingState(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        sendTypingState(false);
+    }, 2000); // 2 seconds of inactivity clears it
+}
+
+function showTypingIndicator(sender, isTyping) {
+    const indHost = document.getElementById('host-typing-indicator');
+    const indVis = document.getElementById('visitor-typing-indicator');
+    
+    if (isTyping) activeTypers.add(sender);
+    else activeTypers.delete(sender);
+
+    const txt = activeTypers.size > 0 ? `[ 📡 ${Array.from(activeTypers).join(', ')} is transmitting... ]` : '';
+    if (indHost) indHost.innerText = txt;
+    if (indVis) indVis.innerText = txt;
+}
+
+// Ensure typing indicators clear cleanly when transmit buttons are clicked
+window.addEventListener('load', () => {
+    const vInput = document.getElementById('wall-input-buffer');
+    if (vInput) {
+        vInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') {
+                clearTimeout(typingTimeout);
+                sendTypingState(false);
+                if(typeof visitorSendWallPacket === 'function') visitorSendWallPacket(); 
+            }
+        });
+        vInput.addEventListener('input', handleTypingEvent);
+    }
+
+    const hInput = document.getElementById('host-wall-input');
+    if (hInput) {
+        hInput.addEventListener('keypress', (e) => { 
+            if (e.key === 'Enter') {
+                clearTimeout(typingTimeout);
+                sendTypingState(false);
+                if(typeof hostSendWallPacket === 'function') hostSendWallPacket(); 
+            }
+        });
+        hInput.addEventListener('input', handleTypingEvent);
+    }
+
+    // Attach to the physical Transmit buttons
+    const buttons = document.querySelectorAll('button');
+    buttons.forEach(btn => {
+        if(btn.innerText === 'TRANSMIT') {
+            btn.addEventListener('click', () => {
+                clearTimeout(typingTimeout);
+                sendTypingState(false);
+            });
+        }
+    });
+});
+
+//---------------------------------------------------------
+// 05. FEATURE FLAGS & POLLS
 //---------------------------------------------------------
 function applyFeatures(features) {
     const crt = document.getElementById('crt-scanlines');
@@ -263,7 +335,7 @@ function applyFeatures(features) {
     
     document.querySelectorAll('.voice-feature-group').forEach(el => el.style.display = features.voicecomms ? 'flex' : 'none');
 
-    if (!features.voicecomms && localStream) {
+    if (!features.voicecomms && typeof localStream !== 'undefined' && localStream) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
         if(typeof updateVoiceTogglesVisuals === "function") updateVoiceTogglesVisuals(false); 
@@ -368,7 +440,7 @@ function submitVote(idx) {
 }
 
 //---------------------------------------------------------
-// 05. SOUNDBOARD & SYSTEM MANUAL
+// 06. SOUNDBOARD & SYSTEM MANUAL
 //---------------------------------------------------------
 function updateMasterVolume(val) { 
     globalVolume = parseFloat(val); 
@@ -379,7 +451,7 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
     let src = (soundId === 'custom' && customUrl) ? customUrl : SOUND_ASSETS[soundId];
     if (src) { let a = new Audio(src); a.volume = globalVolume; a.play().catch(e => {}); }
     
-    if (isLocalClick) {
+    if (isLocalClick && typeof MSG_TYPE_SOUNDBOARD !== 'undefined') {
         const p = { type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: (peer ? peer.id : 'unknown'), customUrl: customUrl };
         if (currentRole === 'HOST' && typeof broadcastToAll === "function") { 
             broadcastToAll(p); 
@@ -409,7 +481,7 @@ function toggleManual() {
 }
 
 //---------------------------------------------------------
-// 06. PROFILE VISUALS (TOP 8 & GALLERY)
+// 07. PROFILE VISUALS (TOP 8, GALLERY & AUDIO)
 //---------------------------------------------------------
 function buildVisitorTop8Grid(arr) {
     const grid = document.getElementById('render-top8-grid'); 
@@ -450,7 +522,6 @@ function buildVisitorGallery(str) {
     panel.style.display = featureToggles.gallery ? 'block' : 'none';
 }
 
-// MUSIC INJECTOR FOR THE HOST!
 function renderHostAudio() {
     if (currentRole !== 'HOST') return;
     const hostWall = document.getElementById('host-live-wall-panel');
@@ -468,15 +539,8 @@ function renderHostAudio() {
     }
 }
 
-// Transmit handlers (Bound to UI input boxes)
-const vInput = document.getElementById('wall-input-buffer');
-if (vInput) vInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') visitorSendWallPacket(); });
-
-const hInput = document.getElementById('host-wall-input');
-if (hInput) hInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') hostSendWallPacket(); });
-
 //---------------------------------------------------------
-// 07. SYNCHRONIZED CANVAS ENGINE
+// 08. SYNCHRONIZED CANVAS & TACTICAL MAP ENGINE
 //---------------------------------------------------------
 function toggleCanvas() {
     const panel = document.getElementById('shared-canvas-panel');
@@ -576,7 +640,68 @@ function wipeCanvas(isLocalClick = false) {
     }
 }
 
-// Bind Event Listeners
+// Tactical Map Image Logic
+function handleMapUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            const MAX_WIDTH = 1000; 
+            let newWidth = img.width; 
+            let newHeight = img.height;
+            
+            if (img.width > MAX_WIDTH) { 
+                const scaleSize = MAX_WIDTH / img.width; 
+                newWidth = MAX_WIDTH; 
+                newHeight = img.height * scaleSize; 
+            }
+            
+            const tmpCanvas = document.createElement('canvas'); 
+            tmpCanvas.width = newWidth; 
+            tmpCanvas.height = newHeight;
+            const tCtx = tmpCanvas.getContext('2d'); 
+            tCtx.drawImage(img, 0, 0, newWidth, newHeight);
+            
+            // Convert to base64, heavily compress to ensure fast P2P transmission
+            const base64Str = tmpCanvas.toDataURL('image/jpeg', 0.6);
+            applyTacticalMap(base64Str);
+            
+            if (typeof MSG_TYPE_CANVAS_BG !== 'undefined') {
+                const packet = { type: MSG_TYPE_CANVAS_BG, bgData: base64Str };
+                if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(packet);
+                else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+    event.target.value = ''; // Reset input
+}
+
+function applyTacticalMap(base64Str) {
+    const canvasEl = document.getElementById('sync-canvas');
+    if(canvasEl) {
+        if(base64Str) {
+            canvasEl.style.backgroundImage = `url('${base64Str}')`;
+        } else {
+            canvasEl.style.backgroundImage = 'none';
+        }
+    }
+}
+
+function clearTacticalMap(isLocalClick = false) {
+    applyTacticalMap(null);
+    if(isLocalClick && typeof MSG_TYPE_CANVAS_BG !== 'undefined') {
+        const packet = { type: MSG_TYPE_CANVAS_BG, bgData: null };
+        if (currentRole === 'HOST' && typeof broadcastToAll === "function") broadcastToAll(packet);
+        else if (currentRole === 'VISITOR' && activeConn) activeConn.send(packet);
+    }
+}
+
+// Bind Canvas Event Listeners
 if (canvas) {
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', draw);
