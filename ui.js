@@ -127,18 +127,23 @@ function formatWallMessage(text) {
 function renderWallStream(targetId, filterSecureText, decryptMode) {
     const container = document.getElementById(targetId);
     if (!container) return;
+    
     container.innerHTML = wallData.map((post, index) => {
+        // Render Whispers
         if (post.isLocalWhisper) {
             return `
             <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
                 <div style="flex-grow:1; word-break: break-all;">
-                    <span style="color:#555;">[${post.timestamp}]</span> 
-                    <span class="wall-post-sender" style="color:var(--bright-magenta);">[WHISPER] ${post.sender}:</span> 
+                    <div style="font-size: 0.85rem; margin-bottom: 3px;">
+                        <span style="color:#555;">[${post.timestamp}]</span> 
+                        <span class="wall-post-sender" style="color:var(--bright-magenta);">[WHISPER] ${post.sender}:</span>
+                    </div>
                     <span style="color:var(--bright-magenta);">${formatWallMessage(post.text)}</span>
                 </div>
             </div>`;
         }
 
+        // Render Standard Packets
         let textOut = post.text;
         if (post.isPrivate) {
             textOut = decryptMode ? formatWallMessage(post.text) : `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formatWallMessage(post.text)}</span>`;
@@ -146,6 +151,7 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             textOut = formatWallMessage(post.text);
         }
 
+        // Render Game Boards
         if (post.isGame === 'tictactoe' && post.board) {
             let statusText = post.winner ? `<span style="color:var(--alert-red); font-weight:bold;">> ${post.winner}</span>` : `<span style="color:var(--main-cyan);">> AWAITING MOVE: PLAYER ${post.turn}</span>`;
             let grid = `<div style="display:grid; grid-template-columns: repeat(3, 40px); gap: 5px; margin-top: 10px; margin-bottom: 10px;">`;
@@ -167,13 +173,16 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}" style="display:flex; align-items:flex-start;">
                 ${deleteBtnHTML}
                 <div style="flex-grow:1; word-break: break-all;">
-                    <span style="color:#555;">[${post.timestamp}]</span> 
-                    <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span> 
+                    <div style="font-size: 0.85rem; margin-bottom: 3px;">
+                        <span style="color:#555;">[${post.timestamp}]</span> 
+                        <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span>
+                    </div>
                     <span style="color:#ccc;">${textOut}</span>
                 </div>
             </div>
         `;
     }).join('');
+    
     container.scrollTop = container.scrollHeight;
 }
 
