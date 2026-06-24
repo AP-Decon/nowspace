@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.44</title>
+    <title>NOWSPACE :: TRM_v1.45</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -16,20 +16,33 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.44</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.45</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
-    <div class="header-container">
-        <h1 class="glitch-text">// NOWSPACE :: TRM_v1.44</h1>
-        <div class="header-controls">
+    <header style="text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #333; margin-bottom: 20px;">
+        <h1 class="glitch-text" style="margin: 0 0 10px 0; font-size: 2.5rem; letter-spacing: 2px;">// NOWSPACE :: TRM_v1.45</h1>
+        
+        <div class="header-controls" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
             <button id="radar-btn" class="btn-small" onclick="toggleRadar()">[ 📡 RADAR: OFF ]</button>
-            <button class="btn-small" onclick="toggleCanvas()" style="border-color:var(--main-cyan); color:var(--main-cyan);">[ 🎨 CANVAS ]</button> <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
+            <button class="btn-small" onclick="toggleCanvas()" style="border-color:var(--main-cyan); color:var(--main-cyan);">[ 🎨 CANVAS ]</button>
             <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
-            <div id="connection-status">[ STATUS: OFFLINE ]</div>
+            
+            <div id="connection-status" style="font-weight: bold; color: var(--main-cyan);">[ STATUS: OFFLINE ]</div>
             <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none;">[ X KILL_LINK ]</button>
         </div>
+    </header>
+
+    <div class="panel" id="shared-canvas-panel" style="display: none; border-style: dotted; border-color: var(--main-cyan);">
+        <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center;">
+            <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer; height: 30px;">
+            <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
+            <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;">
+            <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE BOARD ]</button>
+        </div>
+        <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background: #000; border: 1px solid #333; cursor: crosshair; touch-action: none;"></canvas>
     </div>
 
     <div class="panel" id="host-setup-panel">
@@ -53,17 +66,7 @@
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
         <label>Custom CSS Injection Framework Blueprint:</label>
-        <textarea id="my-css" rows="12">/* ENTER CUSTOM OVERRIDES HERE */
-
-/* 🤖 AI CSS PROMPT GENERATOR 🤖
-Want an AI to write a custom theme for you? 
-Copy this entire comment block and paste it into your AI of choice along with your idea:
-
-"I am styling a custom decentralized web terminal. Please write CSS overrides based on this reference guide:
-- Root Variables: --main-cyan, --bright-magenta, --bg-color, --text-glow
-- Key Targets: body, .panel, .wall-post, button, #crt-scanlines, .glitch-text, .video-feed
-Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
-*/</textarea>
+        <textarea id="my-css" rows="12">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
@@ -208,18 +211,7 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
             <div class="top8-grid" id="render-top8-grid"></div>
         </div>
 
-        <div class="panel" id="shared-canvas-panel" style="display: none; border-style: dotted; border-color: var(--main-cyan);">
-            <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
-            <div style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer;">
-                <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
-                <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;">
-                <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE BOARD ]</button>
-            </div>
-            <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background: #000; border: 1px solid #333; cursor: crosshair; touch-action: none;"></canvas>
-        </div>
         <div class="panel" id="datastream-container">
-
             <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
             
             <div class="soundboard-container">
@@ -271,10 +263,10 @@ Please write CSS to make my terminal look like [INSERT YOUR THEME IDEA HERE]."
     </div>
 
     <style id="custom-injected-css"></style>
+    
     <script src="config.js"></script>
     <script src="media.js"></script>
     <script src="ui.js"></script>
     <script src="network.js"></script>
 </body>
 </html>
-
