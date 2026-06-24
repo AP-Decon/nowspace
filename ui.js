@@ -133,12 +133,14 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
         if (post.isLocalWhisper) {
             return `
             <div class="wall-post private-packet" style="display:flex; align-items:flex-start; border-left-color: var(--bright-magenta); background: rgba(255, 0, 255, 0.05);">
-                <div style="flex-grow:1; word-break: break-all;">
-                    <div style="font-size: 0.85rem; margin-bottom: 3px;">
+                <div style="flex-grow:1; min-width: 0;">
+                    <div style="font-size: 0.85rem; margin-bottom: 4px; overflow-wrap: break-word;">
                         <span style="color:#555;">[${post.timestamp}]</span> 
-                        <span class="wall-post-sender" style="color:var(--bright-magenta);">[WHISPER] ${post.sender}:</span>
+                        <b style="color:var(--bright-magenta);">[WHISPER] ${post.sender}</b>
                     </div>
-                    <span style="color:var(--bright-magenta);">${formatWallMessage(post.text)}</span>
+                    <div style="color:var(--bright-magenta); overflow-wrap: anywhere; word-break: break-word;">
+                        ${formatWallMessage(post.text)}
+                    </div>
                 </div>
             </div>`;
         }
@@ -167,17 +169,19 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             </div>`;
         }
         
-        let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 5px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
+        let deleteBtnHTML = decryptMode ? `<button class="btn-small btn-alert" style="padding: 0 4px; font-size: 0.6rem; margin-right: 8px; height: 18px; border-radius: 2px;" onclick="deleteWallMessage(${index})">X</button>` : '';
 
         return `
             <div class="wall-post ${post.isPrivate ? 'private-packet' : ''}" style="display:flex; align-items:flex-start;">
                 ${deleteBtnHTML}
-                <div style="flex-grow:1; word-break: break-all;">
-                    <div style="font-size: 0.85rem; margin-bottom: 3px;">
+                <div style="flex-grow:1; min-width: 0;">
+                    <div style="font-size: 0.85rem; margin-bottom: 4px; overflow-wrap: break-word;">
                         <span style="color:#555;">[${post.timestamp}]</span> 
-                        <span class="wall-post-sender">${post.isPrivate && decryptMode ? '[SECURE] ' : ''}${post.sender}:</span>
+                        <b style="color:#888;">${post.isPrivate && decryptMode ? '<span style="color:var(--alert-red);">[SECURE]</span> ' : ''}${post.sender}</b>
                     </div>
-                    <span style="color:#ccc;">${textOut}</span>
+                    <div style="color:#ccc; overflow-wrap: anywhere; word-break: break-word;">
+                        ${textOut}
+                    </div>
                 </div>
             </div>
         `;
