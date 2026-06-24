@@ -109,10 +109,26 @@ function disconnectNode() {
         peer.destroy(); 
         peer = null; 
     }
+
+    // --- NEW: MEMORY & UI SCRUBBER ---
+    if (currentRole === 'VISITOR') {
+        wallData = [];
+        const vWall = document.getElementById('datastream-output');
+        if (vWall) vWall.innerHTML = '';
+        
+        const vOnline = document.getElementById('render-online-users');
+        if (vOnline) vOnline.innerHTML = 'Scanning for active signals...';
+        
+        if (typeof wipeCanvas === "function") wipeCanvas(false);
+        if (typeof clearTacticalMap === "function") clearTacticalMap(false);
+    }
     
     activeConn = null; 
     currentRole = null; 
     activePoll = null;
+    peerFingerprintMap = {};
+    incomingFiles = {};
+    // ---------------------------------
     
     document.getElementById('visitor-view').style.display = 'none'; 
     document.getElementById('host-live-wall-panel').style.display = 'none';
