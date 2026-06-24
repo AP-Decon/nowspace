@@ -145,10 +145,19 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
             </div>`;
         }
 
-        // Render Standard Packets
+        // Render Standard & Secure Packets
         let textOut = post.text;
+        let secureBadge = '';
+
         if (post.isPrivate) {
-            textOut = decryptMode ? formatWallMessage(post.text) : `<span class="blurred-text">[ DIRECT_SECURE_PACKET ] ${formatWallMessage(post.text)}</span>`;
+            if (decryptMode) {
+                // Host sees the decrypted message + Padlock
+                textOut = formatWallMessage(post.text);
+                secureBadge = `<span style="color:var(--alert-red); margin-right:5px; text-shadow: 0 0 5px var(--alert-red);" title="Secure Packet">🔒</span>`;
+            } else {
+                // Visitor sees a compact locked message
+                textOut = `<span class="blurred-text" style="color:#555; letter-spacing: 2px;">🔒 ENCRYPTED</span>`;
+            }
         } else {
             textOut = formatWallMessage(post.text);
         }
@@ -177,7 +186,7 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
                 <div style="flex-grow:1; min-width: 0;">
                     <div style="font-size: 0.85rem; margin-bottom: 4px; overflow-wrap: break-word;">
                         <span style="color:#555;">[${post.timestamp}]</span> 
-                        <b style="color:#888;">${post.isPrivate && decryptMode ? '<span style="color:var(--alert-red);">[SECURE]</span> ' : ''}${post.sender}</b>
+                        ${secureBadge}<b class="wall-post-sender" style="color:var(--main-cyan);">${post.sender}</b>
                     </div>
                     <div style="color:#ccc; overflow-wrap: anywhere; word-break: break-word;">
                         ${textOut}
@@ -189,7 +198,6 @@ function renderWallStream(targetId, filterSecureText, decryptMode) {
     
     container.scrollTop = container.scrollHeight;
 }
-
 function renderWall() {
     renderWallStream('datastream-output', true, false);
     renderWallStream('host-datastream-output', false, true);
