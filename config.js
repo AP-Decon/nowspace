@@ -157,7 +157,6 @@ function switchProfile(slotId) {
 function loadLocalData() {
     let saved = null;
     try {
-        // Migration logic: If they are on slot 1 but have legacy 'nowspace_save' data
         if (activeSlot === '1' && !localStorage.getItem('nowspace_save_1') && localStorage.getItem('nowspace_save')) {
             saved = JSON.parse(localStorage.getItem('nowspace_save'));
             localStorage.setItem('nowspace_save_1', localStorage.getItem('nowspace_save'));
@@ -168,6 +167,7 @@ function loadLocalData() {
     } catch(e) { console.warn("[ SYSTEM ] Local storage cache corrupted."); }
 
     if (saved) {
+        // Load User's Custom Slot Data
         document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
         document.getElementById('my-custom-id').value = saved.customId || '';
         document.getElementById('my-bio').value = saved.bio || ''; 
@@ -195,19 +195,21 @@ function loadLocalData() {
         const inject = document.getElementById('custom-injected-css'); 
         if(inject) inject.innerText = saved.css || ''; 
     } else {
-        // If the slot is empty, purge UI to default blank state
-        document.getElementById('my-alias').value = 'NEW_PROFILE'; 
+        // --- NEW: THE DEFAULT SYSTEM TEMPLATE ---
+        // If the slot is empty, inject the baseline Cyberpunk visual template
+        document.getElementById('my-alias').value = 'NODE-0' + activeSlot; 
         document.getElementById('my-custom-id').value = '';
-        document.getElementById('my-bio').value = 'SYSTEM_STATUS: ONLINE'; 
-        document.getElementById('my-audio').value = '';
-        document.getElementById('my-gallery').value = ''; 
-        document.getElementById('my-css').value = '';
+        document.getElementById('my-bio').value = 'SYSTEM_STATUS: ONLINE // Currently overriding mainframe.'; 
+        document.getElementById('my-audio').value = 'https://www.youtube.com/watch?v=hMxlPYStVVY';
+        document.getElementById('my-gallery').value = 'https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif'; 
+        document.getElementById('my-css').value = '/* ENTER CUSTOM OVERRIDES HERE */';
         document.getElementById('my-custom-sound').value = ''; 
         if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = '';
         if (document.getElementById('my-password')) document.getElementById('my-password').value = '';
         
         wallData = [];
         featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
+        
         if (typeof applyBackground === "function") applyBackground('');
         if (typeof applyFeatures === "function") {
             ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
@@ -223,7 +225,6 @@ function loadLocalData() {
 }
 
 function saveLocalData() {
-    // Only save host configurations. Prevent visitors from overwriting local config slots.
     if (currentRole === 'VISITOR') return;
     
     const saveData = { 
@@ -247,12 +248,12 @@ function saveLocalData() {
 // 05. EXPORT / IMPORT ENGINE
 //---------------------------------------------------------
 function exportTheme() {
-    saveLocalData(); // Ensure memory is synced before export
+    saveLocalData(); 
     const savedStr = localStorage.getItem('nowspace_save_' + activeSlot);
     if (!savedStr) return;
     
     const data = JSON.parse(savedStr);
-    data.identityFingerprint = myFingerprint; // Attach identity token
+    data.identityFingerprint = myFingerprint; 
     
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
