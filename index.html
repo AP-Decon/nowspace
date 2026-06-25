@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.46</title>
+    <title>NOWSPACE :: TRM_v1.47</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -255,9 +258,21 @@
 
     <style id="custom-injected-css"></style>
     
-    <script src="config.js?v=20"></script>
-    <script src="media.js?v=20"></script>
-    <script src="ui.js?v=20"></script>
-    <script src="network.js?v=20"></script>
+    <script src="config.js?v=21"></script>
+    <script src="media.js?v=21"></script>
+    <script src="ui.js?v=21"></script>
+    <script src="network.js?v=21"></script>
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(registration => {
+            console.log('[ SYSTEM ] Background Service Worker Registered.');
+          }).catch(err => {
+            console.warn('[ SYSTEM_ERROR ] Service Worker Failed:', err);
+          });
+        });
+      }
+    </script>
 </body>
 </html>
