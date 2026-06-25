@@ -6,6 +6,7 @@ let activeConn = null;
 let wallData = [];
 let currentRole = null;
 
+let activeSlot = localStorage.getItem('nowspace_active_slot') || '1';
 let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
 let bannedFingerprints = JSON.parse(localStorage.getItem('nowspace_banned')) || [];
 let peerFingerprintMap = {}; 
@@ -80,13 +81,13 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:global.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:global.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "PASTE_YOUR_USERNAME_HERE",
+                credential: "PASTE_YOUR_CREDENTIAL_HERE"
             }
         ]
     }
@@ -113,24 +114,14 @@ function toggleRadar() {
     if (!("Notification" in window)) {
         return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
     }
-    
-    if (radarEnabled) {
-        radarEnabled = false;
-        updateRadarUI();
-        return;
-    }
+    if (radarEnabled) { radarEnabled = false; updateRadarUI(); return; }
     
     if (Notification.permission === "granted") {
-        radarEnabled = true;
-        updateRadarUI();
+        radarEnabled = true; updateRadarUI();
     } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then(p => {
-            if (p === "granted") { 
-                radarEnabled = true; 
-                updateRadarUI(); 
-            } else { 
-                alert("[ ACCESS_DENIED ] Permission rejected."); 
-            }
+            if (p === "granted") { radarEnabled = true; updateRadarUI(); } 
+            else { alert("[ ACCESS_DENIED ] Permission rejected."); }
         });
     } else {
         alert("[ ACCESS_DENIED ] Notifications are permanently blocked by your browser settings.");
@@ -140,111 +131,100 @@ function toggleRadar() {
 function updateRadarUI() {
     const btn = document.getElementById('radar-btn');
     if (!btn) return;
-    
-    if (radarEnabled) {
-        btn.innerText = "[ 📡 RADAR: ON ]";
-        btn.classList.add('btn-alert');
-    } else {
-        btn.innerText = "[ 📡 RADAR: OFF ]";
-        btn.classList.remove('btn-alert');
-    }
+    if (radarEnabled) { btn.innerText = "[ 📡 RADAR: ON ]"; btn.classList.add('btn-alert'); } 
+    else { btn.innerText = "[ 📡 RADAR: OFF ]"; btn.classList.remove('btn-alert'); }
 }
 
 function systemPing(title, body) {
-    if (radarEnabled && document.hidden) {
-        new Notification(title, { body: body });
+    if (radarEnabled && document.hidden) new Notification(title, { body: body });
+}
+
+//---------------------------------------------------------
+// 04. PROFILE MULTI-SLOT MEMORY MANAGEMENT
+//---------------------------------------------------------
+function switchProfile(slotId) {
+    // Save current active config to its slot before swapping
+    saveLocalData();
+    
+    // Update the pointer
+    activeSlot = slotId;
+    localStorage.setItem('nowspace_active_slot', activeSlot);
+    
+    // Load the newly selected slot
+    loadLocalData();
+}
+
+function loadLocalData() {
+    let saved = null;
+    try {
+        // Migration logic: If they are on slot 1 but have legacy 'nowspace_save' data
+        if (activeSlot === '1' && !localStorage.getItem('nowspace_save_1') && localStorage.getItem('nowspace_save')) {
+            saved = JSON.parse(localStorage.getItem('nowspace_save'));
+            localStorage.setItem('nowspace_save_1', localStorage.getItem('nowspace_save'));
+        } else {
+            const savedStr = localStorage.getItem('nowspace_save_' + activeSlot);
+            if (savedStr) saved = JSON.parse(savedStr);
+        }
+    } catch(e) { console.warn("[ SYSTEM ] Local storage cache corrupted."); }
+
+    if (saved) {
+        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
+        document.getElementById('my-custom-id').value = saved.customId || '';
+        document.getElementById('my-bio').value = saved.bio || ''; 
+        document.getElementById('my-audio').value = saved.audio || '';
+        document.getElementById('my-gallery').value = saved.gallery || ''; 
+        document.getElementById('my-css').value = saved.css || '';
+        document.getElementById('my-custom-sound').value = saved.customSound || ''; 
+        
+        wallData = saved.wall || []; 
+        featureToggles = saved.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
+        
+        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
+        if (document.getElementById('my-password')) document.getElementById('my-password').value = saved.password || '';
+        
+        if (typeof applyBackground === "function") applyBackground(saved.bgUrl || '');
+        if (typeof applyFeatures === "function") {
+            ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
+                const cb = document.getElementById('toggle-' + f); 
+                if (cb) cb.checked = featureToggles[f];
+            });
+            applyFeatures(featureToggles);
+        }
+        if (typeof renderWall === "function") renderWall();
+        
+        const inject = document.getElementById('custom-injected-css'); 
+        if(inject) inject.innerText = saved.css || ''; 
+    } else {
+        // If the slot is empty, purge UI to default blank state
+        document.getElementById('my-alias').value = 'NEW_PROFILE'; 
+        document.getElementById('my-custom-id').value = '';
+        document.getElementById('my-bio').value = 'SYSTEM_STATUS: ONLINE'; 
+        document.getElementById('my-audio').value = '';
+        document.getElementById('my-gallery').value = ''; 
+        document.getElementById('my-css').value = '';
+        document.getElementById('my-custom-sound').value = ''; 
+        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = '';
+        if (document.getElementById('my-password')) document.getElementById('my-password').value = '';
+        
+        wallData = [];
+        featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
+        if (typeof applyBackground === "function") applyBackground('');
+        if (typeof applyFeatures === "function") {
+            ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
+                const cb = document.getElementById('toggle-' + f); 
+                if (cb) cb.checked = true;
+            });
+            applyFeatures(featureToggles);
+        }
+        if (typeof renderWall === "function") renderWall();
+        const inject = document.getElementById('custom-injected-css'); 
+        if(inject) inject.innerText = ''; 
     }
 }
 
-//---------------------------------------------------------
-// 04. THEME EXPORT, IMPORT & NODE REFRESH
-//---------------------------------------------------------
-function exportTheme() {
-    const data = { 
-        alias: document.getElementById('my-alias').value, 
-        customId: document.getElementById('my-custom-id').value, 
-        bio: document.getElementById('my-bio').value, 
-        audio: document.getElementById('my-audio').value, 
-        gallery: document.getElementById('my-gallery').value, 
-        css: document.getElementById('my-css').value, 
-        customSound: document.getElementById('my-custom-sound').value, 
-        bgUrl: document.getElementById('my-bg-url').value, 
-        features: featureToggles, 
-        identityFingerprint: myFingerprint 
-    };
-    
-    const jsonString = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonString], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a'); 
-    link.href = url;
-    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}.json`; 
-    
-    document.body.appendChild(link); 
-    link.click(); 
-    document.body.removeChild(link); 
-    URL.revokeObjectURL(url);
-}
-
-function importTheme(event) {
-    const inputElement = event.target;
-    const file = inputElement.files[0]; 
-    if (!file) return; 
-    
-    const reader = new FileReader();
-    
-    reader.onload = function(e) {
-        try {
-            const p = JSON.parse(e.target.result);
-            
-            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
-            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
-            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
-            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
-            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
-            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
-            
-            if(p.bgUrl !== undefined) { 
-                document.getElementById('my-bg-url').value = p.bgUrl; 
-                if(typeof applyBackground === "function") applyBackground(p.bgUrl); 
-            }
-            
-            if(p.css !== undefined) { 
-                document.getElementById('my-css').value = p.css; 
-                const inject = document.getElementById('custom-injected-css');
-                if (inject) inject.innerText = p.css; 
-            }
-            
-            if(p.features) { 
-                featureToggles = p.features; 
-                ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
-                    const cb = document.getElementById('toggle-' + f); 
-                    if (cb) cb.checked = featureToggles[f];
-                });
-                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
-            }
-            
-            saveLocalData(); 
-            alert("[ SYSTEM ] Profile data successfully imported.");
-            
-        } catch (err) { 
-            alert("[ SYSTEM_ERROR ] Failed to parse theme file."); 
-        } finally { 
-            inputElement.value = ''; 
-        }
-    }; 
-    
-    reader.onerror = function() { 
-        alert("[ SYSTEM_ERROR ] Operating system blocked file read."); 
-        inputElement.value = ''; 
-    };
-    
-    reader.readAsText(file);
-}
-
 function saveLocalData() {
-    if (currentRole !== 'HOST') return;
+    // Only save host configurations. Prevent visitors from overwriting local config slots.
+    if (currentRole === 'VISITOR') return;
     
     const saveData = { 
         alias: document.getElementById('my-alias').value, 
@@ -260,72 +240,109 @@ function saveLocalData() {
         password: document.getElementById('my-password').value 
     };
     
-    localStorage.setItem('nowspace_save', JSON.stringify(saveData));
+    localStorage.setItem('nowspace_save_' + activeSlot, JSON.stringify(saveData));
+}
+
+//---------------------------------------------------------
+// 05. EXPORT / IMPORT ENGINE
+//---------------------------------------------------------
+function exportTheme() {
+    saveLocalData(); // Ensure memory is synced before export
+    const savedStr = localStorage.getItem('nowspace_save_' + activeSlot);
+    if (!savedStr) return;
+    
+    const data = JSON.parse(savedStr);
+    data.identityFingerprint = myFingerprint; // Attach identity token
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a'); 
+    link.href = url;
+    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}_slot${activeSlot}.json`; 
+    
+    document.body.appendChild(link); link.click(); document.body.removeChild(link); 
+    URL.revokeObjectURL(url);
+}
+
+function importTheme(event) {
+    const inputElement = event.target;
+    const file = inputElement.files[0]; 
+    if (!file) return; 
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const p = JSON.parse(e.target.result);
+            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
+            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
+            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
+            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
+            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
+            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
+            
+            if(p.bgUrl !== undefined) { 
+                document.getElementById('my-bg-url').value = p.bgUrl; 
+                if(typeof applyBackground === "function") applyBackground(p.bgUrl); 
+            }
+            if(p.css !== undefined) { 
+                document.getElementById('my-css').value = p.css; 
+                const inject = document.getElementById('custom-injected-css');
+                if (inject) inject.innerText = p.css; 
+            }
+            if(p.features) { 
+                featureToggles = p.features; 
+                ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
+                    const cb = document.getElementById('toggle-' + f); 
+                    if (cb) cb.checked = featureToggles[f];
+                });
+                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
+            }
+            saveLocalData(); 
+            alert(`[ SYSTEM ] Profile data successfully imported to Memory Slot ${activeSlot}.`);
+        } catch (err) { alert("[ SYSTEM_ERROR ] Failed to parse theme file."); } 
+        finally { inputElement.value = ''; }
+    }; 
+    reader.onerror = function() { alert("[ SYSTEM_ERROR ] Operating system blocked file read."); inputElement.value = ''; };
+    reader.readAsText(file);
 }
 
 function copyMagicLink() { 
     const input = document.getElementById('magic-link-input'); 
-    input.select(); 
-    navigator.clipboard.writeText(input.value); 
+    input.select(); navigator.clipboard.writeText(input.value); 
 }
 
 function resetDefaultTemplate() { 
-    if(confirm("Purge node memory cache?")) { 
-        localStorage.clear(); 
+    if(confirm(`Purge Memory Slot ${activeSlot} cache?`)) { 
+        localStorage.removeItem('nowspace_save_' + activeSlot);
         window.location.reload(); 
     } 
 }
 
 //---------------------------------------------------------
-// 05. INITIALIZATION (window.onload)
+// 06. INITIALIZATION (window.onload)
 //---------------------------------------------------------
 window.onload = () => {
-    let saved = null;
-    
-    try {
-        const savedStr = localStorage.getItem('nowspace_save');
-        if (savedStr) saved = JSON.parse(savedStr);
-    } catch(e) {
-        console.warn("[ SYSTEM ] Local storage cache corrupted. Proceeding with defaults.");
-    }
-    
+    const slotSelect = document.getElementById('profile-slot');
+    if (slotSelect) slotSelect.value = activeSlot;
+
     const vAlias = localStorage.getItem('nowspace_visitor_alias');
     if (vAlias && document.getElementById('visitor-alias-input')) {
         document.getElementById('visitor-alias-input').value = vAlias;
     }
     
-    if (saved) {
-        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
-        document.getElementById('my-custom-id').value = saved.customId || '';
-        document.getElementById('my-bio').value = saved.bio || ''; 
-        document.getElementById('my-audio').value = saved.audio || '';
-        document.getElementById('my-gallery').value = saved.gallery || ''; 
-        document.getElementById('my-css').value = saved.css || '';
-        document.getElementById('my-custom-sound').value = saved.customSound || ''; 
-        
-        wallData = saved.wall || []; 
-        featureToggles = saved.features || featureToggles;
-        
-        if (document.getElementById('my-bg-url')) {
-            document.getElementById('my-bg-url').value = saved.bgUrl || '';
-        }
-        if (saved.password && document.getElementById('my-password')) {
-            document.getElementById('my-password').value = saved.password;
-        }
-        
-        if (typeof applyBackground === "function") applyBackground(saved.bgUrl || '');
-        if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
-        if (typeof renderWall === "function") renderWall();
-    }
+    loadLocalData();
     
     const cssInput = document.getElementById('my-css');
     if (cssInput) {
         cssInput.addEventListener('input', (e) => { 
             const inject = document.getElementById('custom-injected-css'); 
             if(inject) inject.innerText = e.target.value; 
+            saveLocalData();
         });
     }
     
+    // Detect incoming auto-connect link
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
         document.getElementById('host-setup-panel').style.display = 'none'; 
