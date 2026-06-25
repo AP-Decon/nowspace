@@ -6,10 +6,13 @@ function broadcastToAll(packet) {
     if (currentRole !== 'HOST' || !peer) return;
     for (let id in peer.connections) {
         peer.connections[id].forEach(c => {
-            if (c.open) c.send(packet);
+
+            if (c.open && typeof c.send === 'function') c.send(packet);
         });
     }
 }
+
+
 
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
@@ -50,7 +53,7 @@ function kickAndBan(targetPeerId) {
         }
         if (peer.connections[targetPeerId]) { 
             peer.connections[targetPeerId].forEach(c => { 
-                c.send({type: 'BANNED'}); 
+                if (typeof c.send === 'function') c.send({type: 'BANNED'}); 
                 setTimeout(() => { c.close(); }, 500); 
             }); 
         }
@@ -298,7 +301,7 @@ function handleIncomingP2PPacket(p, conn) {
                     let targetConnId = null;
                     for (let id in peerFingerprintMap) { if (peerFingerprintMap[id].alias.toLowerCase() === p.targetAlias.toLowerCase()) { targetConnId = id; break; } }
                     if (targetConnId && peer.connections[targetConnId]) {
-                        peer.connections[targetConnId].forEach(c => { if(c.open) c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }); });
+                        peer.connections[targetConnId].forEach(c => { if(c.open && typeof c.send === 'function') c.send({ type: 'INCOMING_WHISPER', senderAlias: p.senderAlias, text: p.text }); });
                         const hostDiv = document.getElementById('host-datastream-output');
                         hostDiv.innerHTML += `<div class="wall-post" style="padding: 2px 5px;"><span style="color:#555; font-size:0.8rem;">[ ROUTER: ${p.senderAlias} whispered ${p.targetAlias} ]</span></div>`;
                         hostDiv.scrollTop = hostDiv.scrollHeight;
