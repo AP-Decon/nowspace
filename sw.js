@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = 'nowspace-cache-v2';
+const CACHE_NAME = 'nowspace-cache-v3';
 const urlsToCache = [
   './',
   './index.html',
@@ -9,29 +9,38 @@ const urlsToCache = [
   './network.js'
 ];
 
-// Install the Service Worker and Cache Files
+// 1. Install & Force Takeover
 self.addEventListener('install', event => {
+  self.skipWaiting(); // Forces the browser to immediately activate the new worker
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        return cache.addAll(urlsToCache);
-      })
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
   );
 });
 
-// Intercept network requests and serve from cache if offline
+// 2. Network-First Strategy
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return the cached version if found, otherwise fetch from network
-        return response || fetch(event.request);
+    fetch(event.request)
+      .then(networkResponse => {
+        // If we get a valid response from the internet, clone it to the cache and show it
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        // If the network fails (offline), pull from the local cache
+        return caches.match(event.request);
       })
   );
 });
 
-// Clean up old caches when a new version is installed
+// 3. Clean up old caches & claim clients instantly
 self.addEventListener('activate', event => {
+  event.waitUntil(clients.claim()); // Take control of open tabs immediately without reloading
+  
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
