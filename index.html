@@ -49,8 +49,14 @@
     </div>
 
     <div class="panel" id="host-setup-panel">
-        <h3>[ 01 // LOAD_PROFILE_DATA ]</h3>
-        <label>System Alias (Display Name):</label>
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 15px; padding-bottom: 5px;">
+            <h3 style="margin:0;">[ 01 // LOAD_PROFILE_DATA ]</h3>
+            <select id="profile-slot" onchange="switchProfile(this.value)" style="background:#000; color:var(--bright-magenta); border:1px solid var(--bright-magenta); padding:4px; font-family:monospace; cursor:pointer;">
+                <option value="1">MEMORY SLOT 01</option>
+                <option value="2">MEMORY SLOT 02</option>
+                <option value="3">MEMORY SLOT 03</option>
+            </select>
+        </div>        <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
         <label>Custom Access Hash (For your URL):</label>
         <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
