@@ -522,7 +522,8 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
         for (let id in peer.connections) { 
             if (id !== originalSender) { 
                 peer.connections[id].forEach(c => { 
-                    if(c.open) c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); 
+                    // NEW: Added safety check to soundboard router
+                    if(c.open && typeof c.send === 'function') c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); 
                 }); 
             } 
         }
