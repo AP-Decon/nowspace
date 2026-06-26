@@ -73,6 +73,8 @@
         <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
         <label>Profile Gallery (URLs, one per line):</label>
         <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
+        <label>Favourite Places (Web URLs, one per line):</label>
+        <textarea id="my-top8" rows="3">https://neocities.org</textarea>
         
         <label>Custom Background (Image URL):</label>
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
@@ -93,7 +95,7 @@
                 <label><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()"> CRT SCANLINES</label>
                 <label><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()"> SOUNDBOARD</label>
                 <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
-                <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> TOP 8 RING</label>
+                <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV PLACES</label>
                 <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
                 <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
                 <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
@@ -203,6 +205,11 @@
         <div class="panel" id="visitor-gallery-panel" style="display: none;">
             <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
             <div class="gallery-grid" id="render-gallery-grid"></div>
+        </div>
+
+        <div class="panel" id="visitor-top8-panel" style="display: none;">
+            <h3>[ HOST_BOOKMARKS // FAVOURITE_PLACES ]</h3>
+            <div class="top8-grid" id="render-top8-grid"></div>
         </div>
 
         <div class="panel" id="datastream-container">
