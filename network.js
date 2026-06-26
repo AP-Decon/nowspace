@@ -260,24 +260,36 @@ function handleIncomingP2PPacket(p, conn) {
                 document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; 
                 break;
                 
-            case MSG_TYPE_PROFILE:
-                statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
-                document.getElementById('render-alias').innerText = p.alias; 
-                document.getElementById('datarender-bio').innerText = p.bio;
+case MSG_TYPE_PROFILE:
+                if (statusDisplay) statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
                 
-                if(p.bgUrl && typeof applyBackground === "function") applyBackground(p.bgUrl);
-                if(p.css) document.getElementById('custom-injected-css').innerText = p.css;
-                if(p.audio && typeof renderAudioEmbed === "function") document.getElementById('audio-container').innerHTML = renderAudioEmbed(p.audio);
+                const rAlias = document.getElementById('render-alias');
+                if (rAlias) rAlias.innerText = p.alias; 
                 
-                featureToggles = p.features || featureToggles; activePoll = p.activePoll || null;
-                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
-                if(typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery); 
-                if(typeof buildVisitorTop8Grid === "function") buildVisitorTop8Grid(p.top8); 
+                const rBio = document.getElementById('datarender-bio');
+                if (rBio) rBio.innerText = p.bio;
+                
+                if (p.bgUrl && typeof applyBackground === "function") applyBackground(p.bgUrl);
+                
+                const rCss = document.getElementById('custom-injected-css');
+                if (p.css && rCss) rCss.innerText = p.css;
+                
+                const rAudio = document.getElementById('audio-container');
+                if (p.audio && rAudio && typeof renderAudioEmbed === "function") {
+                    rAudio.innerHTML = renderAudioEmbed(p.audio);
+                }
+                
+                featureToggles = p.features || featureToggles; 
+                activePoll = p.activePoll || null;
+                
+                if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
+                if (typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery); 
+                if (typeof buildVisitorTop8Grid === "function") buildVisitorTop8Grid(p.top8); 
                 
                 wallData = p.currentWall; 
-                if(typeof renderWall === "function") renderWall(); 
+                if (typeof renderWall === "function") renderWall(); 
                 break;
-            
+                
             case MSG_TYPE_USER_LIST:
                 if (currentRole === 'VISITOR') {
                     const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
