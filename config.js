@@ -81,23 +81,23 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:standard.relay.metered.ca:80",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "YOUR_USERNAME_HERE",
+                credential: "YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turn:standard.relay.metered.ca:80?transport=tcp",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "YOUR_USERNAME_HERE",
+                credential: "YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turn:standard.relay.metered.ca:443",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "YOUR_USERNAME_HERE",
+                credential: "YOUR_CREDENTIAL_HERE"
             },
             {
                 urls: "turns:standard.relay.metered.ca:443?transport=tcp",
-                username: "a2c8cb5b5df48328de43a219",
-                credential: "cn5bJg9evQNfOc/k"
+                username: "YOUR_USERNAME_HERE",
+                credential: "YOUR_CREDENTIAL_HERE"
             }
         ]
     }
@@ -153,14 +153,9 @@ function systemPing(title, body) {
 // 04. PROFILE MULTI-SLOT MEMORY MANAGEMENT
 //---------------------------------------------------------
 function switchProfile(slotId) {
-    // Save current active config to its slot before swapping
     saveLocalData();
-    
-    // Update the pointer
     activeSlot = slotId;
     localStorage.setItem('nowspace_active_slot', activeSlot);
-    
-    // Load the newly selected slot
     loadLocalData();
 }
 
@@ -177,7 +172,6 @@ function loadLocalData() {
     } catch(e) { console.warn("[ SYSTEM ] Local storage cache corrupted."); }
 
     if (saved) {
-        // Load User's Custom Slot Data
         document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
         document.getElementById('my-custom-id').value = saved.customId || '';
         document.getElementById('my-bio').value = saved.bio || ''; 
@@ -185,6 +179,9 @@ function loadLocalData() {
         document.getElementById('my-gallery').value = saved.gallery || ''; 
         document.getElementById('my-css').value = saved.css || '';
         document.getElementById('my-custom-sound').value = saved.customSound || ''; 
+        
+        // Favorite Places Loaded Here
+        document.getElementById('my-top8').value = saved.top8 || ''; 
         
         wallData = saved.wall || []; 
         featureToggles = saved.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
@@ -205,13 +202,15 @@ function loadLocalData() {
         const inject = document.getElementById('custom-injected-css'); 
         if(inject) inject.innerText = saved.css || ''; 
     } else {
-        // --- NEW: THE DEFAULT SYSTEM TEMPLATE ---
-        // If the slot is empty, inject the baseline Cyberpunk visual template
         document.getElementById('my-alias').value = 'NODE-0' + activeSlot; 
         document.getElementById('my-custom-id').value = '';
         document.getElementById('my-bio').value = 'SYSTEM_STATUS: ONLINE // Currently overriding mainframe.'; 
         document.getElementById('my-audio').value = 'https://www.youtube.com/watch?v=hMxlPYStVVY';
         document.getElementById('my-gallery').value = 'https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif'; 
+        
+        // Favorite Places Default Load Here
+        document.getElementById('my-top8').value = 'https://neocities.org\nhttps://hackaday.com';
+        
         document.getElementById('my-css').value = '/* ENTER CUSTOM OVERRIDES HERE */';
         document.getElementById('my-custom-sound').value = ''; 
         if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = '';
@@ -243,6 +242,10 @@ function saveLocalData() {
         bio: document.getElementById('my-bio').value, 
         audio: document.getElementById('my-audio').value, 
         gallery: document.getElementById('my-gallery').value, 
+        
+        // Favorite Places Saved Here
+        top8: document.getElementById('my-top8') ? document.getElementById('my-top8').value : '',
+        
         css: document.getElementById('my-css').value, 
         customSound: document.getElementById('my-custom-sound').value, 
         bgUrl: document.getElementById('my-bg-url').value, 
@@ -290,6 +293,10 @@ function importTheme(event) {
             if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
             if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
             if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
+            
+            // Favorite Places Imported Here
+            if(p.top8 !== undefined) document.getElementById('my-top8').value = p.top8;
+            
             if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
             
             if(p.bgUrl !== undefined) { 
@@ -361,4 +368,3 @@ window.onload = () => {
         document.getElementById('visitor-password').focus(); 
     }
 };
-// END
