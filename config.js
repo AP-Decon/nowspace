@@ -81,23 +81,23 @@ const peerConfig = {
             { urls: "stun:stun.relay.metered.ca:80" },
             {
                 urls: "turn:standard.relay.metered.ca:80",
-                username: "YOUR_USERNAME_HERE",
-                credential: "YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             },
             {
                 urls: "turn:standard.relay.metered.ca:80?transport=tcp",
-                username: "YOUR_USERNAME_HERE",
-                credential: "YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             },
             {
                 urls: "turn:standard.relay.metered.ca:443",
-                username: "YOUR_USERNAME_HERE",
-                credential: "YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             },
             {
                 urls: "turns:standard.relay.metered.ca:443?transport=tcp",
-                username: "YOUR_USERNAME_HERE",
-                credential: "YOUR_CREDENTIAL_HERE"
+                username: "a2c8cb5b5df48328de43a219",
+                credential: "cn5bJg9evQNfOc/k"
             }
         ]
     }
