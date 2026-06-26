@@ -74,6 +74,55 @@ function toggleCam() {
 //---------------------------------------------------------
 // 02. STREAM ACQUISITION & HARDWARE
 //---------------------------------------------------------
+function renderLocalVideo() {
+    const containerId = currentRole === 'HOST' ? 'host-video-stream-container' : 'visitor-video-stream-container';
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    // Clear any existing local preview
+    const existing = document.getElementById('video-local-wrapper');
+    if (existing) existing.remove();
+
+    const videoWrapper = document.createElement('div');
+    videoWrapper.id = 'video-local-wrapper';
+    videoWrapper.style.position = 'relative';
+    videoWrapper.style.display = 'inline-block';
+    videoWrapper.style.margin = '5px';
+    videoWrapper.style.border = '1px dashed #fff'; // White dashed border for local feed
+    videoWrapper.style.backgroundColor = '#000';
+    
+    const vid = document.createElement('video');
+    vid.id = 'video-local';
+    vid.srcObject = localStream;
+    vid.autoplay = true;
+    vid.playsInline = true;
+    vid.muted = true; // Crucial: mutes your own mic so you don't hear an echo
+    vid.style.width = '160px';
+    vid.style.height = '120px';
+    vid.style.objectFit = 'cover';
+    vid.style.display = 'block';
+    vid.style.transform = 'scaleX(-1)'; // Mirrors your preview so it feels like a real mirror
+    
+    const label = document.createElement('div');
+    label.innerText = '[ LOCAL_FEED ]';
+    label.style.position = 'absolute';
+    label.style.bottom = '0';
+    label.style.left = '0';
+    label.style.width = '100%';
+    label.style.background = 'rgba(255,255,255,0.2)';
+    label.style.color = '#fff';
+    label.style.fontSize = '0.7rem';
+    label.style.textAlign = 'center';
+    label.style.padding = '2px 0';
+    label.style.fontFamily = 'monospace';
+    
+    videoWrapper.appendChild(vid);
+    videoWrapper.appendChild(label);
+    
+    // Insert local video first in the list
+    container.insertBefore(videoWrapper, container.firstChild);
+}
+
 async function toggleVoice() {
     if (!featureToggles.voicecomms) return alert("[ SYSTEM_ERROR ] Communications module is currently disabled by Host.");
     
@@ -108,6 +157,9 @@ async function toggleVoice() {
             // Force the UI buttons to match the cold state
             isMuted = false; toggleMute(); 
             isCamOn = true; toggleCam();
+
+            // Render the local preview mirror!
+            renderLocalVideo();
 
             // Broadcast to active peers
             if (currentRole === 'HOST') {
@@ -150,6 +202,10 @@ async function toggleScreen() {
             localStream.addTrack(videoTrack);
             localStream.getVideoTracks()[0].enabled = isCamOn;
 
+            // Ensure the local video element recognizes the new track
+            const localVid = document.getElementById('video-local');
+            if (localVid) { localVid.srcObject = localStream; localVid.style.transform = 'scaleX(-1)'; }
+
             isScreenSharing = false;
             document.querySelectorAll('.screen-btn').forEach(btn => {
                 btn.innerText = '[ 🖥️ SCREEN ]';
@@ -174,6 +230,10 @@ async function toggleScreen() {
             localStream.removeTrack(localStream.getVideoTracks()[0]);
             localStream.addTrack(screenTrack);
 
+            // Turn off mirroring when sharing a screen so text is readable
+            const localVid = document.getElementById('video-local');
+            if (localVid) { localVid.srcObject = localStream; localVid.style.transform = 'none'; }
+
             isScreenSharing = true;
             document.querySelectorAll('.screen-btn').forEach(btn => {
                 btn.innerText = '[ 🖥️ SHARING ]';
@@ -195,7 +255,10 @@ async function toggleScreen() {
 function updateMasterVolume(val) {
     globalVolume = val;
     document.querySelectorAll('audio, video').forEach(el => {
-        el.volume = val;
+        // Exclude the local monitor from global volume changes so it stays muted
+        if (el.id !== 'video-local') {
+            el.volume = val;
+        }
     });
 }
 
