@@ -1,6 +1,8 @@
 //---------------------------------------------------------
-// 01. A/V TOGGLES & VISUALS
+// 01. HARDWARE DETECTION & VISUAL TOGGLES
 //---------------------------------------------------------
+const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 2 && /MacIntel/.test(navigator.platform));
+
 function updateVoiceTogglesVisuals(isActive) {
     document.querySelectorAll('.voice-switch-container').forEach(el => {
         const label = el.querySelector('.voice-switch-label');
@@ -10,7 +12,7 @@ function updateVoiceTogglesVisuals(isActive) {
         if (isActive) { // COMMS ARE HOT
             label.innerText = 'COMMS: LIVE';
             label.style.color = 'var(--alert-red)';
-            track.style.background = 'rgba(255, 0, 85, 0.3)'; // Dim red background
+            track.style.background = 'rgba(255, 0, 85, 0.3)'; 
             track.style.borderColor = 'var(--alert-red)';
             handle.style.transform = 'translateX(20px)';
             handle.style.background = 'var(--alert-red)';
@@ -96,7 +98,12 @@ async function toggleVoice() {
             localStream.getVideoTracks().forEach(track => track.enabled = isCamOn);
 
             updateVoiceTogglesVisuals(true);
-            document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(btn => btn.style.display = 'inline-block');
+            
+            // Reveal buttons based on hardware
+            document.querySelectorAll('.mute-btn, .cam-btn').forEach(btn => btn.style.display = 'inline-block');
+            if (!isMobileDevice) {
+                document.querySelectorAll('.screen-btn').forEach(btn => btn.style.display = 'inline-block');
+            }
             
             // Force the UI buttons to match the cold state
             isMuted = false; toggleMute(); 
@@ -126,7 +133,7 @@ async function toggleVoice() {
 }
 
 async function toggleScreen() {
-    if (!localStream) return;
+    if (!localStream || isMobileDevice) return;
 
     if (isScreenSharing) {
         // CANCEL SCREEN SHARE
@@ -147,6 +154,8 @@ async function toggleScreen() {
             document.querySelectorAll('.screen-btn').forEach(btn => {
                 btn.innerText = '[ 🖥️ SCREEN ]';
                 btn.classList.remove('btn-alert');
+                btn.style.color = '#555'; 
+                btn.style.borderColor = '#333'; 
             });
         } catch (err) { console.warn("[ SYSTEM ] Reverting to camera failed.", err); }
     } else {
@@ -169,6 +178,8 @@ async function toggleScreen() {
             document.querySelectorAll('.screen-btn').forEach(btn => {
                 btn.innerText = '[ 🖥️ SHARING ]';
                 btn.classList.add('btn-alert');
+                btn.style.color = ''; 
+                btn.style.borderColor = ''; 
             });
             
             // Force Camera UI to hot state since video is transmitting
