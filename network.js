@@ -154,11 +154,37 @@ async function startHosting() {
                 </div>`;
         });
         
-        peer.on('error', (err) => {
-            alert("[ PEER_ERROR ] " + err.type + " - " + err.message);
-            document.getElementById('btn-go-online').disabled = false;
-        });
+   peer.on('error', (err) => {
+        console.warn("[ PEER_ERROR ]", err.type, err);
 
+        // AUTO-DIALER: If the Host is offline or hasn't booted up yet
+        if (err.type === 'peer-unavailable') {
+            if (currentRole === 'VISITOR') {
+                const statusDisplay = document.getElementById('connection-status');
+                if (statusDisplay) {
+                    statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
+                    statusDisplay.style.color = "var(--alert-red)";
+                }
+                
+                // Wait 3 seconds and try the connection again
+                setTimeout(() => {
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "[ DIALING HOST... ]";
+                        statusDisplay.style.color = "var(--main-cyan)";
+                    }
+                    if (typeof visitFriend === "function") visitFriend();
+                }, 3000);
+            }
+        } 
+        // Handle disconnected network state
+        else if (err.type === 'network' || err.type === 'disconnected') {
+            const statusDisplay = document.getElementById('connection-status');
+            if (statusDisplay) {
+                statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
+                statusDisplay.style.color = "var(--alert-red)";
+            }
+        }
+    });
         peer.on('connection', (c) => {
             c.on('data', (data) => handleIncomingP2PPacket(data, c));
             c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
