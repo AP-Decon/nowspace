@@ -56,13 +56,30 @@ async function toggleVoice() {
 }
 
 function updateVoiceTogglesVisuals(isActive) {
-    document.querySelectorAll('.voice-switch-label').forEach(el => {
-        el.innerText = isActive ? "COMMS: ON" : "COMMS: OFF";
-    });
-    
     document.querySelectorAll('.voice-switch-container').forEach(el => {
-        el.classList.toggle('active', isActive);
+        const label = el.querySelector('.voice-switch-label');
+        const track = el.querySelector('.voice-switch-track');
+        const handle = el.querySelector('.voice-switch-handle');
+        
+        if (isActive) { // COMMS ARE HOT
+            label.innerText = 'COMMS: LIVE';
+            label.style.color = 'var(--alert-red)';
+            track.style.background = 'rgba(255, 0, 85, 0.3)'; // Dim red background
+            track.style.borderColor = 'var(--alert-red)';
+            handle.style.transform = 'translateX(20px)';
+            handle.style.background = 'var(--alert-red)';
+            handle.style.boxShadow = '0 0 5px var(--alert-red)';
+        } else { // COMMS ARE COLD
+            label.innerText = 'COMMS: OFF';
+            label.style.color = '#555';
+            track.style.background = '#111';
+            track.style.borderColor = '#333';
+            handle.style.transform = 'translateX(0px)';
+            handle.style.background = '#555';
+            handle.style.boxShadow = 'none';
+        }
     });
+}
     
     // MOBILE DETECTION ALGORITHM: Checks if the user is on a phone/tablet
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -93,16 +110,22 @@ function updateVoiceTogglesVisuals(isActive) {
 }
 
 function toggleMute() {
-    if (!localStream) return;
     isMuted = !isMuted;
-    localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+    if (localStream) {
+        localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+    }
     
-    document.querySelectorAll('.mute-btn').forEach(b => {
-        b.innerText = isMuted ? "[ 🔇 UNMUTE ]" : "[ 🔊 MUTE ]";
-        if(isMuted) {
-            b.classList.add('btn-alert'); 
-        } else {
-            b.classList.remove('btn-alert');
+    document.querySelectorAll('.mute-btn').forEach(btn => {
+        if (!isMuted) { // MIC IS HOT
+            btn.innerText = '[ 🎙️ MIC: LIVE ]';
+            btn.classList.add('btn-alert');
+            btn.style.color = ''; 
+            btn.style.borderColor = ''; 
+        } else { // MIC IS COLD
+            btn.innerText = '[ 🔇 MIC: OFF ]';
+            btn.classList.remove('btn-alert');
+            btn.style.color = '#555'; 
+            btn.style.borderColor = '#333'; 
         }
     });
 }
@@ -114,12 +137,16 @@ function toggleCam() {
     }
     
     document.querySelectorAll('.cam-btn').forEach(btn => {
-        if (isCamOn) {
-            btn.innerText = '[ 📷 CAM: ON ]';
-            btn.classList.add('btn-alert'); // Turns red when LIVE
-        } else {
+        if (isCamOn) { // CAM IS HOT
+            btn.innerText = '[ 📷 CAM: LIVE ]';
+            btn.classList.add('btn-alert');
+            btn.style.color = ''; 
+            btn.style.borderColor = ''; 
+        } else { // CAM IS COLD
             btn.innerText = '[ 📷 CAM: OFF ]';
-            btn.classList.remove('btn-alert'); // Returns to default cyan in standby
+            btn.classList.remove('btn-alert');
+            btn.style.color = '#555'; 
+            btn.style.borderColor = '#333'; 
         }
     });
 }
