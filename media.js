@@ -102,14 +102,13 @@ function renderLocalVideo() {
     vid.style.display = 'block';
     vid.style.transform = 'scaleX(-1)'; 
     
-    // THE MOBILE FULLSCREEN FIX
     vid.style.cursor = 'zoom-in';
     vid.title = '[ CLICK TO ENLARGE ]';
     vid.onclick = () => {
         if (vid.requestFullscreen) vid.requestFullscreen();
         else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
         else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iOS Safari
-        else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); // Legacy Edge
+        else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); 
     };
     
     const label = document.createElement('div');
@@ -166,13 +165,14 @@ async function toggleVoice() {
             isMuted = false; toggleMute(); 
             isCamOn = true; toggleCam();
 
-            // Render the local preview mirror!
+            // Render the local preview
             renderLocalVideo();
 
-            // Broadcast to active peers
+            // Broadcast to active peers dynamically
             if (currentRole === 'HOST') {
                 for (let id in peer.connections) {
-                    if (peer.connections[id][0] && peer.connections[id][0].open) {
+                    // Check if they are physically connected before calling
+                    if (peer.connections[id].some(c => c.open)) {
                         let call = peer.call(id, localStream);
                         activeCalls.push(call);
                         handleCallEvent(call);
@@ -210,7 +210,6 @@ async function toggleScreen() {
             localStream.addTrack(videoTrack);
             localStream.getVideoTracks()[0].enabled = isCamOn;
 
-            // Ensure the local video element recognizes the new track
             const localVid = document.getElementById('video-local');
             if (localVid) { localVid.srcObject = localStream; localVid.style.transform = 'scaleX(-1)'; }
 
@@ -238,7 +237,6 @@ async function toggleScreen() {
             localStream.removeTrack(localStream.getVideoTracks()[0]);
             localStream.addTrack(screenTrack);
 
-            // Turn off mirroring when sharing a screen so text is readable
             const localVid = document.getElementById('video-local');
             if (localVid) { localVid.srcObject = localStream; localVid.style.transform = 'none'; }
 
@@ -250,7 +248,6 @@ async function toggleScreen() {
                 btn.style.borderColor = ''; 
             });
             
-            // Force Camera UI to hot state since video is transmitting
             isCamOn = false; toggleCam();
 
         } catch (err) { console.warn("[ SYSTEM ] Screen sharing canceled.", err); }
@@ -263,10 +260,7 @@ async function toggleScreen() {
 function updateMasterVolume(val) {
     globalVolume = val;
     document.querySelectorAll('audio, video').forEach(el => {
-        // Exclude the local monitor from global volume changes so it stays muted
-        if (el.id !== 'video-local') {
-            el.volume = val;
-        }
+        if (el.id !== 'video-local') el.volume = val;
     });
 }
 
@@ -274,13 +268,11 @@ function setupPeerCallListener() {
     peer.on('call', (call) => {
         if (localStream) {
             call.answer(localStream);
-            activeCalls.push(call);
-            handleCallEvent(call);
         } else {
-            call.answer(); 
-            activeCalls.push(call);
-            handleCallEvent(call);
+            call.answer(); // Answer passively if camera isn't on yet
         }
+        activeCalls.push(call);
+        handleCallEvent(call);
     });
 }
 
@@ -290,8 +282,12 @@ function handleCallEvent(call) {
         const container = document.getElementById(containerId);
         if (!container) return;
         
-        const existingVideo = document.getElementById(`video-${call.peer}`);
-        if (existingVideo) return; 
+        // THE FIX: If the video box already exists, inject the new stream directly into it!
+        let vid = document.getElementById(`video-${call.peer}`);
+        if (vid) {
+            vid.srcObject = remoteStream;
+            return; 
+        }
 
         const videoWrapper = document.createElement('div');
         videoWrapper.style.position = 'relative';
@@ -301,7 +297,7 @@ function handleCallEvent(call) {
         videoWrapper.style.boxShadow = '0 0 5px var(--main-cyan)';
         videoWrapper.style.backgroundColor = '#000';
         
-        const vid = document.createElement('video');
+        vid = document.createElement('video');
         vid.id = `video-${call.peer}`;
         vid.srcObject = remoteStream;
         vid.autoplay = true;
@@ -311,14 +307,13 @@ function handleCallEvent(call) {
         vid.style.objectFit = 'cover';
         vid.style.display = 'block';
         
-        // THE MOBILE FULLSCREEN FIX
         vid.style.cursor = 'zoom-in';
         vid.title = '[ CLICK TO ENLARGE ]';
         vid.onclick = () => {
             if (vid.requestFullscreen) vid.requestFullscreen();
             else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
             else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iOS Safari
-            else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); // Legacy Edge
+            else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); 
         };
         
         const label = document.createElement('div');
@@ -342,9 +337,13 @@ function handleCallEvent(call) {
     });
 
     call.on('close', () => {
-        const vidWrapper = document.getElementById(`video-${call.peer}`)?.parentElement;
-        if (vidWrapper) vidWrapper.remove();
         activeCalls = activeCalls.filter(c => c !== call);
+        // Smart Cleanup: Only remove the video box if there are no overlapping calls from this person
+        const hasOtherCall = activeCalls.some(c => c.peer === call.peer);
+        if (!hasOtherCall) {
+            const vidWrapper = document.getElementById(`video-${call.peer}`)?.parentElement;
+            if (vidWrapper) vidWrapper.remove();
+        }
     });
     
     call.on('error', (err) => { console.warn("[ STREAM_ERROR ] ", err); });
