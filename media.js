@@ -51,7 +51,7 @@ async function toggleVoice() {
             });
         }
     } catch (err) {
-        alert("[ HARDWARE ERROR ] Could not access camera/microphone.\n" + err.message);
+        alert("[ HARDWARE ERROR ] Could not access era/microphone.\n" + err.message);
     }
 }
 
@@ -108,21 +108,18 @@ function toggleMute() {
 }
 
 function toggleCam() {
-    if (!localStream) return;
-    if (isScreenSharing) {
-        alert("Please stop Screen Sharing before toggling the camera.");
-        return;
+    isCamOn = !isCamOn;
+    if (localStream) {
+        localStream.getVideoTracks().forEach(track => track.enabled = isCamOn);
     }
     
-    isCamOn = !isCamOn;
-    localStream.getVideoTracks().forEach(t => t.enabled = isCamOn);
-    
-    document.querySelectorAll('.cam-btn').forEach(b => {
-        b.innerText = isCamOn ? "[ 📷 CAM: ON ]" : "[ 📷 CAM: OFF ]";
-        if(!isCamOn) {
-            b.classList.add('btn-alert'); 
+    document.querySelectorAll('.cam-btn').forEach(btn => {
+        if (isCamOn) {
+            btn.innerText = '[ 📷 CAM: ON ]';
+            btn.classList.add('btn-alert'); // Turns red when LIVE
         } else {
-            b.classList.remove('btn-alert');
+            btn.innerText = '[ 📷 CAM: OFF ]';
+            btn.classList.remove('btn-alert'); // Returns to default cyan in standby
         }
     });
 }
