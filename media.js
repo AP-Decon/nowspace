@@ -1,60 +1,6 @@
 //---------------------------------------------------------
-// 01. LOCAL MEDIA CONTROLS & INITIALIZATION
+// 01. A/V TOGGLES & VISUALS
 //---------------------------------------------------------
-async function toggleVoice() {
-    if (!featureToggles.voicecomms) {
-        return alert("A/V Comms are disabled on this node.");
-    }
-
-    if (localStream) {
-        // Turning OFF
-        if (activeCalls.length > 0) { 
-            activeCalls.forEach(call => call.close()); 
-            activeCalls = []; 
-        }
-        
-        localStream.getTracks().forEach(t => t.stop());
-        localStream = null;
-        updateVoiceTogglesVisuals(false);
-        
-        const containerId = currentRole === 'HOST' ? 'host-video-stream-container' : 'visitor-video-stream-container';
-        const container = document.getElementById(containerId);
-        if (container) container.innerHTML = '';
-        return;
-    }
-
-    // Turning ON
-    try {
-        localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        
-        // Start with Camera OFF and Mic ON by default
-        isMuted = false;
-        isCamOn = false;
-        localStream.getVideoTracks().forEach(t => t.enabled = false);
-
-        updateVoiceTogglesVisuals(true);
-        renderLocalStream();
-
-        // Broadcast to all active peers
-        if (currentRole === 'HOST') {
-            const activePeers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
-            activePeers.forEach(id => {
-                let call = peer.call(id, localStream);
-                activeCalls.push(call);
-                handleCallEvent(call);
-            });
-        } else if (currentRole === 'VISITOR') {
-            currentNetworkPeers.forEach(id => {
-                let call = peer.call(id, localStream);
-                activeCalls.push(call);
-                handleCallEvent(call);
-            });
-        }
-    } catch (err) {
-        alert("[ HARDWARE ERROR ] Could not access era/microphone.\n" + err.message);
-    }
-}
-
 function updateVoiceTogglesVisuals(isActive) {
     document.querySelectorAll('.voice-switch-container').forEach(el => {
         const label = el.querySelector('.voice-switch-label');
@@ -79,34 +25,6 @@ function updateVoiceTogglesVisuals(isActive) {
             handle.style.boxShadow = 'none';
         }
     });
-}
-    
-    // MOBILE DETECTION ALGORITHM: Checks if the user is on a phone/tablet
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    document.querySelectorAll('.mute-btn, .cam-btn').forEach(b => {
-        b.style.display = isActive ? 'inline-block' : 'none';
-    });
-
-    // Only show the screen share button if they are NOT on a mobile device
-    document.querySelectorAll('.screen-btn').forEach(b => {
-        b.style.display = (isActive && !isMobile) ? 'inline-block' : 'none';
-    });
-
-    if (!isActive) {
-        document.querySelectorAll('.mute-btn').forEach(b => { 
-            b.innerText = "[ 🔊 MUTE ]"; 
-            b.classList.remove('btn-alert'); 
-        });
-        document.querySelectorAll('.cam-btn').forEach(b => { 
-            b.innerText = "[ 📷 CAM: OFF ]"; 
-            b.classList.add('btn-alert'); 
-        });
-        document.querySelectorAll('.screen-btn').forEach(b => { 
-            b.innerText = "[ 🖥️ SCREEN ]"; 
-            b.classList.remove('btn-alert'); 
-        });
-    }
 }
 
 function toggleMute() {
@@ -151,116 +69,136 @@ function toggleCam() {
     });
 }
 
-async function toggleScreen() {
-    if (!localStream) return;
+//---------------------------------------------------------
+// 02. STREAM ACQUISITION & HARDWARE
+//---------------------------------------------------------
+async function toggleVoice() {
+    if (!featureToggles.voicecomms) return alert("[ SYSTEM_ERROR ] Communications module is currently disabled by Host.");
     
-    if (isScreenSharing) {
-        // Revert to camera
-        try {
-            const newCamStream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const videoTrack = newCamStream.getVideoTracks()[0];
-            const senderVideo = localStream.getVideoTracks()[0];
-            
-            localStream.removeTrack(senderVideo);
-            localStream.addTrack(videoTrack);
-            
-            activeCalls.forEach(call => {
-                const sender = call.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                if (sender) sender.replaceTrack(videoTrack);
-            });
-            
-            videoTrack.enabled = isCamOn;
-            isScreenSharing = false;
-            
-            document.querySelectorAll('.screen-btn').forEach(b => {
-                b.innerText = "[ 🖥️ SCREEN ]";
-                b.classList.remove('btn-alert');
-            });
-            
-            const localVid = document.getElementById('local-video-preview');
-            if (localVid) localVid.srcObject = localStream;
-            
-        } catch (err) {
-            console.error("Failed to revert to camera:", err);
-        }
+    if (localStream) {
+        // KILL CONNECTION
+        if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
+        localStream.getTracks().forEach(t => t.stop());
+        localStream = null;
+        updateVoiceTogglesVisuals(false);
+        document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(btn => btn.style.display = 'none');
+        document.getElementById('host-video-stream-container').innerHTML = '';
+        document.getElementById('visitor-video-stream-container').innerHTML = '';
     } else {
-        // Switch to Screen Share
+        // INITIALIZE CONNECTION
         try {
-            const screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-            const screenTrack = screenStream.getVideoTracks()[0];
-            const senderVideo = localStream.getVideoTracks()[0];
+            localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
             
-            localStream.removeTrack(senderVideo);
-            localStream.addTrack(screenTrack);
+            // Default hardware state to COLD so users don't hot-mic
+            isMuted = true;
+            isCamOn = false;
+            localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+            localStream.getVideoTracks().forEach(track => track.enabled = isCamOn);
+
+            updateVoiceTogglesVisuals(true);
+            document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(btn => btn.style.display = 'inline-block');
             
-            activeCalls.forEach(call => {
-                const sender = call.peerConnection.getSenders().find(s => s.track.kind === 'video');
-                if (sender) sender.replaceTrack(screenTrack);
-            });
-            
-            isScreenSharing = true;
-            
-            // If they click "Stop Sharing" on the browser's system popup
-            screenTrack.onended = () => { 
-                if(isScreenSharing) toggleScreen(); 
-            };
-            
-            document.querySelectorAll('.screen-btn').forEach(b => {
-                b.innerText = "[ 🛑 STOP SHARE ]";
-                b.classList.add('btn-alert');
-            });
-            
-            const localVid = document.getElementById('local-video-preview');
-            if (localVid) localVid.srcObject = localStream;
-            
+            // Force the UI buttons to match the cold state
+            isMuted = false; toggleMute(); 
+            isCamOn = true; toggleCam();
+
+            // Broadcast to active peers
+            if (currentRole === 'HOST') {
+                for (let id in peer.connections) {
+                    if (peer.connections[id][0] && peer.connections[id][0].open) {
+                        let call = peer.call(id, localStream);
+                        activeCalls.push(call);
+                        handleCallEvent(call);
+                    }
+                }
+            } else if (currentRole === 'VISITOR' && currentNetworkPeers.length > 0) {
+                currentNetworkPeers.forEach(id => {
+                    let call = peer.call(id, localStream);
+                    activeCalls.push(call);
+                    handleCallEvent(call);
+                });
+            }
         } catch (err) {
-            console.error("Screen share failed:", err);
+            alert("[ HARDWARE_ERROR ] Microphone or Camera access denied.\n" + err.message);
+            updateVoiceTogglesVisuals(false);
         }
     }
 }
 
-//---------------------------------------------------------
-// 02. PEER STREAM RENDERING & INDIVIDUAL VOLUME CONTROL
-//---------------------------------------------------------
-function renderLocalStream() {
-    const containerId = currentRole === 'HOST' ? 'host-video-stream-container' : 'visitor-video-stream-container';
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    let localWrapper = document.getElementById('local-stream-wrapper');
-    if (!localWrapper) {
-        localWrapper = document.createElement('div');
-        localWrapper.id = 'local-stream-wrapper';
-        localWrapper.className = 'remote-stream-wrapper';
-        localWrapper.style = 'position: relative; display: inline-block; margin: 5px; border: 1px solid #0f0; background: #000; border-radius: 4px; overflow: hidden;';
-        
-        const localVid = document.createElement('video');
-        localVid.id = 'local-video-preview';
-        localVid.srcObject = localStream;
-        localVid.autoplay = true;
-        localVid.muted = true; // Never play your own audio back to yourself!
-        localVid.playsInline = true;
-        localVid.style = 'width: 200px; height: 150px; object-fit: cover; display: block;';
-        
-        const label = document.createElement('div');
-        label.innerText = '[ YOU ]';
-        label.style = 'position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.7); color: #0f0; font-size: 0.7rem; padding: 2px 4px; z-index: 10; pointer-events: none; border-radius: 2px;';
-        
-        localWrapper.appendChild(localVid);
-        localWrapper.appendChild(label);
-        container.appendChild(localWrapper);
+async function toggleScreen() {
+    if (!localStream) return;
+
+    if (isScreenSharing) {
+        // CANCEL SCREEN SHARE
+        try {
+            const newStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const videoTrack = newStream.getVideoTracks()[0];
+            
+            activeCalls.forEach(call => {
+                const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(videoTrack);
+            });
+
+            localStream.removeTrack(localStream.getVideoTracks()[0]);
+            localStream.addTrack(videoTrack);
+            localStream.getVideoTracks()[0].enabled = isCamOn;
+
+            isScreenSharing = false;
+            document.querySelectorAll('.screen-btn').forEach(btn => {
+                btn.innerText = '[ 🖥️ SCREEN ]';
+                btn.classList.remove('btn-alert');
+            });
+        } catch (err) { console.warn("[ SYSTEM ] Reverting to camera failed.", err); }
+    } else {
+        // INITIATE SCREEN SHARE
+        try {
+            const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+            const screenTrack = displayStream.getVideoTracks()[0];
+
+            screenTrack.onended = () => { toggleScreen(); };
+
+            activeCalls.forEach(call => {
+                const sender = call.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+                if (sender) sender.replaceTrack(screenTrack);
+            });
+
+            localStream.removeTrack(localStream.getVideoTracks()[0]);
+            localStream.addTrack(screenTrack);
+
+            isScreenSharing = true;
+            document.querySelectorAll('.screen-btn').forEach(btn => {
+                btn.innerText = '[ 🖥️ SHARING ]';
+                btn.classList.add('btn-alert');
+            });
+            
+            // Force Camera UI to hot state since video is transmitting
+            isCamOn = false; toggleCam();
+
+        } catch (err) { console.warn("[ SYSTEM ] Screen sharing canceled.", err); }
     }
+}
+
+//---------------------------------------------------------
+// 03. VOLUME & PEER ROUTING
+//---------------------------------------------------------
+function updateMasterVolume(val) {
+    globalVolume = val;
+    document.querySelectorAll('audio, video').forEach(el => {
+        el.volume = val;
+    });
 }
 
 function setupPeerCallListener() {
     peer.on('call', (call) => {
-        if (!localStream) {
-            call.answer(); 
-        } else {
+        if (localStream) {
             call.answer(localStream);
             activeCalls.push(call);
+            handleCallEvent(call);
+        } else {
+            call.answer(); 
+            activeCalls.push(call);
+            handleCallEvent(call);
         }
-        handleCallEvent(call);
     });
 }
 
@@ -269,108 +207,53 @@ function handleCallEvent(call) {
         const containerId = currentRole === 'HOST' ? 'host-video-stream-container' : 'visitor-video-stream-container';
         const container = document.getElementById(containerId);
         if (!container) return;
+        
+        const existingVideo = document.getElementById(`video-${call.peer}`);
+        if (existingVideo) return; 
 
-        // Prevent identical streams from creating infinite duplicate boxes
-        const existingEl = document.getElementById(`wrapper-${remoteStream.id}`);
-        if (existingEl) return;
-
-        // Pull their alias if available
-        let alias = "PEER";
-        if (peerFingerprintMap[call.peer]) {
-            alias = peerFingerprintMap[call.peer].alias;
-        }
-
-        // 1. The Main Wrapper
-        const wrapper = document.createElement('div');
-        wrapper.id = `wrapper-${remoteStream.id}`;
-        wrapper.className = 'remote-stream-wrapper';
-        wrapper.style = 'position: relative; display: inline-block; margin: 5px; border: 1px solid var(--main-cyan); background: #000; width: 200px; border-radius: 4px; overflow: hidden;';
-
-        // 2. The Video Element
-        const mediaEl = document.createElement('video');
-        mediaEl.id = `media-${remoteStream.id}`;
-        mediaEl.srcObject = remoteStream;
-        mediaEl.autoplay = true;
-        mediaEl.playsInline = true;
-        mediaEl.style = 'width: 200px; height: 150px; object-fit: cover; display: block;';
-
-        // 3. The Individual Audio Control Strip
-        const controlsWrap = document.createElement('div');
-        controlsWrap.style = 'padding: 6px; background: rgba(0,0,0,0.9); border-top: 1px dashed #333; display: flex; align-items: center; justify-content: space-between; font-size: 0.7rem;';
-
-        const label = document.createElement('span');
-        label.innerText = `VOL:`;
+        const videoWrapper = document.createElement('div');
+        videoWrapper.style.position = 'relative';
+        videoWrapper.style.display = 'inline-block';
+        videoWrapper.style.margin = '5px';
+        videoWrapper.style.border = '1px solid var(--main-cyan)';
+        videoWrapper.style.boxShadow = '0 0 5px var(--main-cyan)';
+        videoWrapper.style.backgroundColor = '#000';
+        
+        const vid = document.createElement('video');
+        vid.id = `video-${call.peer}`;
+        vid.srcObject = remoteStream;
+        vid.autoplay = true;
+        vid.playsInline = true;
+        vid.style.width = '160px';
+        vid.style.height = '120px';
+        vid.style.objectFit = 'cover';
+        vid.style.display = 'block';
+        
+        const label = document.createElement('div');
+        label.innerText = peerFingerprintMap[call.peer] ? peerFingerprintMap[call.peer].alias : call.peer.substring(0,6);
+        label.style.position = 'absolute';
+        label.style.bottom = '0';
+        label.style.left = '0';
+        label.style.width = '100%';
+        label.style.background = 'rgba(0,0,0,0.7)';
         label.style.color = 'var(--main-cyan)';
-        label.style.marginRight = '5px';
-
-        const volSlider = document.createElement('input');
-        volSlider.type = 'range';
-        volSlider.min = '0';
-        volSlider.max = '1';
-        volSlider.step = '0.05';
-        volSlider.value = '1'; 
-        volSlider.style.width = '70px';
-        volSlider.style.margin = '0 5px';
-        volSlider.style.cursor = 'pointer';
+        label.style.fontSize = '0.7rem';
+        label.style.textAlign = 'center';
+        label.style.padding = '2px 0';
+        label.style.fontFamily = 'monospace';
         
-        // Dynamic audio adjustment
-        volSlider.oninput = (e) => { 
-            mediaEl.volume = e.target.value; 
-            if (e.target.value == 0) {
-                muteBtn.innerText = '🔇';
-                muteBtn.classList.add('btn-alert');
-            } else if (muteBtn.innerText === '🔇') {
-                muteBtn.innerText = '🔊';
-                muteBtn.classList.remove('btn-alert');
-            }
-        };
-
-        const muteBtn = document.createElement('button');
-        muteBtn.innerText = '🔊'; 
-        muteBtn.className = 'btn-small';
-        muteBtn.style.padding = '0 6px';
-        muteBtn.style.fontSize = '0.8rem';
+        videoWrapper.appendChild(vid);
+        videoWrapper.appendChild(label);
+        container.appendChild(videoWrapper);
         
-        // Mute Toggle Logic
-        muteBtn.onclick = () => {
-            if(mediaEl.volume > 0) {
-                mediaEl.dataset.oldVol = mediaEl.volume;
-                mediaEl.volume = 0;
-                volSlider.value = 0;
-                muteBtn.innerText = '🔇'; 
-                muteBtn.classList.add('btn-alert');
-            } else {
-                mediaEl.volume = mediaEl.dataset.oldVol || 1;
-                volSlider.value = mediaEl.volume;
-                muteBtn.innerText = '🔊'; 
-                muteBtn.classList.remove('btn-alert');
-            }
-        };
-
-        // 4. Name Badge
-        const nameTag = document.createElement('div');
-        nameTag.innerText = `[ ${alias.substring(0, 12)} ]`;
-        nameTag.style = 'position: absolute; top: 5px; left: 5px; background: rgba(0,0,0,0.8); color: var(--main-cyan); font-size: 0.7rem; padding: 2px 4px; z-index: 10; pointer-events: none; border-radius: 2px;';
-
-        controlsWrap.appendChild(label);
-        controlsWrap.appendChild(volSlider);
-        controlsWrap.appendChild(muteBtn);
-
-        wrapper.appendChild(nameTag);
-        wrapper.appendChild(mediaEl);
-        wrapper.appendChild(controlsWrap);
-        
-        container.appendChild(wrapper);
+        vid.volume = globalVolume;
     });
 
     call.on('close', () => {
-        const wrappers = document.querySelectorAll('.remote-stream-wrapper');
-        wrappers.forEach(w => {
-            const vid = w.querySelector('video');
-            if (vid && vid.srcObject && !vid.srcObject.active) {
-                w.remove();
-            }
-        });
+        const vidWrapper = document.getElementById(`video-${call.peer}`)?.parentElement;
+        if (vidWrapper) vidWrapper.remove();
+        activeCalls = activeCalls.filter(c => c !== call);
     });
+    
+    call.on('error', (err) => { console.warn("[ STREAM_ERROR ] ", err); });
 }
-// END
