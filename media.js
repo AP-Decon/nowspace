@@ -302,7 +302,12 @@ function handleCallEvent(call) {
         vid.style.height = '120px';
         vid.style.objectFit = 'cover';
         vid.style.display = 'block';
-        
+        vid.style.cursor = 'zoom-in';
+        vid.title = '[ CLICK TO ENLARGE ]';
+        vid.onclick = () => {
+        if (vid.requestFullscreen) vid.requestFullscreen();
+        else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+    };
         const label = document.createElement('div');
         label.innerText = peerFingerprintMap[call.peer] ? peerFingerprintMap[call.peer].alias : call.peer.substring(0,6);
         label.style.position = 'absolute';
