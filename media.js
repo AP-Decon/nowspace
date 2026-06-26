@@ -79,7 +79,6 @@ function renderLocalVideo() {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    // Clear any existing local preview
     const existing = document.getElementById('video-local-wrapper');
     if (existing) existing.remove();
 
@@ -88,7 +87,7 @@ function renderLocalVideo() {
     videoWrapper.style.position = 'relative';
     videoWrapper.style.display = 'inline-block';
     videoWrapper.style.margin = '5px';
-    videoWrapper.style.border = '1px dashed #fff'; // White dashed border for local feed
+    videoWrapper.style.border = '1px dashed #fff'; 
     videoWrapper.style.backgroundColor = '#000';
     
     const vid = document.createElement('video');
@@ -96,12 +95,22 @@ function renderLocalVideo() {
     vid.srcObject = localStream;
     vid.autoplay = true;
     vid.playsInline = true;
-    vid.muted = true; // Crucial: mutes your own mic so you don't hear an echo
+    vid.muted = true; 
     vid.style.width = '160px';
     vid.style.height = '120px';
     vid.style.objectFit = 'cover';
     vid.style.display = 'block';
-    vid.style.transform = 'scaleX(-1)'; // Mirrors your preview so it feels like a real mirror
+    vid.style.transform = 'scaleX(-1)'; 
+    
+    // THE MOBILE FULLSCREEN FIX
+    vid.style.cursor = 'zoom-in';
+    vid.title = '[ CLICK TO ENLARGE ]';
+    vid.onclick = () => {
+        if (vid.requestFullscreen) vid.requestFullscreen();
+        else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+        else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iOS Safari
+        else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); // Legacy Edge
+    };
     
     const label = document.createElement('div');
     label.innerText = '[ LOCAL_FEED ]';
@@ -119,7 +128,6 @@ function renderLocalVideo() {
     videoWrapper.appendChild(vid);
     videoWrapper.appendChild(label);
     
-    // Insert local video first in the list
     container.insertBefore(videoWrapper, container.firstChild);
 }
 
@@ -302,12 +310,17 @@ function handleCallEvent(call) {
         vid.style.height = '120px';
         vid.style.objectFit = 'cover';
         vid.style.display = 'block';
+        
+        // THE MOBILE FULLSCREEN FIX
         vid.style.cursor = 'zoom-in';
         vid.title = '[ CLICK TO ENLARGE ]';
         vid.onclick = () => {
-        if (vid.requestFullscreen) vid.requestFullscreen();
-        else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
-    };
+            if (vid.requestFullscreen) vid.requestFullscreen();
+            else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+            else if (vid.webkitEnterFullscreen) vid.webkitEnterFullscreen(); // iOS Safari
+            else if (vid.msRequestFullscreen) vid.msRequestFullscreen(); // Legacy Edge
+        };
+        
         const label = document.createElement('div');
         label.innerText = peerFingerprintMap[call.peer] ? peerFingerprintMap[call.peer].alias : call.peer.substring(0,6);
         label.style.position = 'absolute';
@@ -320,12 +333,7 @@ function handleCallEvent(call) {
         label.style.textAlign = 'center';
         label.style.padding = '2px 0';
         label.style.fontFamily = 'monospace';
-        vid.style.cursor = 'zoom-in';
-        vid.title = '[ CLICK TO ENLARGE ]';
-        vid.onclick = () => {
-        if (vid.requestFullscreen) vid.requestFullscreen();
-        else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
-    };
+        
         videoWrapper.appendChild(vid);
         videoWrapper.appendChild(label);
         container.appendChild(videoWrapper);
