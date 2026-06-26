@@ -522,7 +522,6 @@ function triggerSound(soundId, isLocalClick = true, originalSender = null, custo
         for (let id in peer.connections) { 
             if (id !== originalSender) { 
                 peer.connections[id].forEach(c => { 
-                    // NEW: Added safety check to soundboard router
                     if(c.open && typeof c.send === 'function') c.send({ type: MSG_TYPE_SOUNDBOARD, soundId: soundId, sender: originalSender, customUrl: customUrl }); 
                 }); 
             } 
@@ -542,18 +541,25 @@ function toggleManual() {
 }
 
 //---------------------------------------------------------
-// 07. PROFILE VISUALS (TOP 8, GALLERY & AUDIO)
+// 07. PROFILE VISUALS (TOP 8 / FAVOURITE PLACES, GALLERY & AUDIO)
 //---------------------------------------------------------
-function buildVisitorTop8Grid(arr) {
+function buildVisitorTop8Grid(str) {
     const grid = document.getElementById('render-top8-grid'); 
     const panel = document.getElementById('visitor-top8-panel');
     if(!grid || !panel) return;
     
     grid.innerHTML = '';
-    if (!arr || arr.length === 0) { panel.style.display = 'none'; return; }
+    if (!str || str.trim() === '') { panel.style.display = 'none'; return; }
     
-    arr.forEach(id => { 
-        grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${id}')">🌐<br><b>${id.toUpperCase()}</b></div>`; 
+    // Parse the lines as URLs
+    const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+    urls.forEach(u => { 
+        // Extract just the domain name for the button label
+        let displayUrl = u.replace(/^https?:\/\//, '').split('/')[0];
+        
+        grid.innerHTML += `<div class="top8-item" onclick="window.open('${u}', '_blank')" style="cursor:pointer; border:1px solid var(--main-cyan); padding:10px; margin:5px; display:inline-block; text-align:center; box-shadow: 0 0 5px rgba(0,255,255,0.2);">
+            🌐<br><b style="font-size:0.75rem; word-break:break-all;">${displayUrl.toUpperCase()}</b>
+        </div>`; 
     });
     panel.style.display = featureToggles.top8 ? 'block' : 'none';
 }
