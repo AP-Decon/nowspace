@@ -549,6 +549,11 @@ function buildVisitorTop8Grid(str) {
     if(!grid || !panel) return;
     
     grid.innerHTML = '';
+    
+    // SAFETY: Convert old arrays to strings, ignore nulls
+    if (Array.isArray(str)) { str = str.join('\n'); }
+    if (typeof str !== 'string') { str = ''; }
+    
     if (!str || str.trim() === '') { panel.style.display = 'none'; return; }
     
     // Parse the lines as URLs
@@ -577,6 +582,11 @@ function buildVisitorGallery(str) {
     if(!grid || !panel) return;
     
     grid.innerHTML = '';
+    
+    // SAFETY: Convert old arrays to strings, ignore nulls
+    if (Array.isArray(str)) { str = str.join('\n'); }
+    if (typeof str !== 'string') { str = ''; }
+    
     if(!str || str.trim() === '') { panel.style.display = 'none'; return; }
     
     const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
@@ -587,23 +597,6 @@ function buildVisitorGallery(str) {
         grid.innerHTML += `<div class="gallery-frame" onclick="window.open('${finalUrl}', '_blank')"><img src="${finalUrl}"></div>`; 
     });
     panel.style.display = featureToggles.gallery ? 'block' : 'none';
-}
-
-function renderHostAudio() {
-    if (currentRole !== 'HOST') return;
-    const hostWall = document.getElementById('host-live-wall-panel');
-    const audioUrl = document.getElementById('my-audio')?.value;
-    
-    if (hostWall && audioUrl && audioUrl.trim() !== '') {
-        let hostAudioCont = document.getElementById('host-audio-container');
-        if (!hostAudioCont) {
-            hostAudioCont = document.createElement('div');
-            hostAudioCont.id = 'host-audio-container';
-            hostAudioCont.style.marginBottom = '15px';
-            hostWall.insertBefore(hostAudioCont, hostWall.firstChild.nextSibling);
-        }
-        hostAudioCont.innerHTML = renderAudioEmbed(audioUrl);
-    }
 }
 
 //---------------------------------------------------------
