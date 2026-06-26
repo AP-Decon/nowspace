@@ -320,7 +320,12 @@ function handleCallEvent(call) {
         label.style.textAlign = 'center';
         label.style.padding = '2px 0';
         label.style.fontFamily = 'monospace';
-        
+        vid.style.cursor = 'zoom-in';
+        vid.title = '[ CLICK TO ENLARGE ]';
+        vid.onclick = () => {
+        if (vid.requestFullscreen) vid.requestFullscreen();
+        else if (vid.webkitRequestFullscreen) vid.webkitRequestFullscreen();
+    };
         videoWrapper.appendChild(vid);
         videoWrapper.appendChild(label);
         container.appendChild(videoWrapper);
