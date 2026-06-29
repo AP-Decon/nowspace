@@ -121,6 +121,31 @@ function disconnectNode() {
 // 02. MAIN HANDSHAKE & CRASH CATCHERS
 //---------------------------------------------------------
 async function startHosting() {
+    // Auto-prompt for notifications safely
+    try {
+        if ("Notification" in window && Notification.permission === "default") {
+            const req = Notification.requestPermission(function(permission) {
+                // Fallback for older Safari browsers
+                if (permission === "granted") {
+                    notificationsEnabled = true;
+                    if(typeof updateNotificationUI === "function") updateNotificationUI();
+                }
+            });
+            
+            // Modern browsers that return a Promise
+            if (req && typeof req.then === 'function') {
+                req.then(permission => {
+                    if (permission === "granted") {
+                        notificationsEnabled = true;
+                        if(typeof updateNotificationUI === "function") updateNotificationUI();
+                    }
+                }).catch(() => {});
+            }
+        }
+    } catch (err) {
+        console.warn("[ SYSTEM_WARNING ] Non-standard Notification API detected.", err);
+    }
+
     try {
         currentRole = 'HOST'; 
         document.getElementById('btn-go-online').disabled = true; 
@@ -154,37 +179,38 @@ async function startHosting() {
                 </div>`;
         });
         
-   peer.on('error', (err) => {
-        console.warn("[ PEER_ERROR ]", err.type, err);
+        peer.on('error', (err) => {
+            console.warn("[ PEER_ERROR ]", err.type, err);
 
-        // AUTO-DIALER: If the Host is offline or hasn't booted up yet
-        if (err.type === 'peer-unavailable') {
-            if (currentRole === 'VISITOR') {
+            // AUTO-DIALER: If the Host is offline or hasn't booted up yet
+            if (err.type === 'peer-unavailable') {
+                if (currentRole === 'VISITOR') {
+                    const statusDisplay = document.getElementById('connection-status');
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
+                        statusDisplay.style.color = "var(--alert-red)";
+                    }
+                    
+                    // Wait 3 seconds and try the connection again
+                    setTimeout(() => {
+                        if (statusDisplay) {
+                            statusDisplay.innerText = "[ DIALING HOST... ]";
+                            statusDisplay.style.color = "var(--main-cyan)";
+                        }
+                        if (typeof visitFriend === "function") visitFriend();
+                    }, 3000);
+                }
+            } 
+            // Handle disconnected network state
+            else if (err.type === 'network' || err.type === 'disconnected') {
                 const statusDisplay = document.getElementById('connection-status');
                 if (statusDisplay) {
-                    statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
+                    statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
                     statusDisplay.style.color = "var(--alert-red)";
                 }
-                
-                // Wait 3 seconds and try the connection again
-                setTimeout(() => {
-                    if (statusDisplay) {
-                        statusDisplay.innerText = "[ DIALING HOST... ]";
-                        statusDisplay.style.color = "var(--main-cyan)";
-                    }
-                    if (typeof visitFriend === "function") visitFriend();
-                }, 3000);
             }
-        } 
-        // Handle disconnected network state
-        else if (err.type === 'network' || err.type === 'disconnected') {
-            const statusDisplay = document.getElementById('connection-status');
-            if (statusDisplay) {
-                statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
-                statusDisplay.style.color = "var(--alert-red)";
-            }
-        }
-    });
+        });
+
         peer.on('connection', (c) => {
             c.on('data', (data) => handleIncomingP2PPacket(data, c));
             c.on('close', () => { renderActivePeers(); broadcastOnlineUsers(); });
@@ -197,6 +223,31 @@ async function startHosting() {
 }
 
 function visitFriend() {
+    // Auto-prompt for notifications safely
+    try {
+        if ("Notification" in window && Notification.permission === "default") {
+            const req = Notification.requestPermission(function(permission) {
+                // Fallback for older Safari browsers
+                if (permission === "granted") {
+                    notificationsEnabled = true;
+                    if(typeof updateNotificationUI === "function") updateNotificationUI();
+                }
+            });
+            
+            // Modern browsers that return a Promise
+            if (req && typeof req.then === 'function') {
+                req.then(permission => {
+                    if (permission === "granted") {
+                        notificationsEnabled = true;
+                        if(typeof updateNotificationUI === "function") updateNotificationUI();
+                    }
+                }).catch(() => {});
+            }
+        }
+    } catch (err) {
+        console.warn("[ SYSTEM_WARNING ] Non-standard Notification API detected.", err);
+    }
+
     try {
         currentRole = 'VISITOR'; 
         const fId = document.getElementById('friend-id').value.trim(); 
