@@ -80,7 +80,33 @@
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
         <label>Custom CSS Injection Framework:</label>
-        <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
+        <textarea id="my-css" rows="6">Act as an expert UI/UX designer and CSS developer. I am building a peer-to-peer, cyberpunk-style web application called "NOWSPACE". I want to create a new visual theme for it.
+
+Here is the root CSS architecture of the terminal:
+
+:root {
+    --bg-color: #050505;
+    --text-color: #00ffff;
+    --main-cyan: #00ffff;
+    --alert-red: #ff0055;
+    --bright-magenta: #ff00ff;
+    --dark-magenta: #880088;
+    --panel-bg: #111111;
+    --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+Core UI Elements you can target:
+1. `body` (background color/images, global font)
+2. `.panel` (the main modular windows, currently dark gray with cyan borders)
+3. `button` and `.btn-small` (terminal buttons, normally transparent with cyan text/borders)
+4. `.btn-alert` (buttons in an active/warning state, normally red)
+5. `input`, `textarea`, `select` (text boxes and dropdowns)
+6. `.glitch-text` (headers and important system messages)
+7. `.wall-post` (individual messages in the datastream)
+
+Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ]. 
+
+Only output the raw CSS. Do not alter the structural HTML positioning, only colors, borders, shadows, fonts, and backgrounds.</textarea>
         
         <div class="theme-actions">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
