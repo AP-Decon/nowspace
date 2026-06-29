@@ -372,41 +372,68 @@ case MSG_TYPE_PROFILE:
                 if (typeof applyTacticalMap === "function") applyTacticalMap(p.bgData);
                 if (currentRole === 'HOST') broadcastToAll(p); break;
 
-            case MSG_TYPE_WALL_POST:
-                if (currentRole === 'HOST') { 
-                    if (bannedFingerprints.includes(p.fingerprint)) return;
-                    peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender }; 
-                    
-                    // --- ARCADE: RPS MATCHMAKING ROUTER ---
-                    if (p.isGame === 'rps') {
-                        let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
-                        if (openDuel) {
-                            openDuel.players.p2 = { alias: p.sender, fp: p.fingerprint, move: p.gamePayload };
-                            let m1 = openDuel.players.p1.move, m2 = openDuel.players.p2.move;
-                            if (m1 === m2) openDuel.winner = 'DRAW // STALEMATE';
-                            else if ((m1==='rock'&&m2==='scissors')||(m1==='paper'&&m2==='rock')||(m1==='scissors'&&m2==='paper')) openDuel.winner = openDuel.players.p1.alias.toUpperCase() + ' WINS';
-                            else openDuel.winner = openDuel.players.p2.alias.toUpperCase() + ' WINS';
+case MSG_TYPE_WALL_POST:
+            if (currentRole === 'HOST') {
+                const p = data.packet || data; // Ensure backward compatibility with your old packet structure
+                
+                if (bannedFingerprints.includes(p.fingerprint)) return;
+                
+                // Track the sender for potential banning
+                const senderId = conn ? conn.peer : p.fingerprint;
+                if (senderId) peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender };
+                
+                // --- ARCADE: RPS MATCHMAKING ROUTER ---
+                if (p.isGame === 'rps') {
+                    let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
+                    if (openDuel) {
+                        openDuel.players.p2 = { alias: p.sender, fp: p.fingerprint, move: p.gamePayload };
+                        let m1 = openDuel.players.p1.move, m2 = openDuel.players.p2.move;
+                        if (m1 === m2) openDuel.winner = 'DRAW // STALEMATE';
+                        else if ((m1==='rock'&&m2==='scissors')||(m1==='paper'&&m2==='rock')||(m1==='scissors'&&m2==='paper')) openDuel.winner = openDuel.players.p1.alias.toUpperCase() + ' WINS';
+                        else openDuel.winner = openDuel.players.p2.alias.toUpperCase() + ' WINS';
 
-                            openDuel.text = `<span style="color:var(--bright-magenta);"><b style="color:var(--main-cyan);">${openDuel.players.p1.alias}</b> (${m1.toUpperCase()}) vs <b style="color:var(--main-cyan);">${openDuel.players.p2.alias}</b> (${m2.toUpperCase()})<br>> ${openDuel.winner}</span>`;
-                            if(typeof saveLocalData === "function") saveLocalData();
-                            if(typeof renderWall === "function") renderWall();
-                            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                            return; // Stop here, resolve duel without new post!
+                        openDuel.text = `<span style="color:var(--bright-magenta);"><b style="color:var(--main-cyan);">${openDuel.players.p1.alias}</b> (${m1.toUpperCase()}) vs <b style="color:var(--main-cyan);">${openDuel.players.p2.alias}</b> (${m2.toUpperCase()})<br>> ${openDuel.winner}</span>`;
+                        if(typeof saveLocalData === "function") saveLocalData();
+                        if(typeof renderWall === "function") renderWall();
+                        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                        
+                        // NOTIFICATION HOOK: Someone joined a duel!
+                        if (typeof triggerBackgroundAlert === 'function') {
+                            triggerBackgroundAlert("Arcade Alert", `${p.sender} answered a duel request!`); 
                         }
+                        
+                        return; // Stop here, resolve duel without new post!
                     }
+                }
 
-                    const packet = { 
-                        sender: p.sender, text: p.text, isPrivate: p.isPrivate, timestamp: new Date().toLocaleTimeString(), burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null, isGame: p.isGame, gameId: p.isGame ? Date.now().toString() : null, 
-                        board: p.isGame === 'tictactoe' ? Array(9).fill(null) : (p.isGame === 'connect4' ? Array(42).fill(null) : null), 
-                        turn: p.isGame === 'tictactoe' ? 'X' : (p.isGame === 'connect4' ? 'R' : null), winner: null,
-                        players: p.isGame === 'tictactoe' ? { X: null, O: null } : (p.isGame === 'connect4' ? { R: null, Y: null } : (p.isGame === 'rps' ? { p1: { alias: p.sender, fp: p.fingerprint, move: p.gamePayload }, p2: null } : null))
-                    };
+                // Standard message / New Game creation
+                const packet = { 
+                    sender: p.sender, 
+                    text: p.text, 
+                    isPrivate: p.isPrivate, 
+                    timestamp: new Date().toLocaleTimeString(), 
+                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null, 
+                    isGame: p.isGame, 
+                    gameId: p.isGame ? Date.now().toString() : null, 
+                    board: p.isGame === 'tictactoe' ? Array(9).fill(null) : (p.isGame === 'connect4' ? Array(42).fill(null) : null), 
+                    turn: p.isGame === 'tictactoe' ? 'X' : (p.isGame === 'connect4' ? 'R' : null), 
+                    winner: null,
+                    players: p.isGame === 'tictactoe' ? { X: null, O: null } : (p.isGame === 'connect4' ? { R: null, Y: null } : (p.isGame === 'rps' ? { p1: { alias: p.sender, fp: p.fingerprint, move: p.gamePayload }, p2: null } : null))
+                };
 
-                    wallData.push(packet); 
-                    if(typeof saveLocalData === "function") saveLocalData(); 
-                    if(typeof renderWall === "function") renderWall(); 
-                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
-                } break;
+                wallData.push(packet); 
+                
+                if(typeof saveLocalData === "function") saveLocalData(); 
+                if(typeof renderWall === "function") renderWall(); 
+                broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+                
+                // NOTIFICATION HOOK: Standard Message or New Game!
+                if (typeof triggerBackgroundAlert === 'function' && !packet.isLocalWhisper) {
+                    let alertText = packet.isGame ? `[ NEW ${packet.isGame.toUpperCase()} MODULE DEPLOYED ]` : packet.text.replace(/<[^>]*>?/gm, '');
+                    triggerBackgroundAlert("Incoming Transmission", `${packet.sender}: ${alertText}`); 
+                }
+            } 
+            break;
                 
             case MSG_TYPE_WALL_UPDATE:
                 if (currentRole === 'VISITOR') { 
