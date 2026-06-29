@@ -828,16 +828,20 @@ setInterval(() => {
 //---------------------------------------------------------
 function abortAndReturnHome() {
     clearTimeout(window.dialTimer);
-
-    // 1. Destroy any active peer connections to stop the dialer
-    if (peer) {
+try {
+    if (peer){
         peer.destroy();
         peer = null;
     }
+} catch (e) {
+    console.warn("[ SYSTEM ] Non-fatal error destroyng peer.",e);
+}
+  try {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      window.locate.href = window.location.pathname;
+      
     
-    // 2. Strip the ?node= target out of the URL bar so it doesn't auto-load again
-    window.history.replaceState({}, document.title, window.location.pathname);
-    
-    // 3. Force a hard reload to completely purge the terminal's memory cache
-    window.location.reload();
+  } catch (e) {
+      window.location.reload();
+}
 }
