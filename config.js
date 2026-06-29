@@ -159,7 +159,7 @@ function switchProfile(slotId) {
     loadLocalData();
 }
 
-function loadLocalData() {
+ffunction loadLocalData() {
     let saved = null;
     try {
         if (activeSlot === '1' && !localStorage.getItem('nowspace_save_1') && localStorage.getItem('nowspace_save')) {
@@ -177,11 +177,9 @@ function loadLocalData() {
         document.getElementById('my-bio').value = saved.bio || ''; 
         document.getElementById('my-audio').value = saved.audio || '';
         document.getElementById('my-gallery').value = saved.gallery || ''; 
+        document.getElementById('my-top8').value = saved.top8 || ''; 
         document.getElementById('my-css').value = saved.css || '';
         document.getElementById('my-custom-sound').value = saved.customSound || ''; 
-        
-        // Favorite Places Loaded Here
-        document.getElementById('my-top8').value = saved.top8 || ''; 
         
         wallData = saved.wall || []; 
         featureToggles = saved.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
@@ -202,16 +200,36 @@ function loadLocalData() {
         const inject = document.getElementById('custom-injected-css'); 
         if(inject) inject.innerText = saved.css || ''; 
     } else {
-        document.getElementById('my-alias').value = 'NODE-0' + activeSlot; 
+        // DEFAULT THEMES PER SLOT OVERRIDE
+        let defAlias = '', defBio = '', defAudio = '', defGallery = '', defCss = '';
+
+        if (activeSlot === '1') {
+            defAlias = 'NODE-ALPHA';
+            defBio = 'SYSTEM_STATUS: ONLINE // Mainframe Override.';
+            defAudio = 'https://www.youtube.com/watch?v=hMxlPYStVVY';
+            defGallery = 'https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif';
+            defCss = `:root {\n    --bg-color: #020204;\n    --text-color: #00e5ff;\n    --main-cyan: #00e5ff;\n    --alert-red: #ff2a75;\n    --bright-magenta: #d900ff;\n    --dark-magenta: #590066;\n    --panel-bg: rgba(10, 10, 15, 0.85);\n    --text-glow: 0 0 8px rgba(0, 229, 255, 0.6);\n}\nbody { font-family: "Courier New", Courier, monospace; background: linear-gradient(180deg, #020204 0%, #0a0a12 100%); }\n.panel { border: 1px solid var(--main-cyan); box-shadow: inset 0 0 15px rgba(0,229,255,0.05), 0 0 15px rgba(0,229,255,0.1); border-radius: 2px; }\nbutton, .btn-small { background: transparent; color: var(--main-cyan); border: 1px solid var(--main-cyan); text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease-in-out; }\nbutton:hover, .btn-small:hover { background: rgba(0, 229, 255, 0.1); box-shadow: var(--text-glow); }\n.btn-alert { color: var(--alert-red); border-color: var(--alert-red); }\n.btn-alert:hover { background: rgba(255, 42, 117, 0.1); box-shadow: 0 0 8px rgba(255, 42, 117, 0.6); }\ninput, textarea, select { background: rgba(0,0,0,0.8); border: 1px solid #333; color: var(--text-color); font-family: monospace; }\ninput:focus, textarea:focus { border-color: var(--main-cyan); outline: none; box-shadow: var(--text-glow); }`;
+        } else if (activeSlot === '2') {
+            defAlias = 'SPARTAN-117';
+            defBio = 'UNSC SECURE CHANNEL // ENCRYPTION LEVEL: ONYX';
+            defAudio = 'https://www.youtube.com/watch?v=0jXTBAGv9ZQ'; 
+            defGallery = 'https://media.giphy.com/media/xT9IgFbw0z1qFoslWg/giphy.gif';
+            defCss = `:root {\n    --bg-color: #0a0d0a;\n    --text-color: #6eb99a;\n    --main-cyan: #74d6a8;\n    --alert-red: #ff9d00;\n    --bright-magenta: #d4a017;\n    --dark-magenta: #5c470a;\n    --panel-bg: rgba(14, 20, 14, 0.95);\n    --text-glow: 0 0 4px rgba(116, 214, 168, 0.4);\n}\nbody { font-family: "Trebuchet MS", sans-serif; background-color: var(--bg-color); background-image: radial-gradient(circle at center, #111a11 0%, #050705 100%); text-transform: uppercase; }\n.panel { border: 2px solid #2a3d2a; border-top: 2px solid var(--main-cyan); border-radius: 0; }\nbutton, .btn-small { background: rgba(116, 214, 168, 0.05); color: var(--main-cyan); border: 1px solid #2a3d2a; font-weight: bold; border-radius: 0; }\nbutton:hover, .btn-small:hover { background: rgba(116, 214, 168, 0.2); border-color: var(--main-cyan); }\n.btn-alert { color: var(--alert-red); border-color: rgba(255, 157, 0, 0.3); background: rgba(255, 157, 0, 0.05); }\n.btn-alert:hover { border-color: var(--alert-red); background: rgba(255, 157, 0, 0.2); }\ninput, textarea, select { background: rgba(0,0,0,0.5); border: 1px solid #2a3d2a; color: var(--text-color); }\ninput:focus, textarea:focus { border-color: var(--main-cyan); }\n.glitch-text { text-shadow: 2px 2px 0px #000; letter-spacing: 2px; }\n.wall-post { border-left: 3px solid #2a3d2a; padding-left: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.2); }`;
+        } else {
+            defAlias = 'NIGHT_OWL';
+            defBio = 'chill beats to study/code to...';
+            defAudio = 'https://www.youtube.com/watch?v=jfKfPfyJRdk';
+            defGallery = 'https://media.giphy.com/media/L0IynWk0Pij2pT4E7S/giphy.gif';
+            defCss = `:root {\n    --bg-color: #161625;\n    --text-color: #e2e2cd;\n    --main-cyan: #a8dadc;\n    --alert-red: #ffb5a7;\n    --bright-magenta: #cdb4db;\n    --dark-magenta: #6c5b7b;\n    --panel-bg: rgba(28, 28, 45, 0.7);\n    --text-glow: 0 0 12px rgba(168, 218, 220, 0.3);\n}\nbody { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #f8f9fa; }\n.panel { border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); }\nbutton, .btn-small { background: rgba(255,255,255,0.03); color: var(--main-cyan); border: 1px solid rgba(168, 218, 220, 0.2); border-radius: 8px; font-weight: 500; transition: all 0.3s ease; }\nbutton:hover, .btn-small:hover { background: rgba(168, 218, 220, 0.15); border-color: var(--main-cyan); transform: translateY(-2px); }\n.btn-alert { color: var(--alert-red); border-color: rgba(255, 181, 167, 0.2); }\n.btn-alert:hover { background: rgba(255, 181, 167, 0.15); border-color: var(--alert-red); }\ninput, textarea, select { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: #fff; padding: 8px; }\ninput:focus, textarea:focus { border-color: var(--bright-magenta); outline: none; box-shadow: 0 0 8px rgba(205, 180, 219, 0.4); }\n.glitch-text { color: var(--bright-magenta); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }\n.wall-post { background: rgba(255,255,255,0.02); border-radius: 8px; padding: 10px; border: 1px solid rgba(255,255,255,0.03); }`;
+        }
+
+        document.getElementById('my-alias').value = defAlias; 
         document.getElementById('my-custom-id').value = '';
-        document.getElementById('my-bio').value = 'SYSTEM_STATUS: ONLINE // Currently overriding mainframe.'; 
-        document.getElementById('my-audio').value = 'https://www.youtube.com/watch?v=hMxlPYStVVY';
-        document.getElementById('my-gallery').value = 'https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif'; 
-        
-        // Favorite Places Default Load Here
-        document.getElementById('my-top8').value = 'https://neocities.org\nhttps://hackaday.com';
-        
-        document.getElementById('my-css').value = '/* ENTER CUSTOM OVERRIDES HERE */';
+        document.getElementById('my-bio').value = defBio; 
+        document.getElementById('my-audio').value = defAudio;
+        document.getElementById('my-gallery').value = defGallery; 
+        document.getElementById('my-top8').value = 'node-alpha\ncyber-deck-2';
+        document.getElementById('my-css').value = defCss;
         document.getElementById('my-custom-sound').value = ''; 
         if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = '';
         if (document.getElementById('my-password')) document.getElementById('my-password').value = '';
@@ -228,8 +246,9 @@ function loadLocalData() {
             applyFeatures(featureToggles);
         }
         if (typeof renderWall === "function") renderWall();
+        
         const inject = document.getElementById('custom-injected-css'); 
-        if(inject) inject.innerText = ''; 
+        if(inject) inject.innerText = defCss; 
     }
 }
 
