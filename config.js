@@ -137,13 +137,13 @@ function toggleNotifications() {
     if (Notification.permission === "granted") {
         notificationsEnabled = true; 
         updateNotificationUI();
-        // Send a quick test notification to confirm it works
-        new Notification("NOWSPACE Terminal", { body: "Background alerts activated successfully." });
+        sendTestPing();
     } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then(permission => {
             if (permission === "granted") { 
                 notificationsEnabled = true; 
                 updateNotificationUI(); 
+                sendTestPing();
             } else { 
                 alert("[ ACCESS_DENIED ] Notification permission was rejected."); 
             }
@@ -165,13 +165,42 @@ function updateNotificationUI() {
     }
 }
 
+// Helper function to safely route the test ping
+function sendTestPing() {
+    const title = "NOWSPACE Terminal";
+    const options = { body: "Background alerts activated successfully.", icon: "/icon-192.png" };
+    
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        navigator.serviceWorker.ready.then(registration => {
+            registration.showNotification(title, options).catch(() => safeFallbackAlert(title, options));
+        });
+    } else {
+        safeFallbackAlert(title, options);
+    }
+}
+
 // The core function called by network events
 function triggerBackgroundAlert(title, message) {
     if (notificationsEnabled && document.hidden) {
-        new Notification(title, {
-            body: message,
-            icon: '/icon-192.png' // Optional: points to your manifest icon if present
-        });
+        const options = { body: message, icon: '/icon-192.png' };
+        
+        // PWA SAFE ALERT: Route through Service Worker first
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(title, options).catch(() => safeFallbackAlert(title, options));
+            });
+        } else {
+            safeFallbackAlert(title, options);
+        }
+    }
+}
+
+// Desktop Fallback
+function safeFallbackAlert(title, options) {
+    try {
+        new Notification(title, options);
+    } catch (e) {
+        console.warn("[ SYSTEM_ERROR ] Device blocked native notification payload.", e);
     }
 }
 //---------------------------------------------------------
