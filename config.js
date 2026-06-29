@@ -120,7 +120,6 @@ async function hashPassword(str) {
     }
 }
 
-// Rebranded Tracking Variable
 let notificationsEnabled = false;
 
 function toggleNotifications() {
@@ -137,13 +136,13 @@ function toggleNotifications() {
     if (Notification.permission === "granted") {
         notificationsEnabled = true; 
         updateNotificationUI();
-        sendTestPing();
+        fireSafeNotification("NOWSPACE Terminal", "Background alerts activated successfully.");
     } else if (Notification.permission !== "denied") {
         Notification.requestPermission().then(permission => {
             if (permission === "granted") { 
                 notificationsEnabled = true; 
                 updateNotificationUI(); 
-                sendTestPing();
+                fireSafeNotification("NOWSPACE Terminal", "Background alerts activated successfully.");
             } else { 
                 alert("[ ACCESS_DENIED ] Notification permission was rejected."); 
             }
@@ -165,42 +164,39 @@ function updateNotificationUI() {
     }
 }
 
-// Helper function to safely route the test ping
-function sendTestPing() {
-    const title = "NOWSPACE Terminal";
-    const options = { body: "Background alerts activated successfully.", icon: "/icon-192.png" };
-    
-    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-        navigator.serviceWorker.ready.then(registration => {
-            registration.showNotification(title, options).catch(() => safeFallbackAlert(title, options));
-        });
-    } else {
-        safeFallbackAlert(title, options);
-    }
-}
-
-// The core function called by network events
 function triggerBackgroundAlert(title, message) {
     if (notificationsEnabled && document.hidden) {
-        const options = { body: message, icon: '/icon-192.png' };
-        
-        // PWA SAFE ALERT: Route through Service Worker first
-        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
-            navigator.serviceWorker.ready.then(registration => {
-                registration.showNotification(title, options).catch(() => safeFallbackAlert(title, options));
-            });
-        } else {
-            safeFallbackAlert(title, options);
-        }
+        fireSafeNotification(title, message);
     }
 }
 
-// Desktop Fallback
-function safeFallbackAlert(title, options) {
+// PWA-Safe Mobile Router
+function fireSafeNotification(title, message) {
     try {
-        new Notification(title, options);
-    } catch (e) {
-        console.warn("[ SYSTEM_ERROR ] Device blocked native notification payload.", e);
+        const options = { body: message, icon: '/icon-192.png' };
+        
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistration().then(reg => {
+                if (reg && reg.showNotification) {
+                    reg.showNotification(title, options).catch(e => console.warn("SW Alert Error:", e));
+                } else {
+                    safeDesktopAlert(title, options);
+                }
+            }).catch(() => safeDesktopAlert(title, options));
+        } else {
+            safeDesktopAlert(title, options);
+        }
+    } catch (err) {
+        console.warn("[ SYSTEM_ERROR ] Alert failed entirely.", err);
+    }
+}
+
+// Strictly caught desktop fallback
+function safeDesktopAlert(title, options) {
+    try { 
+        new Notification(title, options); 
+    } catch (e) { 
+        console.warn("[ SYSTEM_ERROR ] Device blocked native notification.", e); 
     }
 }
 //---------------------------------------------------------
