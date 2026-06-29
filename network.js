@@ -73,6 +73,7 @@ function unbanFingerprint(fp) {
 }
 
 function disconnectNode() {
+clearTimeout(window.dialTimer);
     if (activeCalls.length > 0) { activeCalls.forEach(c => c.close()); activeCalls = []; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (peer) { peer.destroy(); peer = null; }
@@ -826,6 +827,8 @@ setInterval(() => {
 // 08. ESCAPE HATCH 
 //---------------------------------------------------------
 function abortAndReturnHome() {
+    clearTimeout(window.dialTimer);
+
     // 1. Destroy any active peer connections to stop the dialer
     if (peer) {
         peer.destroy();
