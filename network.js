@@ -373,8 +373,6 @@ case MSG_TYPE_PROFILE:
 
 case MSG_TYPE_WALL_POST:
             if (currentRole === 'HOST') {
-                const p = data.packet || data; // Ensure backward compatibility with your old packet structure
-                
                 if (bannedFingerprints.includes(p.fingerprint)) return;
                 
                 // Track the sender for potential banning
@@ -400,8 +398,7 @@ case MSG_TYPE_WALL_POST:
                         if (typeof triggerBackgroundAlert === 'function') {
                             triggerBackgroundAlert("Arcade Alert", `${p.sender} answered a duel request!`); 
                         }
-                        
-                        return; // Stop here, resolve duel without new post!
+                        return; 
                     }
                 }
 
@@ -433,14 +430,26 @@ case MSG_TYPE_WALL_POST:
                 }
             } 
             break;
+
+        case MSG_TYPE_WALL_UPDATE:
+            if (currentRole === 'VISITOR') { 
+                // NOTIFICATION HOOK: Check if the newest post was from someone else
+                if (p.updatedWall && p.updatedWall.length > wallData.length) {
+                    const newPost = p.updatedWall[p.updatedWall.length - 1];
+                    const myAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : 'GUEST_NODE';
+                    
+                    if (newPost.sender !== myAlias && typeof triggerBackgroundAlert === 'function') {
+                        let alertText = newPost.isGame ? `[ NEW ${newPost.isGame.toUpperCase()} MODULE DEPLOYED ]` : newPost.text.replace(/<[^>]*>?/gm, '');
+                        triggerBackgroundAlert("Incoming Transmission", `${newPost.sender}: ${alertText}`);
+                    }
+                }
                 
-            case MSG_TYPE_WALL_UPDATE:
-                if (currentRole === 'VISITOR') { 
-                    const localWhispers = wallData.filter(m => m.isLocalWhisper);
-                    wallData = p.updatedWall; 
-                    if (localWhispers.length > 0) wallData.push(...localWhispers); 
-                    if(typeof renderWall === "function") renderWall(); 
-                } break;
+                const localWhispers = wallData.filter(m => m.isLocalWhisper);
+                wallData = p.updatedWall; 
+                if (localWhispers.length > 0) wallData.push(...localWhispers); 
+                if(typeof renderWall === "function") renderWall(); 
+            } 
+            break;
                 
             case 'FILE_START':
                 incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
