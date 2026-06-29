@@ -1,29 +1,23 @@
 //---------------------------------------------------------
 // 01. NODE ROUTING & CONNECTION MANAGEMENT
 //---------------------------------------------------------
-
 function broadcastToAll(packet) {
     if (currentRole !== 'HOST' || !peer) return;
     for (let id in peer.connections) {
         peer.connections[id].forEach(c => {
-
             if (c.open && typeof c.send === 'function') c.send(packet);
         });
     }
 }
-
-
 
 function broadcastOnlineUsers() {
     if (currentRole !== 'HOST') return;
     const hostAlias = document.getElementById('my-alias').value.trim() || 'NODE-ALPHA';
     const onlineUsers = [{ id: peer.id, alias: hostAlias, isHost: true }];
     const activePeers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
-    
     activePeers.forEach(id => {
         if (peerFingerprintMap[id]) onlineUsers.push({ id: id, alias: peerFingerprintMap[id].alias, isHost: false });
     });
-
     currentNetworkPeers = onlineUsers.map(u => u.id).filter(id => id !== peer.id);
     broadcastToAll({ type: MSG_TYPE_USER_LIST, users: onlineUsers });
 }
@@ -32,7 +26,6 @@ function renderActivePeers() {
     const container = document.getElementById('host-active-peers');
     if(!container) return;
     const peers = Object.keys(peer.connections).filter(id => peer.connections[id][0] && peer.connections[id][0].open);
-    
     if(peers.length === 0) { container.innerHTML = "No active peers."; return; }
     
     container.innerHTML = peers.map(id => {
@@ -49,13 +42,13 @@ function kickAndBan(targetPeerId) {
         const fp = peerFingerprintMap[targetPeerId]?.fingerprint;
         if (fp && !bannedFingerprints.includes(fp)) { 
             bannedFingerprints.push(fp); 
-            localStorage.setItem('nowspace_banned', JSON.stringify(bannedFingerprints)); 
+            localStorage.setItem('nowspace_banned', JSON.stringify(bannedFingerprints));
         }
         if (peer.connections[targetPeerId]) { 
             peer.connections[targetPeerId].forEach(c => { 
                 if (typeof c.send === 'function') c.send({type: 'BANNED'}); 
                 setTimeout(() => { c.close(); }, 500); 
-            }); 
+            });
         }
         renderActivePeers(); renderBannedPeers(); broadcastOnlineUsers();
     }
@@ -95,22 +88,21 @@ function disconnectNode() {
     }
     
     activeConn = null; currentRole = null; activePoll = null;
-    peerFingerprintMap = {}; incomingFiles = {};
+    peerFingerprintMap = {};
+    incomingFiles = {};
     
     document.getElementById('visitor-view').style.display = 'none'; 
     document.getElementById('host-live-wall-panel').style.display = 'none';
     document.getElementById('host-setup-panel').style.display = 'block'; 
     document.getElementById('visitor-connect-panel').style.display = 'block';
-    document.getElementById('btn-go-online').disabled = false; 
+    document.getElementById('btn-go-online').disabled = false;
     document.getElementById('my-id-display').style.display = 'none';
     globalDisconnectBtn.style.display = 'none'; 
     isScreenSharing = false;
     
-    if(typeof updateVoiceTogglesVisuals === "function") updateVoiceTogglesVisuals(false); 
-    
+    if(typeof updateVoiceTogglesVisuals === "function") updateVoiceTogglesVisuals(false);
     document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => { b.style.display = 'none'; b.classList.remove('btn-alert'); });
     document.querySelectorAll('.screen-btn').forEach(b => { b.innerText = "[ 🖥️ SCREEN ]"; });
-    
     document.getElementById('host-video-stream-container').innerHTML = '';
     document.getElementById('visitor-video-stream-container').innerHTML = '';
     statusDisplay.innerText = "[ STATUS: OFFLINE ]"; 
@@ -121,31 +113,6 @@ function disconnectNode() {
 // 02. MAIN HANDSHAKE & CRASH CATCHERS
 //---------------------------------------------------------
 async function startHosting() {
-    // Auto-prompt for notifications safely
-    try {
-        if ("Notification" in window && Notification.permission === "default") {
-            const req = Notification.requestPermission(function(permission) {
-                // Fallback for older Safari browsers
-                if (permission === "granted") {
-                    notificationsEnabled = true;
-                    if(typeof updateNotificationUI === "function") updateNotificationUI();
-                }
-            });
-            
-            // Modern browsers that return a Promise
-            if (req && typeof req.then === 'function') {
-                req.then(permission => {
-                    if (permission === "granted") {
-                        notificationsEnabled = true;
-                        if(typeof updateNotificationUI === "function") updateNotificationUI();
-                    }
-                }).catch(() => {});
-            }
-        }
-    } catch (err) {
-        console.warn("[ SYSTEM_WARNING ] Non-standard Notification API detected.", err);
-    }
-
     try {
         currentRole = 'HOST'; 
         document.getElementById('btn-go-online').disabled = true; 
@@ -232,31 +199,6 @@ async function startHosting() {
 }
 
 function visitFriend() {
-    // Auto-prompt for notifications safely
-    try {
-        if ("Notification" in window && Notification.permission === "default") {
-            const req = Notification.requestPermission(function(permission) {
-                // Fallback for older Safari browsers
-                if (permission === "granted") {
-                    notificationsEnabled = true;
-                    if(typeof updateNotificationUI === "function") updateNotificationUI();
-                }
-            });
-            
-            // Modern browsers that return a Promise
-            if (req && typeof req.then === 'function') {
-                req.then(permission => {
-                    if (permission === "granted") {
-                        notificationsEnabled = true;
-                        if(typeof updateNotificationUI === "function") updateNotificationUI();
-                    }
-                }).catch(() => {});
-            }
-        }
-    } catch (err) {
-        console.warn("[ SYSTEM_WARNING ] Non-standard Notification API detected.", err);
-    }
-
     try {
         currentRole = 'VISITOR'; 
         const fId = document.getElementById('friend-id').value.trim(); 
@@ -335,21 +277,22 @@ function executeConnection(fId) {
 function handleIncomingP2PPacket(p, conn) {
     try {
         const senderId = conn.peer;
-        
         switch(p.type) {
             case 'VISITOR_HANDSHAKE':
                 if (currentRole === 'HOST') {
                     if (currentHostEncryptedPwd && p.password !== currentHostEncryptedPwd) {
-                        conn.send({type: 'AUTH_FAILED'}); setTimeout(() => { conn.close(); }, 500); return;
+                        conn.send({type: 'AUTH_FAILED'});
+                        setTimeout(() => { conn.close(); }, 500); return;
                     }
                     if (bannedFingerprints.includes(p.fingerprint)) {
-                        conn.send({type: 'BANNED'}); setTimeout(() => { conn.close(); }, 500); return;
+                        conn.send({type: 'BANNED'});
+                        setTimeout(() => { conn.close(); }, 500); return;
                     }
                     
                     peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
-                if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
-                    renderActivePeers(); broadcastOnlineUsers();
+                    if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
                     
+                    renderActivePeers(); broadcastOnlineUsers();
                     setTimeout(() => {
                         conn.send({ 
                             type: MSG_TYPE_PROFILE, 
@@ -364,30 +307,27 @@ function handleIncomingP2PPacket(p, conn) {
                     }, 600);
                     
                     if (localStream) {
-                        let call = peer.call(senderId, localStream); activeCalls.push(call);
+                        let call = peer.call(senderId, localStream);
+                        activeCalls.push(call);
                         if(typeof handleCallEvent === "function") handleCallEvent(call);
                     }
                 } break;
-            
             case 'AUTH_FAILED':
-                alert("ACCESS DENIED: INCORRECT NODE PASSWORD."); disconnectNode(); 
+                alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
+                disconnectNode(); 
                 document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 401 // UNAUTHORIZED_ACCESS ]</h2>"; 
                 break;
-                
-case MSG_TYPE_PROFILE:
-                if (statusDisplay) statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]"; 
-                
+            case MSG_TYPE_PROFILE:
+                if (statusDisplay) statusDisplay.innerText = "[ STATUS: SECURE LINK ESTABLISHED ]";
                 const rAlias = document.getElementById('render-alias');
                 if (rAlias) rAlias.innerText = p.alias; 
                 
                 const rBio = document.getElementById('datarender-bio');
                 if (rBio) rBio.innerText = p.bio;
-                
                 if (p.bgUrl && typeof applyBackground === "function") applyBackground(p.bgUrl);
                 
                 const rCss = document.getElementById('custom-injected-css');
                 if (p.css && rCss) rCss.innerText = p.css;
-                
                 const rAudio = document.getElementById('audio-container');
                 if (p.audio && rAudio && typeof renderAudioEmbed === "function") {
                     rAudio.innerHTML = renderAudioEmbed(p.audio);
@@ -397,13 +337,12 @@ case MSG_TYPE_PROFILE:
                 activePoll = p.activePoll || null;
                 
                 if (typeof applyFeatures === "function") applyFeatures(featureToggles); 
-                if (typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery); 
+                if (typeof buildVisitorGallery === "function") buildVisitorGallery(p.gallery);
                 if (typeof buildVisitorTop8Grid === "function") buildVisitorTop8Grid(p.top8); 
                 
                 wallData = p.currentWall; 
                 if (typeof renderWall === "function") renderWall(); 
                 break;
-                
             case MSG_TYPE_USER_LIST:
                 if (currentRole === 'VISITOR') {
                     const newPeers = p.users.map(u => u.id).filter(id => id !== peer.id);
@@ -415,13 +354,12 @@ case MSG_TYPE_PROFILE:
                             }
                         });
                     }
-                    currentNetworkPeers = newPeers; 
+                    currentNetworkPeers = newPeers;
                     const container = document.getElementById('render-online-users');
                     if (container) {
                         container.innerHTML = p.users.map(u => `<span style="display:inline-block; margin-right:15px; margin-bottom:5px;"><span style="color:${u.isHost ? 'var(--main-cyan)' : '#0f0'}; text-shadow:0 0 5px ${u.isHost ? 'var(--main-cyan)' : '#0f0'};">●</span> <b style="color:${u.isHost ? 'var(--main-cyan)' : '#fff'};">${u.alias} ${u.isHost ? '[HOST]' : ''}</b></span>`).join('');
                     }
                 } break;
-
             case 'RELAY_WHISPER':
                 if (currentRole === 'HOST') {
                     let targetConnId = null;
@@ -433,19 +371,17 @@ case MSG_TYPE_PROFILE:
                         hostDiv.scrollTop = hostDiv.scrollHeight;
                     } else { conn.send({ type: 'INCOMING_WHISPER', senderAlias: 'SYSTEM', text: `ERR: User '${p.targetAlias}' not found in node.` }); }
                 } break;
-
             case 'INCOMING_WHISPER':
                 if (currentRole === 'VISITOR') {
-                    if(typeof systemPing === "function") systemPing("SECURE TRANSMISSION", `Incoming Whisper from ${p.senderAlias}`);
+                    if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("SECURE TRANSMISSION", `Incoming Whisper from ${p.senderAlias}`);
                     wallData.push({ sender: p.senderAlias, text: p.text, isLocalWhisper: true, timestamp: new Date().toLocaleTimeString() });
                     if(typeof renderWall === "function") renderWall();
                 } break;
-                
             case 'GAME_MOVE':
                 if (currentRole === 'HOST') { if(typeof processGameMove === "function") processGameMove(p); } break;
                 
             case MSG_TYPE_DRAWING:
-                if (typeof executeDraw === "function") executeDraw(p.x0, p.y0, p.x1, p.y1, p.color, p.size); 
+                if (typeof executeDraw === "function") executeDraw(p.x0, p.y0, p.x1, p.y1, p.color, p.size);
                 if (currentRole === 'HOST') broadcastToAll(p); break;
                 
             case MSG_TYPE_CANVAS_WIPE:
@@ -460,134 +396,138 @@ case MSG_TYPE_PROFILE:
                 if (typeof applyTacticalMap === "function") applyTacticalMap(p.bgData);
                 if (currentRole === 'HOST') broadcastToAll(p); break;
 
-case MSG_TYPE_WALL_POST:
-            if (currentRole === 'HOST') {
-                if (bannedFingerprints.includes(p.fingerprint)) return;
-                
-                // Track the sender for potential banning
-                const senderId = conn ? conn.peer : p.fingerprint;
-                if (senderId) peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender };
-                
-                // --- ARCADE: RPS MATCHMAKING ROUTER ---
-                if (p.isGame === 'rps') {
-                    let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
-                    if (openDuel) {
-                        openDuel.players.p2 = { alias: p.sender, fp: p.fingerprint, move: p.gamePayload };
-                        let m1 = openDuel.players.p1.move, m2 = openDuel.players.p2.move;
-                        if (m1 === m2) openDuel.winner = 'DRAW // STALEMATE';
-                        else if ((m1==='rock'&&m2==='scissors')||(m1==='paper'&&m2==='rock')||(m1==='scissors'&&m2==='paper')) openDuel.winner = openDuel.players.p1.alias.toUpperCase() + ' WINS';
-                        else openDuel.winner = openDuel.players.p2.alias.toUpperCase() + ' WINS';
-
-                        openDuel.text = `<span style="color:var(--bright-magenta);"><b style="color:var(--main-cyan);">${openDuel.players.p1.alias}</b> (${m1.toUpperCase()}) vs <b style="color:var(--main-cyan);">${openDuel.players.p2.alias}</b> (${m2.toUpperCase()})<br>> ${openDuel.winner}</span>`;
-                        if(typeof saveLocalData === "function") saveLocalData();
-                        if(typeof renderWall === "function") renderWall();
-                        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                        
-                        // NOTIFICATION HOOK: Someone joined a duel!
-                        if (typeof triggerBackgroundAlert === 'function') {
-                            triggerBackgroundAlert("Arcade Alert", `${p.sender} answered a duel request!`); 
-                        }
-                        return; 
-                    }
-                }
-
-                // Standard message / New Game creation
-                const packet = { 
-                    sender: p.sender, 
-                    text: p.text, 
-                    isPrivate: p.isPrivate, 
-                    timestamp: new Date().toLocaleTimeString(), 
-                    burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null, 
-                    isGame: p.isGame, 
-                    gameId: p.isGame ? Date.now().toString() : null, 
-                    board: p.isGame === 'tictactoe' ? Array(9).fill(null) : (p.isGame === 'connect4' ? Array(42).fill(null) : null), 
-                    turn: p.isGame === 'tictactoe' ? 'X' : (p.isGame === 'connect4' ? 'R' : null), 
-                    winner: null,
-                    players: p.isGame === 'tictactoe' ? { X: null, O: null } : (p.isGame === 'connect4' ? { R: null, Y: null } : (p.isGame === 'rps' ? { p1: { alias: p.sender, fp: p.fingerprint, move: p.gamePayload }, p2: null } : null))
-                };
-
-                wallData.push(packet); 
-                
-                if(typeof saveLocalData === "function") saveLocalData(); 
-                if(typeof renderWall === "function") renderWall(); 
-                broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
-                
-                // NOTIFICATION HOOK: Standard Message or New Game!
-                if (typeof triggerBackgroundAlert === 'function' && !packet.isLocalWhisper) {
-                    let alertText = packet.isGame ? `[ NEW ${packet.isGame.toUpperCase()} MODULE DEPLOYED ]` : packet.text.replace(/<[^>]*>?/gm, '');
-                    triggerBackgroundAlert("Incoming Transmission", `${packet.sender}: ${alertText}`); 
-                }
-            } 
-            break;
-
-        case MSG_TYPE_WALL_UPDATE:
-            if (currentRole === 'VISITOR') { 
-                // NOTIFICATION HOOK: Check if the newest post was from someone else
-                if (p.updatedWall && p.updatedWall.length > wallData.length) {
-                    const newPost = p.updatedWall[p.updatedWall.length - 1];
-                    const myAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : 'GUEST_NODE';
+            case MSG_TYPE_WALL_POST:
+                if (currentRole === 'HOST') {
+                    if (bannedFingerprints.includes(p.fingerprint)) return;
                     
-                    if (newPost.sender !== myAlias && typeof triggerBackgroundAlert === 'function') {
-                        let alertText = newPost.isGame ? `[ NEW ${newPost.isGame.toUpperCase()} MODULE DEPLOYED ]` : newPost.text.replace(/<[^>]*>?/gm, '');
-                        triggerBackgroundAlert("Incoming Transmission", `${newPost.sender}: ${alertText}`);
+                    // Track the sender for potential banning
+                    const senderId = conn ? conn.peer : p.fingerprint;
+                    if (senderId) peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender };
+                    
+                    // --- ARCADE: RPS MATCHMAKING ROUTER ---
+                    if (p.isGame === 'rps') {
+                        let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
+                        if (openDuel) {
+                            openDuel.players.p2 = { alias: p.sender, fp: p.fingerprint, move: p.gamePayload };
+                            let m1 = openDuel.players.p1.move, m2 = openDuel.players.p2.move;
+                            if (m1 === m2) openDuel.winner = 'DRAW // STALEMATE';
+                            else if ((m1==='rock'&&m2==='scissors')||(m1==='paper'&&m2==='rock')||(m1==='scissors'&&m2==='paper')) openDuel.winner = openDuel.players.p1.alias.toUpperCase() + ' WINS';
+                            else openDuel.winner = openDuel.players.p2.alias.toUpperCase() + ' WINS';
+
+                            openDuel.text = `<span style="color:var(--bright-magenta);"><b style="color:var(--main-cyan);">${openDuel.players.p1.alias}</b> (${m1.toUpperCase()}) vs <b style="color:var(--main-cyan);">${openDuel.players.p2.alias}</b> (${m2.toUpperCase()})<br>> ${openDuel.winner}</span>`;
+                            if(typeof saveLocalData === "function") saveLocalData();
+                            if(typeof renderWall === "function") renderWall();
+                            broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
+                            
+                            // NOTIFICATION HOOK: Someone joined a duel!
+                            if (typeof triggerBackgroundAlert === 'function') {
+                                triggerBackgroundAlert("Arcade Alert", `${p.sender} answered a duel request!`); 
+                            }
+                            return; 
+                        }
                     }
-                }
-                
-                const localWhispers = wallData.filter(m => m.isLocalWhisper);
-                wallData = p.updatedWall; 
-                if (localWhispers.length > 0) wallData.push(...localWhispers); 
-                if(typeof renderWall === "function") renderWall(); 
-            } 
-            break;
-                
+
+                    // Standard message / New Game creation
+                    const packet = { 
+                        sender: p.sender, 
+                        text: p.text, 
+                        isPrivate: p.isPrivate, 
+                        timestamp: new Date().toLocaleTimeString(), 
+                        burnAt: p.burnSec ? Date.now() + (p.burnSec * 1000) : null, 
+                        isGame: p.isGame, 
+                        gameId: p.isGame ? Date.now().toString() : null, 
+                        board: p.isGame === 'tictactoe' ? Array(9).fill(null) : (p.isGame === 'connect4' ? Array(42).fill(null) : null), 
+                        turn: p.isGame === 'tictactoe' ? 'X' : (p.isGame === 'connect4' ? 'R' : null), 
+                        winner: null,
+                        players: p.isGame === 'tictactoe' ? { X: null, O: null } : (p.isGame === 'connect4' ? { R: null, Y: null } : (p.isGame === 'rps' ? { p1: { alias: p.sender, fp: p.fingerprint, move: p.gamePayload }, p2: null } : null))
+                    };
+
+                    wallData.push(packet); 
+                    
+                    if(typeof saveLocalData === "function") saveLocalData(); 
+                    if(typeof renderWall === "function") renderWall(); 
+                    broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+                    
+                    // NOTIFICATION HOOK: Standard Message or New Game!
+                    if (typeof triggerBackgroundAlert === 'function' && !packet.isLocalWhisper) {
+                        let alertText = packet.isGame ? `[ NEW ${packet.isGame.toUpperCase()} MODULE DEPLOYED ]` : packet.text.replace(/<[^>]*>?/gm, '');
+                        triggerBackgroundAlert("Incoming Transmission", `${packet.sender}: ${alertText}`); 
+                    }
+                } 
+                break;
+
+            case MSG_TYPE_WALL_UPDATE:
+                if (currentRole === 'VISITOR') { 
+                    // NOTIFICATION HOOK: Check if the newest post was from someone else
+                    if (p.updatedWall && p.updatedWall.length > wallData.length) {
+                        const newPost = p.updatedWall[p.updatedWall.length - 1];
+                        const myAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : 'GUEST_NODE';
+                        
+                        if (newPost.sender !== myAlias && typeof triggerBackgroundAlert === 'function') {
+                            let alertText = newPost.isGame ? `[ NEW ${newPost.isGame.toUpperCase()} MODULE DEPLOYED ]` : newPost.text.replace(/<[^>]*>?/gm, '');
+                            triggerBackgroundAlert("Incoming Transmission", `${newPost.sender}: ${alertText}`);
+                        }
+                    }
+                    
+                    const localWhispers = wallData.filter(m => m.isLocalWhisper);
+                    wallData = p.updatedWall; 
+                    if (localWhispers.length > 0) wallData.push(...localWhispers); 
+                    if(typeof renderWall === "function") renderWall(); 
+                } 
+                break;
+
             case 'FILE_START':
                 incomingFiles[p.id] = { chunks: [], received: 0, total: p.size, name: p.name, type: p.fileType };
                 if (currentRole === 'HOST') {
-                    broadcastToAll(p); 
+                    broadcastToAll(p);
                     const uiHTML = `<div id="file-${p.id}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ INCOMING DATA ]</span><br><b style="color:#fff;">${p.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${p.id}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${p.id}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`;
                     wallData.push({ sender: p.senderAlias, text: uiHTML, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
                     if(typeof renderWall === "function") renderWall();
                 } break;
-                
             case 'FILE_CHUNK':
                 if (incomingFiles[p.id]) {
-                    incomingFiles[p.id].chunks.push(p.data); incomingFiles[p.id].received += p.data.byteLength;
+                    incomingFiles[p.id].chunks.push(p.data);
+                    incomingFiles[p.id].received += p.data.byteLength;
                     let pct = Math.floor((incomingFiles[p.id].received / incomingFiles[p.id].total) * 100);
                     let bar = document.getElementById(`bar-${p.id}`); let txt = document.getElementById(`pct-${p.id}`);
                     if(bar) bar.style.width = pct + '%'; if(txt) txt.innerText = pct + '%';
                     if (currentRole === 'HOST') broadcastToAll(p);
                 } break;
-                
             case 'FILE_END':
                 if (incomingFiles[p.id]) {
                     const blob = new Blob(incomingFiles[p.id].chunks, { type: incomingFiles[p.id].type });
                     const url = URL.createObjectURL(blob);
                     let fileUI = document.getElementById(`file-${p.id}`);
-                    if (fileUI) fileUI.innerHTML = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br><b style="color:#fff;">${incomingFiles[p.id].name}</b><br><a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`; 
+                    if (fileUI) fileUI.innerHTML = `<span style="color:var(--main-cyan);">[ 💾 P2P_TRANSFER ]</span><br><b style="color:#fff;">${incomingFiles[p.id].name}</b><br><a href="${url}" download="${incomingFiles[p.id].name}" class="btn-small" style="display:inline-block; margin-top:8px; text-decoration:none; color:#000; background:var(--main-cyan);">[ DOWNLOAD DATA ]</a>`;
                     if (currentRole === 'HOST') {
                         let entry = wallData.find(w => w.text.includes(`id="file-${p.id}"`));
                         if (entry) entry.text = fileUI.outerHTML;
                         if(typeof saveLocalData === "function") saveLocalData();
                         broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-                        broadcastToAll(p); 
+                        broadcastToAll(p);
                     }
-                    delete incomingFiles[p.id]; 
+                    delete incomingFiles[p.id];
                 } break;
 
             case MSG_TYPE_SOUNDBOARD: 
-                if(typeof triggerSound === "function") triggerSound(p.soundId, false, p.sender, p.customUrl); break;
+                if(typeof triggerSound === "function") triggerSound(p.soundId, false, p.sender, p.customUrl);
+                break;
             case MSG_TYPE_FEATURE_UPDATE: 
-                if (currentRole === 'VISITOR') { featureToggles = p.features; if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
+                if (currentRole === 'VISITOR') { featureToggles = p.features;
+                if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
             case MSG_TYPE_POLL_NEW:
             case MSG_TYPE_POLL_UPDATE: 
-                if (currentRole === 'VISITOR') { activePoll = p.poll; if(typeof renderVisitorPoll === "function") renderVisitorPoll(); } break;
+                if (currentRole === 'VISITOR') { activePoll = p.poll;
+                if(typeof renderVisitorPoll === "function") renderVisitorPoll(); } break;
             case MSG_TYPE_POLL_VOTE:
                 if (currentRole === 'HOST' && activePoll && !activePoll.voters.includes(p.voterId)) { 
-                    activePoll.voters.push(p.voterId); activePoll.options[p.optionIndex].votes++; 
+                    activePoll.voters.push(p.voterId);
+                    activePoll.options[p.optionIndex].votes++; 
                     if(typeof renderHostPoll === "function") renderHostPoll(); broadcastToAll({ type: MSG_TYPE_POLL_UPDATE, poll: activePoll }); 
                 } break;
             case 'BANNED':
-                alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE."); disconnectNode(); 
+                alert("ACCESS DENIED: THE HOST HAS PERMANENTLY BANISHED YOU FROM THIS NODE.");
+                disconnectNode(); 
                 document.getElementById('render-profile-header').innerHTML = "<h2 style='color:var(--alert-red);'>[ 403 // BANNED_FROM_NODE ]</h2>"; break;
         }
     } catch(err) { alert("[ DATASTREAM ERROR ] Packet router crashed!\n" + err.message); }
@@ -603,12 +543,10 @@ function visitorSendWallPacket() {
     const alias = aliasInput ? aliasInput.value.trim() : '';
     
     if (!input || !input.value || !activeConn) return;
-    
     let name = alias ? alias : peer.id.substring(0,6); 
     if(alias) localStorage.setItem('nowspace_visitor_alias', alias);
     
     const rawText = input.value.trim();
-
     if (rawText.toLowerCase().startsWith('/w ')) {
         const parts = rawText.split(' ');
         if (parts.length >= 3) {
@@ -628,12 +566,11 @@ function visitorSendWallPacket() {
         type: typeof MSG_TYPE_WALL_POST !== 'undefined' ? MSG_TYPE_WALL_POST : 'NEW_WALL_PACKET', 
         text: parsed.text, isPrivate: priv ? priv.checked : false, sender: name, fingerprint: myFingerprint, burnSec: parsed.burnSec, isGame: parsed.isGame, gamePayload: parsed.payload
     });
-    
     input.value = ''; if(priv) priv.checked = false;
 }
 
 function hostSendWallPacket() {
-    const input = document.getElementById('host-wall-input'); 
+    const input = document.getElementById('host-wall-input');
     if (!input || !input.value) return;
     
     const rawText = input.value.trim();
@@ -652,7 +589,6 @@ function hostSendWallPacket() {
             if (m1 === m2) openDuel.winner = 'DRAW // STALEMATE';
             else if ((m1==='rock'&&m2==='scissors')||(m1==='paper'&&m2==='rock')||(m1==='scissors'&&m2==='paper')) openDuel.winner = openDuel.players.p1.alias.toUpperCase() + ' WINS';
             else openDuel.winner = openDuel.players.p2.alias.toUpperCase() + ' WINS';
-
             openDuel.text = `<span style="color:var(--bright-magenta);"><b style="color:var(--main-cyan);">${openDuel.players.p1.alias}</b> (${m1.toUpperCase()}) vs <b style="color:var(--main-cyan);">${openDuel.players.p2.alias}</b> (${m2.toUpperCase()})<br>> ${openDuel.winner}</span>`;
             if(typeof saveLocalData === "function") saveLocalData();
             if(typeof renderWall === "function") renderWall();
@@ -663,12 +599,16 @@ function hostSendWallPacket() {
     }
 
     const packet = { 
-        sender: alias, text: parsed.text, isPrivate: false, timestamp: new Date().toLocaleTimeString(), burnAt: parsed.burnSec ? Date.now() + (parsed.burnSec * 1000) : null, isGame: parsed.isGame, gameId: parsed.isGame ? Date.now().toString() : null, 
-        board: parsed.isGame === 'tictactoe' ? Array(9).fill(null) : (parsed.isGame === 'connect4' ? Array(42).fill(null) : null), 
-        turn: parsed.isGame === 'tictactoe' ? 'X' : (parsed.isGame === 'connect4' ? 'R' : null), winner: null, 
-        players: parsed.isGame === 'tictactoe' ? { X: null, O: null } : (parsed.isGame === 'connect4' ? { R: null, Y: null } : (parsed.isGame === 'rps' ? { p1: { alias: alias, fp: myFingerprint, move: parsed.payload }, p2: null } : null))
+        sender: alias, text: parsed.text, isPrivate: false, timestamp: new Date().toLocaleTimeString(), burnAt: parsed.burnSec ?
+        Date.now() + (parsed.burnSec * 1000) : null, isGame: parsed.isGame, gameId: parsed.isGame ?
+        Date.now().toString() : null, 
+        board: parsed.isGame === 'tictactoe' ?
+        Array(9).fill(null) : (parsed.isGame === 'connect4' ? Array(42).fill(null) : null), 
+        turn: parsed.isGame === 'tictactoe' ?
+        'X' : (parsed.isGame === 'connect4' ? 'R' : null), winner: null, 
+        players: parsed.isGame === 'tictactoe' ?
+        { X: null, O: null } : (parsed.isGame === 'connect4' ? { R: null, Y: null } : (parsed.isGame === 'rps' ? { p1: { alias: alias, fp: myFingerprint, move: parsed.payload }, p2: null } : null))
     };
-
     wallData.push(packet);
     if(typeof saveLocalData === "function") saveLocalData(); 
     if(typeof renderWall === "function") renderWall(); 
@@ -678,7 +618,7 @@ function hostSendWallPacket() {
 
 function hostClearWall() {
     if(confirm("DANGER: This will permanently wipe the chat history for you and all connected visitors. Proceed?")) {
-        wallData = []; 
+        wallData = [];
         if(typeof saveLocalData === "function") saveLocalData(); 
         if(typeof renderWall === "function") renderWall();
         broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
@@ -694,7 +634,6 @@ function sendGameMove(gameId, cellIndex) {
     
     let alias = aliasInput ? aliasInput.value.trim() : '';
     if(!alias && peer) alias = peer.id.substring(0,6);
-    
     if (currentRole === 'HOST') {
         processGameMove({ gameId: gameId, cellIndex: cellIndex, fingerprint: myFingerprint, senderAlias: alias });
     } else if (currentRole === 'VISITOR' && activeConn) {
@@ -705,14 +644,13 @@ function sendGameMove(gameId, cellIndex) {
 function processGameMove(p) {
     let game = wallData.find(m => m.gameId === p.gameId);
     if (!game || game.winner) return;
-
     if (game.isGame === 'tictactoe' && !game.board[p.cellIndex]) {
-        if (!game.players[game.turn]) game.players[game.turn] = { fp: p.fingerprint, alias: p.senderAlias }; 
+        if (!game.players[game.turn]) game.players[game.turn] = { fp: p.fingerprint, alias: p.senderAlias };
         if (game.players[game.turn].fp === p.fingerprint) {
             game.board[p.cellIndex] = game.turn;
             checkTTTWinner(game);
             if (!game.winner) game.turn = game.turn === 'X' ? 'O' : 'X';
-            if(typeof saveLocalData === "function") saveLocalData(); 
+            if(typeof saveLocalData === "function") saveLocalData();
             if(typeof renderWall === "function") renderWall();
             broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
@@ -731,7 +669,7 @@ function processGameMove(p) {
                 game.board[placedRow*7 + col] = game.turn;
                 checkC4Winner(game);
                 if (!game.winner) game.turn = game.turn === 'R' ? 'Y' : 'R';
-                if(typeof saveLocalData === "function") saveLocalData(); 
+                if(typeof saveLocalData === "function") saveLocalData();
                 if(typeof renderWall === "function") renderWall();
                 broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
             }
@@ -744,7 +682,8 @@ function checkTTTWinner(game) {
     for (let line of lines) {
         const [a,b,c] = line;
         if (game.board[a] && game.board[a] === game.board[b] && game.board[a] === game.board[c]) {
-            game.winner = (game.players[game.board[a]] ? game.players[game.board[a]].alias : "PLAYER " + game.board[a]).toUpperCase() + " WINS"; return;
+            game.winner = (game.players[game.board[a]] ? game.players[game.board[a]].alias : "PLAYER " + game.board[a]).toUpperCase() + " WINS";
+            return;
         }
     }
     if (!game.board.includes(null)) game.winner = 'DRAW // STALEMATE';
@@ -802,9 +741,11 @@ function handleImageUpload(event) {
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            const MAX_WIDTH = 800; let newWidth = img.width; let newHeight = img.height;
+            const MAX_WIDTH = 800;
+            let newWidth = img.width; let newHeight = img.height;
             if (img.width > MAX_WIDTH) { const scaleSize = MAX_WIDTH / img.width; newWidth = MAX_WIDTH; newHeight = img.height * scaleSize; }
-            const canvas = document.createElement('canvas'); canvas.width = newWidth; canvas.height = newHeight;
+            const canvas = document.createElement('canvas');
+            canvas.width = newWidth; canvas.height = newHeight;
             const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, newWidth, newHeight);
             transmitCompressedImage(canvas.toDataURL('image/jpeg', 0.7));
         };
@@ -820,31 +761,34 @@ function handleRawFileUpload(event) {
     const transferId = Date.now().toString();
     let alias = '';
     
-    if (currentRole === 'HOST') { const aliasInput = document.getElementById('my-alias'); alias = aliasInput ? aliasInput.value.trim() || '[HOST]' : '[HOST]'; } 
-    else if (currentRole === 'VISITOR') { const aliasInput = document.getElementById('visitor-alias-input'); alias = aliasInput ? aliasInput.value.trim() || peer.id.substring(0,6) : peer.id.substring(0,6); }
+    if (currentRole === 'HOST') { const aliasInput = document.getElementById('my-alias');
+    alias = aliasInput ? aliasInput.value.trim() || '[HOST]' : '[HOST]'; } 
+    else if (currentRole === 'VISITOR') { const aliasInput = document.getElementById('visitor-alias-input');
+    alias = aliasInput ? aliasInput.value.trim() || peer.id.substring(0,6) : peer.id.substring(0,6); }
 
     const startPacket = { type: 'FILE_START', id: transferId, name: file.name, size: file.size, fileType: file.type, senderAlias: alias };
     incomingFiles[transferId] = { chunks: [], received: 0, total: file.size, name: file.name, type: file.type };
     let uiHTML = `<div id="file-${transferId}" style="border: 1px dashed var(--main-cyan); padding: 10px; margin-top: 5px; background: rgba(0,255,255,0.05); display: inline-block;"><span style="color:var(--main-cyan);">[ ⚠️ TRANSMITTING DATA ]</span><br><b style="color:#fff;">${file.name}</b><br><div style="width:150px; height:10px; background:#333; margin-top:5px;"><div id="bar-${transferId}" style="width:0%; height:100%; background:var(--main-cyan);"></div></div><span id="pct-${transferId}" style="font-size:0.8rem; color:#aaa;">0%</span></div>`;
-
-    if (currentRole === 'HOST') { wallData.push({ sender: alias, text: uiHTML, isPrivate: false, timestamp: new Date().toLocaleTimeString() }); if(typeof renderWall === "function") renderWall(); broadcastToAll(startPacket); } 
+    if (currentRole === 'HOST') { wallData.push({ sender: alias, text: uiHTML, isPrivate: false, timestamp: new Date().toLocaleTimeString() });
+    if(typeof renderWall === "function") renderWall(); broadcastToAll(startPacket); } 
     else if (currentRole === 'VISITOR' && activeConn) activeConn.send(startPacket);
-
+    
     const chunkSize = 16 * 1024; let offset = 0;
-
     function readNextChunk() {
         const slice = file.slice(offset, offset + chunkSize);
         const reader = new FileReader();
         reader.onload = function(e) {
             const arrayBuffer = e.target.result;
             const chunkPacket = { type: 'FILE_CHUNK', id: transferId, data: arrayBuffer };
-            if (currentRole === 'HOST') broadcastToAll(chunkPacket); else if (currentRole === 'VISITOR' && activeConn) activeConn.send(chunkPacket);
+            if (currentRole === 'HOST') broadcastToAll(chunkPacket);
+            else if (currentRole === 'VISITOR' && activeConn) activeConn.send(chunkPacket);
             incomingFiles[transferId].chunks.push(arrayBuffer); incomingFiles[transferId].received += arrayBuffer.byteLength;
             let pct = Math.floor((incomingFiles[transferId].received / file.size) * 100);
             let bar = document.getElementById(`bar-${transferId}`); let txt = document.getElementById(`pct-${transferId}`);
             if(bar) bar.style.width = pct + '%'; if(txt) txt.innerText = pct + '%';
             offset += chunkSize;
-            if (offset < file.size) { setTimeout(readNextChunk, 1); } else {
+            if (offset < file.size) { setTimeout(readNextChunk, 1);
+            } else {
                 const endPacket = { type: 'FILE_END', id: transferId };
                 if (currentRole === 'HOST') broadcastToAll(endPacket); else if (currentRole === 'VISITOR' && activeConn) activeConn.send(endPacket);
                 const blob = new Blob(incomingFiles[transferId].chunks, { type: file.type }); const url = URL.createObjectURL(blob);
@@ -877,6 +821,7 @@ setInterval(() => {
         }
     }
 }, 1000);
+
 //---------------------------------------------------------
 // 08. ESCAPE HATCH 
 //---------------------------------------------------------
