@@ -159,7 +159,7 @@ async function startHosting() {
                     }
                     
                     // Wait 3 seconds and try the connection again
-                    setTimeout(() => {
+                   window.dialTimer = setTimeout(() => {
                         if (statusDisplay) {
                             statusDisplay.innerText = "[ DIALING HOST... ]";
                             statusDisplay.style.color = "var(--main-cyan)";
@@ -226,7 +226,7 @@ function visitFriend() {
                         statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
                         statusDisplay.style.color = "var(--alert-red)";
                     }
-                    setTimeout(() => {
+                    window.dialTimer = setTimeout(() => {
                         if (statusDisplay) {
                             statusDisplay.innerText = "[ DIALING HOST... ]";
                             statusDisplay.style.color = "var(--main-cyan)";
