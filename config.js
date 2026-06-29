@@ -438,4 +438,10 @@ window.onload = () => {
         document.getElementById('friend-id').value = urlNode; 
         document.getElementById('visitor-password').focus(); 
     }
+
+    // --- AUTO-ENABLE NOTIFICATIONS IF PREVIOUSLY GRANTED ---
+    if ("Notification" in window && Notification.permission === "granted") {
+        notificationsEnabled = true;
+        updateNotificationUI();
+    }
 };
