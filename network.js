@@ -209,6 +209,15 @@ async function startHosting() {
                     statusDisplay.style.color = "var(--alert-red)";
                 }
             }
+            // Catch-all for Browser Shields (Opera GX, Brave, Safari Strict)
+            else {
+                alert(`[ FATAL_NODE_ERROR ] ${err.type}\nIf you are using Opera GX, Brave, or strict privacy settings, please disable your Shields/Tracker Blockers for this domain so WebRTC can connect.`);
+                document.getElementById('btn-go-online').disabled = false;
+                if (statusDisplay) {
+                    statusDisplay.innerText = "[ STATUS: OFFLINE ]";
+                    statusDisplay.style.color = "var(--alert-red)";
+                }
+            }
         });
 
         peer.on('connection', (c) => {
@@ -265,6 +274,35 @@ function visitFriend() {
             peer = new Peer(peerConfig); 
             if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
             peer.on('open', () => { executeConnection(fId); }); 
+            
+            // Apply identical shield protection to the visitor's Peer instance
+            peer.on('error', (err) => {
+                console.warn("[ PEER_ERROR ]", err.type, err);
+                if (err.type === 'peer-unavailable') {
+                    const statusDisplay = document.getElementById('connection-status');
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
+                        statusDisplay.style.color = "var(--alert-red)";
+                    }
+                    setTimeout(() => {
+                        if (statusDisplay) {
+                            statusDisplay.innerText = "[ DIALING HOST... ]";
+                            statusDisplay.style.color = "var(--main-cyan)";
+                        }
+                        if (typeof visitFriend === "function") visitFriend();
+                    }, 3000);
+                } else if (err.type === 'network' || err.type === 'disconnected') {
+                    const statusDisplay = document.getElementById('connection-status');
+                    if (statusDisplay) {
+                        statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
+                        statusDisplay.style.color = "var(--alert-red)";
+                    }
+                } else {
+                    alert(`[ FATAL_NODE_ERROR ] ${err.type}\nIf you are using Opera GX, Brave, or strict privacy settings, please disable your Shields/Tracker Blockers for this domain so WebRTC can connect.`);
+                    globalDisconnectBtn.style.display = 'none';
+                }
+            });
+            
         } else { executeConnection(fId); }
     } catch(err) { alert("[ CONNECTION_ERROR ] " + err.message); }
 }
