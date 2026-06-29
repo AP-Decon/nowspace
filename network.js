@@ -258,8 +258,7 @@ function handleIncomingP2PPacket(p, conn) {
                     }
                     
                     peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
-                    if(typeof systemPing === "function") systemPing("NEW LINK ESTABLISHED", `Terminal ${p.alias} has connected to your node.`);
-                    
+                if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
                     renderActivePeers(); broadcastOnlineUsers();
                     
                     setTimeout(() => {
