@@ -120,35 +120,60 @@ async function hashPassword(str) {
     }
 }
 
-function toggleRadar() {
+// Rebranded Tracking Variable
+let notificationsEnabled = false;
+
+function toggleNotifications() {
     if (!("Notification" in window)) {
-        return alert("[ SYSTEM_ERROR ] Browser does not support background radar.");
+        return alert("[ SYSTEM_ERROR ] This browser does not support desktop notifications.");
     }
-    if (radarEnabled) { radarEnabled = false; updateRadarUI(); return; }
+    
+    if (notificationsEnabled) { 
+        notificationsEnabled = false; 
+        updateNotificationUI(); 
+        return; 
+    }
     
     if (Notification.permission === "granted") {
-        radarEnabled = true; updateRadarUI();
+        notificationsEnabled = true; 
+        updateNotificationUI();
+        // Send a quick test notification to confirm it works
+        new Notification("NOWSPACE Terminal", { body: "Background alerts activated successfully." });
     } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(p => {
-            if (p === "granted") { radarEnabled = true; updateRadarUI(); } 
-            else { alert("[ ACCESS_DENIED ] Permission rejected."); }
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") { 
+                notificationsEnabled = true; 
+                updateNotificationUI(); 
+            } else { 
+                alert("[ ACCESS_DENIED ] Notification permission was rejected."); 
+            }
         });
     } else {
-        alert("[ ACCESS_DENIED ] Notifications are permanently blocked by your browser settings.");
+        alert("[ ACCESS_DENIED ] Notifications are blocked by your browser settings for this domain.");
     }
 }
 
-function updateRadarUI() {
-    const btn = document.getElementById('radar-btn');
+function updateNotificationUI() {
+    const btn = document.getElementById('notification-toggle-btn');
     if (!btn) return;
-    if (radarEnabled) { btn.innerText = "[ 📡 RADAR: ON ]"; btn.classList.add('btn-alert'); } 
-    else { btn.innerText = "[ 📡 RADAR: OFF ]"; btn.classList.remove('btn-alert'); }
+    if (notificationsEnabled) { 
+        btn.innerText = "[ 🔔 NOTIFICATIONS: ON ]"; 
+        btn.classList.add('btn-alert'); 
+    } else { 
+        btn.innerText = "[ 🔔 NOTIFICATIONS: OFF ]"; 
+        btn.classList.remove('btn-alert'); 
+    }
 }
 
-function systemPing(title, body) {
-    if (radarEnabled && document.hidden) new Notification(title, { body: body });
+// The core function called by network events
+function triggerBackgroundAlert(title, message) {
+    if (notificationsEnabled && document.hidden) {
+        new Notification(title, {
+            body: message,
+            icon: '/icon-192.png' // Optional: points to your manifest icon if present
+        });
+    }
 }
-
 //---------------------------------------------------------
 // 04. PROFILE MULTI-SLOT MEMORY MANAGEMENT
 //---------------------------------------------------------
