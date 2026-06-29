@@ -159,7 +159,7 @@ function switchProfile(slotId) {
     loadLocalData();
 }
 
-ffunction loadLocalData() {
+function loadLocalData() {
     let saved = null;
     try {
         if (activeSlot === '1' && !localStorage.getItem('nowspace_save_1') && localStorage.getItem('nowspace_save')) {
@@ -249,6 +249,9 @@ ffunction loadLocalData() {
         
         const inject = document.getElementById('custom-injected-css'); 
         if(inject) inject.innerText = defCss; 
+        
+        // CRITICAL FIX: Save these defaults instantly to local storage so they persist!
+        saveLocalData();
     }
 }
 
@@ -261,10 +264,7 @@ function saveLocalData() {
         bio: document.getElementById('my-bio').value, 
         audio: document.getElementById('my-audio').value, 
         gallery: document.getElementById('my-gallery').value, 
-        
-        // Favorite Places Saved Here
         top8: document.getElementById('my-top8') ? document.getElementById('my-top8').value : '',
-        
         css: document.getElementById('my-css').value, 
         customSound: document.getElementById('my-custom-sound').value, 
         bgUrl: document.getElementById('my-bg-url').value, 
@@ -312,10 +312,7 @@ function importTheme(event) {
             if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
             if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
             if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
-            
-            // Favorite Places Imported Here
             if(p.top8 !== undefined) document.getElementById('my-top8').value = p.top8;
-            
             if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
             
             if(p.bgUrl !== undefined) { 
@@ -379,7 +376,6 @@ window.onload = () => {
         });
     }
     
-    // Detect incoming auto-connect link
     const urlNode = new URLSearchParams(window.location.search).get('node'); 
     if (urlNode) { 
         document.getElementById('host-setup-panel').style.display = 'none'; 
