@@ -556,19 +556,15 @@ function buildVisitorTop8Grid(str) {
     
     if (!str || str.trim() === '') { panel.style.display = 'none'; return; }
     
-    // Parse the lines as URLs
-    const urls = str.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-    urls.forEach(u => { 
-        // Extract just the domain name for the button label
-        let displayUrl = u.replace(/^https?:\/\//, '').split('/')[0];
-        
-        grid.innerHTML += `<div class="top8-item" onclick="window.open('${u}', '_blank')" style="cursor:pointer; border:1px solid var(--main-cyan); padding:10px; margin:5px; display:inline-block; text-align:center; box-shadow: 0 0 5px rgba(0,255,255,0.2);">
-            🌐<br><b style="font-size:0.75rem; word-break:break-all;">${displayUrl.toUpperCase()}</b>
+    // Parse the lines as Node IDs
+    const nodes = str.split('\n').map(n => n.trim()).filter(n => n.length > 0);
+    nodes.forEach(n => { 
+        grid.innerHTML += `<div class="top8-item" onclick="jumpToNewNode('${n}')" style="cursor:pointer; border:1px solid var(--main-cyan); padding:10px; margin:5px; display:inline-block; text-align:center; box-shadow: 0 0 5px rgba(0,255,255,0.2);">
+            📡<br><b style="font-size:0.75rem; word-break:break-all;">${n.toUpperCase()}</b>
         </div>`; 
     });
     panel.style.display = featureToggles.top8 ? 'block' : 'none';
 }
-
 function jumpToNewNode(id) { 
     const fInput = document.getElementById('friend-id');
     if(fInput) fInput.value = id; 
