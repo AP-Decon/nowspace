@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NOWSPACE :: TRM_v1.47</title>
+    <title>NOWSPACE :: TRM_v1.50</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=35">
 </head>
 <body>
     <div id="crt-scanlines"></div>
@@ -20,13 +20,13 @@
     <div id="system-manual-modal" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
-            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.47</h2>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.50</h2>
             <div id="manual-render-target"></div>
         </div>
     </div>
 
     <header style="text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #333; margin-bottom: 20px;">
-        <h1 class="glitch-text" style="margin: 0 0 10px 0; font-size: 2.5rem; letter-spacing: 2px;">// NOWSPACE :: TRM_v1.47</h1>
+        <h1 class="glitch-text" style="margin: 0 0 10px 0; font-size: 2.5rem; letter-spacing: 2px;">// NOWSPACE :: TRM_v1.50</h1>
         
         <div class="header-controls" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
             <button id="radar-btn" class="btn-small" onclick="toggleRadar()">[ 📡 RADAR: OFF ]</button>
@@ -39,27 +39,31 @@
     </header>
 
     <div class="panel" id="shared-canvas-panel" style="display: none; border-style: dotted; border-color: var(--main-cyan);">
-        <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
-        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center;">
-            <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer; height: 30px;">
-            <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
-            <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;">
-            <button class="btn-small btn-alert" onclick="wipeCanvas(true)">[ WIPE STROKES ]</button>
-            <button class="btn-small" onclick="document.getElementById('hidden-map-input').click()">[ 🗺️ TACTICAL MAP ]</button>
-            <button class="btn-small btn-alert" onclick="clearTacticalMap(true)">[ X MAP ]</button>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
+            <button class="btn-small btn-alert" onclick="toggleCanvas()">[ X CLOSE ]</button>
         </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center;">
+            <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer; height: 30px;" title="Brush Color">
+            <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
+            <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;" title="Brush Size">
+            <button class="btn-small" onclick="document.getElementById('brush-color').value='#000000'" title="Switch to Eraser">[ 🧽 ERASER ]</button>
+        </div>
+        
         <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background-color: #000; border: 1px solid #333; cursor: crosshair; touch-action: none; background-size: contain; background-position: center; background-repeat: no-repeat;"></canvas>
     </div>
 
     <div class="panel" id="host-setup-panel">
-    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 15px; padding-bottom: 5px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 15px; padding-bottom: 5px;">
             <h3 style="margin:0;">[ 01 // LOAD_PROFILE_DATA ]</h3>
             <select id="profile-slot" onchange="switchProfile(this.value)" style="background:#000; color:var(--bright-magenta); border:1px solid var(--bright-magenta); padding:4px; font-family:monospace; cursor:pointer;">
                 <option value="1">MEMORY SLOT 01</option>
                 <option value="2">MEMORY SLOT 02</option>
                 <option value="3">MEMORY SLOT 03</option>
             </select>
-        </div>        <label>System Alias (Display Name):</label>
+        </div>        
+        <label>System Alias (Display Name):</label>
         <input type="text" id="my-alias" value="NODE-ALPHA">
         <label>Custom Access Hash (For your URL):</label>
         <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
@@ -73,42 +77,24 @@
         <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
         <label>Profile Gallery (URLs, one per line):</label>
         <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
-        <label>Favourite Places (Web URLs, one per line):</label>
-        <textarea id="my-top8" rows="3">https://neocities.org</textarea>
+        
+        <label>Favourite Nodes (Node IDs, one per line):</label>
+        <textarea id="my-top8" rows="3">node-alpha&#10;cyber-deck-2</textarea>
         
         <label>Custom Background (Image URL):</label>
         <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
         <label>Custom CSS Injection Framework:</label>
-        <textarea id="my-css" rows="6">Act as an expert UI/UX designer and CSS developer. I am building a peer-to-peer, cyberpunk-style web application called "NOWSPACE". I want to create a new visual theme for it.
-
-Here is the root CSS architecture of the terminal:
-
-:root {
-    --bg-color: #050505;
-    --text-color: #00ffff;
-    --main-cyan: #00ffff;
-    --alert-red: #ff0055;
-    --bright-magenta: #ff00ff;
-    --dark-magenta: #880088;
-    --panel-bg: #111111;
-    --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
-}
-
-Core UI Elements you can target:
-1. `body` (background color/images, global font)
-2. `.panel` (the main modular windows, currently dark gray with cyan borders)
-3. `button` and `.btn-small` (terminal buttons, normally transparent with cyan text/borders)
-4. `.btn-alert` (buttons in an active/warning state, normally red)
-5. `input`, `textarea`, `select` (text boxes and dropdowns)
-6. `.glitch-text` (headers and important system messages)
-7. `.wall-post` (individual messages in the datastream)
-
-Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ]. 
-
-Only output the raw CSS. Do not alter the structural HTML positioning, only colors, borders, shadows, fonts, and backgrounds.</textarea>
+        <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
         
-        <div class="theme-actions">
+        <div style="margin-top: 15px; padding: 10px; border: 1px dashed var(--main-cyan); background: rgba(0, 255, 255, 0.05);">
+            <label>AI Theme Prompt Generator:</label>
+            <p style="font-size: 0.75rem; color: #aaa; margin-bottom: 10px;">Click to copy the architectural blueprint. Paste it into ChatGPT or Claude to generate a custom CSS theme, then paste their code in the box above!</p>
+            <button class="btn-small" onclick="copyThemePrompt()">[ 📋 COPY AI PROMPT ]</button>
+            <span id="prompt-copy-status" style="color: #0f0; margin-left: 10px; display: none; font-size: 0.8rem; font-weight: bold;">COPIED!</span>
+        </div>
+        
+        <div class="theme-actions" style="margin-top: 15px;">
             <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
             <button class="btn-small" onclick="exportTheme()">[ 💾 EXPORT THEME ]</button>
             <button class="btn-small" onclick="document.getElementById('import-file').click()">[ 📂 IMPORT THEME ]</button>
@@ -121,7 +107,7 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
                 <label><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()"> CRT SCANLINES</label>
                 <label><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()"> SOUNDBOARD</label>
                 <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
-                <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV PLACES</label>
+                <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV NODES</label>
                 <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
                 <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
                 <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
@@ -174,7 +160,7 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         <div id="host-video-stream-container" class="video-stream-container"></div>
         <div id="host-datastream-output" class="datastream-output"></div>
         
-<div class="emoji-board">
+        <div class="emoji-board">
             <button onclick="insertEmoji('👽')">👽</button>
             <button onclick="insertEmoji('💀')">💀</button>
             <button onclick="insertEmoji('👾')">👾</button>
@@ -197,8 +183,8 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
                     <div class="voice-switch-label">COMMS: OFF</div>
                     <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                 </div>
-                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
-                <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
+                <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                 <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
             </span>
         </div>
@@ -234,7 +220,7 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         </div>
 
         <div class="panel" id="visitor-top8-panel" style="display: none;">
-            <h3>[ HOST_BOOKMARKS // FAVOURITE_PLACES ]</h3>
+            <h3>[ HOST_BOOKMARKS // FAVOURITE_NODES ]</h3>
             <div class="top8-grid" id="render-top8-grid"></div>
         </div>
 
@@ -255,14 +241,14 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
             <div id="visitor-video-stream-container" class="video-stream-container"></div>
             <div id="datastream-output" class="datastream-output"></div>
             
-        <div class="emoji-board">
-            <button onclick="insertEmoji('👽')">👽</button>
-            <button onclick="insertEmoji('💀')">💀</button>
-            <button onclick="insertEmoji('👾')">👾</button>
-            <button onclick="insertEmoji('⚡')">⚡</button>
-            <button onclick="insertEmoji('🔥')">🔥</button>
-            <button onclick="insertEmoji('💾')">💾</button>
-        </div>
+            <div class="emoji-board">
+                <button onclick="insertEmoji('👽')">👽</button>
+                <button onclick="insertEmoji('💀')">💀</button>
+                <button onclick="insertEmoji('👾')">👾</button>
+                <button onclick="insertEmoji('⚡')">⚡</button>
+                <button onclick="insertEmoji('🔥')">🔥</button>
+                <button onclick="insertEmoji('💾')">💾</button>
+            </div>
 
             <div id="visitor-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
 
@@ -278,8 +264,8 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
                         <div class="voice-switch-label">COMMS: OFF</div>
                         <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                     </div>
-                    <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none;">[ 🔊 MUTE ]</button>
-                    <button class="btn-small cam-btn btn-alert" onclick="toggleCam()" style="display:none;">[ 📷 CAM: OFF ]</button>
+                    <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
+                    <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                     <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
                 </span>
             </div>
@@ -291,10 +277,50 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
 
     <style id="custom-injected-css"></style>
     
-    <script src="config.js?v=32"></script>
-    <script src="media.js?v=32"></script>
-    <script src="ui.js?v=32"></script>
-    <script src="network.js?v=32"></script>
+    <script>
+        function copyThemePrompt() {
+            const promptText = `Act as an expert UI/UX designer and CSS developer. I am building a peer-to-peer, cyberpunk-style web application called "NOWSPACE". I want to create a new visual theme for it.
+
+Here is the root CSS architecture of the terminal:
+
+:root {
+    --bg-color: #050505;
+    --text-color: #00ffff;
+    --main-cyan: #00ffff;
+    --alert-red: #ff0055;
+    --bright-magenta: #ff00ff;
+    --dark-magenta: #880088;
+    --panel-bg: #111111;
+    --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+Core UI Elements you can target:
+1. \`body\` (background color/images, global font)
+2. \`.panel\` (the main modular windows, currently dark gray with cyan borders)
+3. \`button\` and \`.btn-small\` (terminal buttons, normally transparent with cyan text/borders)
+4. \`.btn-alert\` (buttons in an active/warning state, normally red)
+5. \`input\`, \`textarea\`, \`select\` (text boxes and dropdowns)
+6. \`.glitch-text\` (headers and important system messages)
+7. \`.wall-post\` (individual messages in the datastream)
+
+Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ]. 
+
+Only output the raw CSS. Do not alter the structural HTML positioning, only colors, borders, shadows, fonts, and backgrounds.`;
+            
+            navigator.clipboard.writeText(promptText).then(() => {
+                const status = document.getElementById('prompt-copy-status');
+                if (status) {
+                    status.style.display = 'inline';
+                    setTimeout(() => { status.style.display = 'none'; }, 2000);
+                }
+            }).catch(err => console.error("Clipboard write failed:", err));
+        }
+    </script>
+    
+    <script src="config.js?v=35"></script>
+    <script src="media.js?v=35"></script>
+    <script src="ui.js?v=35"></script>
+    <script src="network.js?v=35"></script>
     
     <script>
       if ('serviceWorker' in navigator) {
