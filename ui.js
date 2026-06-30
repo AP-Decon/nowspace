@@ -739,3 +739,19 @@ if (canvas) {
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 }
+function toggleHostSettings() {
+    const wrapper = document.getElementById('host-settings-wrapper');
+    const btn = document.getElementById('btn-toggle-settings');
+    
+    if (wrapper.style.display === 'none') {
+        wrapper.style.display = 'block';
+        btn.innerText = '[ - COLLAPSE NODE SETTINGS ]';
+        btn.style.color = "var(--main-cyan)";
+        btn.style.borderColor = "var(--main-cyan)";
+    } else {
+        wrapper.style.display = 'none';
+        btn.innerText = '[ + EXPAND NODE SETTINGS ]';
+        btn.style.color = "#555";
+        btn.style.borderColor = "#333";
+    }
+}
