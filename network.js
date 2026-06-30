@@ -210,7 +210,7 @@ async function startHosting() {
     }
 }
 
-async function visitFriend() { // <-- Added "async" here
+async function visitFriend() { 
     try {
         currentRole = 'VISITOR'; 
         const fId = document.getElementById('friend-id').value.trim(); 
@@ -224,6 +224,15 @@ async function visitFriend() { // <-- Added "async" here
         statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]"; 
         globalDisconnectBtn.style.display = 'block';
         
+        // --- ZOMBIE HUNTER ---
+        // If the peer exists but the mobile network severed the connection, destroy it so we can rebuild.
+        if (peer && (peer.disconnected || peer.destroyed)) {
+            console.warn("[ SYSTEM ] Mobile disconnect detected. Wiping zombie peer...");
+            peer.destroy();
+            peer = null;
+        }
+        // ---------------------
+
         if (!peer) { 
             // Fetch our secure hidden credentials right before spinning up the node
             await loadSecureConfig();
@@ -232,7 +241,6 @@ async function visitFriend() { // <-- Added "async" here
             if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
             peer.on('open', () => { executeConnection(fId); }); 
             
-            // Apply identical shield protection to the visitor's Peer instance
             peer.on('error', (err) => {
                 console.warn("[ PEER_ERROR ]", err.type, err);
                 if (err.type === 'peer-unavailable') {
@@ -248,19 +256,29 @@ async function visitFriend() { // <-- Added "async" here
                         }
                         if (typeof visitFriend === "function") visitFriend();
                     }, 3000);
-                } else if (err.type === 'network' || err.type === 'disconnected') {
+                } else if (err.type === 'network' || err.type === 'disconnected' || err.type === 'server-error') {
+                    // Mobile drop detected. Force a memory wipe on the next dial attempt.
+                    if (peer) { peer.destroy(); peer = null; }
+                    
                     const statusDisplay = document.getElementById('connection-status');
                     if (statusDisplay) {
-                        statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
+                        statusDisplay.innerText = "[ NETWORK DISCONNECT // RETRYING... ]";
                         statusDisplay.style.color = "var(--alert-red)";
                     }
+                    // Auto-rebuild the network after 3 seconds instead of failing!
+                    window.dialTimer = setTimeout(() => {
+                        if (typeof visitFriend === "function") visitFriend();
+                    }, 3000);
                 } else {
                     alert(`[ FATAL_NODE_ERROR ] ${err.type}\nIf you are using Opera GX, Brave, or strict privacy settings, please disable your Shields/Tracker Blockers for this domain so WebRTC can connect.`);
                     globalDisconnectBtn.style.display = 'none';
                 }
             });
             
-        } else { executeConnection(fId); }
+        } else { 
+            // If the peer is healthy, just execute the connection!
+            executeConnection(fId); 
+        }
     } catch(err) { alert("[ CONNECTION_ERROR ] " + err.message); }
 }
 
