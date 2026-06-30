@@ -74,35 +74,8 @@ const MANUAL_DATABASE = [
     { h3: "NETWORK GAMES", p: "Spawn interactive modules directly on the wall:<br><b style='color:#0f0'>/tictactoe</b> : Classic GRID_WARS.EXE.<br><b style='color:#0f0'>/connect4</b> : Advanced gravity mechanics.<br><b style='color:#0f0'>/rps [rock/paper/scissors]</b> : Initiates a blind, secure duel against the next peer to accept." }
 ];
 
-const peerConfig = {
-    config: {
-        'iceServers': [
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: "stun:stun.relay.metered.ca:80" },
-            {
-                urls: "turn:standard.relay.metered.ca:80",
-                username: "",
-                credential: ""
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:80?transport=tcp",
-                username: "",
-                credential: ""
-            },
-            {
-                urls: "turn:standard.relay.metered.ca:443",
-                username: "",
-                credential: ""
-            },
-            {
-                urls: "turns:standard.relay.metered.ca:443?transport=tcp",
-                username: "",
-                credential: ""
-            }
-        ]
-    }
-};
-
+const peerConfig = {};
+  //metered config strip out
 //---------------------------------------------------------
 // 03. SECURITY, ENCRYPTION & RADAR UTILS
 //---------------------------------------------------------
