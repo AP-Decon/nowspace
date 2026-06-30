@@ -115,6 +115,13 @@ clearTimeout(window.dialTimer);
 //---------------------------------------------------------
 async function startHosting() {
     try {
+        // --- ZOMBIE HUNTER ---
+        if (peer) {
+            console.warn("[ SYSTEM ] Destroying old Host peer instance...");
+            peer.destroy();
+            peer = null;
+        }
+        // ---------------------
         currentRole = 'HOST'; 
         document.getElementById('btn-go-online').disabled = true; 
         if(typeof saveLocalData === "function") saveLocalData();
