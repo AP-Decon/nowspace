@@ -138,9 +138,20 @@ async function startHosting() {
         
         if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
         
-        peer.on('open', (id) => {
+peer.on('open', (id) => {
             statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; 
             globalDisconnectBtn.style.display = 'block';
+            
+            // --- AUTO-COLLAPSE SETTINGS ON BOOT ---
+            document.getElementById('host-settings-wrapper').style.display = 'none';
+            const toggleBtn = document.getElementById('btn-toggle-settings');
+            if(toggleBtn) {
+                toggleBtn.innerText = '[ + EXPAND NODE SETTINGS ]';
+                toggleBtn.style.color = "#555";
+                toggleBtn.style.borderColor = "#333";
+            }
+            // --------------------------------------
+
             document.getElementById('my-id').innerText = id; 
             document.getElementById('my-id-display').style.display = 'block';
             document.getElementById('host-live-wall-panel').style.display = 'block'; 
