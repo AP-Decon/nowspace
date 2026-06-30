@@ -322,7 +322,22 @@ function handleIncomingP2PPacket(p, conn) {
                         setTimeout(() => { conn.close(); }, 500); return;
                     }
                     
-                    peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
+                    // --- GHOST BUSTER ---
+// Scan the radar for old, broken connections from this exact user and wipe them out
+for (let existingId in peerFingerprintMap) {
+    if (peerFingerprintMap[existingId].fingerprint === p.fingerprint && existingId !== senderId) {
+        console.warn(`[ SYSTEM ] Ghost node detected for ${p.alias}. Wiping old connection...`);
+        // 1. Force close the old sockets
+        if (peer.connections[existingId]) {
+            peer.connections[existingId].forEach(c => { if(c.open) c.close(); });
+        }
+        // 2. Erase the ghost from the radar
+        delete peerFingerprintMap[existingId];
+    }
+}
+// --------------------
+
+peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                     if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
                     
                     renderActivePeers(); broadcastOnlineUsers();
