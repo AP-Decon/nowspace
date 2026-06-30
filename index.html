@@ -26,6 +26,7 @@
     </div>
 
     <header style="text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #333; margin-bottom: 20px;">
+        
         <h1 class="glitch-text" style="margin: 0 0 10px 0; font-size: 2.5rem; letter-spacing: 2px;">// NOWSPACE :: TRM_v1.51</h1>
         
         <div class="header-controls" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
@@ -63,58 +64,61 @@
                 <option value="3">MEMORY SLOT 03</option>
             </select>
         </div>        
-        <label>System Alias (Display Name):</label>
-        <input type="text" id="my-alias" value="NODE-ALPHA">
-        <label>Custom Access Hash (For your URL):</label>
-        <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
-        <label>Node Access Password (Optional):</label>
-        <input type="password" id="my-password" placeholder="Leave blank for public access...">
-        <label>Profile Datastream:</label>
-        <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
-        <label>Custom Soundboard (MP3 URL):</label>
-        <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here...">
-        <label>Profile Soundtrack (Paste a YouTube Link):</label>
-        <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
-        <label>Profile Gallery (URLs, one per line):</label>
-        <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
-        
-        <label>Favourite Nodes (Node IDs, one per line):</label>
-        <textarea id="my-top8" rows="3">node-alpha&#10;cyber-deck-2</textarea>
-        
-        <label>Custom Background (Image URL):</label>
-        <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
 
-        <label>Custom CSS Injection Framework:</label>
-        <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
-        
-        <div style="margin-top: 15px; padding: 10px; border: 1px dashed var(--main-cyan); background: rgba(0, 255, 255, 0.05);">
-            <label>AI Theme Prompt Generator:</label>
-            <p style="font-size: 0.75rem; color: #aaa; margin-bottom: 10px;">Click to copy the architectural blueprint. Paste it into ChatGPT or Claude to generate a custom CSS theme, then paste their code in the box above!</p>
-            <button class="btn-small" onclick="copyThemePrompt()">[ 📋 COPY AI PROMPT ]</button>
-            <span id="prompt-copy-status" style="color: #0f0; margin-left: 10px; display: none; font-size: 0.8rem; font-weight: bold;">COPIED!</span>
-        </div>
-        
-        <div class="theme-actions" style="margin-top: 15px;">
-            <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
-            <button class="btn-small" onclick="exportTheme()">[ 💾 EXPORT THEME ]</button>
-            <button class="btn-small" onclick="document.getElementById('import-file').click()">[ 📂 IMPORT THEME ]</button>
-            <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
-        </div>
+        <button id="btn-toggle-settings" onclick="toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: var(--main-cyan); border-color: var(--main-cyan);">[ - COLLAPSE NODE SETTINGS ]</button>
 
-        <div class="feature-flag-box">
-            <h4>[ SYSTEM_FEATURE_FLAGS ]</h4>
-            <div class="flag-grid">
-                <label><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()"> CRT SCANLINES</label>
-                <label><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()"> SOUNDBOARD</label>
-                <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
-                <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV NODES</label>
-                <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
-                <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
-                <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
+        <div id="host-settings-wrapper">
+            <label>System Alias (Display Name):</label>
+            <input type="text" id="my-alias" value="NODE-ALPHA">
+            <label>Custom Access Hash (For your URL):</label>
+            <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
+            <label>Node Access Password (Optional):</label>
+            <input type="password" id="my-password" placeholder="Leave blank for public access...">
+            <label>Profile Datastream:</label>
+            <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
+            <label>Custom Soundboard (MP3 URL):</label>
+            <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here...">
+            <label>Profile Soundtrack (Paste a YouTube Link):</label>
+            <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
+            <label>Profile Gallery (URLs, one per line):</label>
+            <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
+            
+            <label>Favourite Nodes (Node IDs, one per line):</label>
+            <textarea id="my-top8" rows="3">node-alpha&#10;cyber-deck-2</textarea>
+        
+            <label>Custom Background (Image URL):</label>
+            <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
+
+            <label>Custom CSS Injection Framework:</label>
+            <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
+            
+            <div style="margin-top: 15px; padding: 10px; border: 1px dashed var(--main-cyan); background: rgba(0, 255, 255, 0.05);">
+                <label>AI Theme Prompt Generator:</label>
+                <p style="font-size: 0.75rem; color: #aaa; margin-bottom: 10px;">Click to copy the architectural blueprint. Paste it into ChatGPT or Claude to generate a custom CSS theme, then paste their code in the box above!</p>
+                <button class="btn-small" onclick="copyThemePrompt()">[ 📋 COPY AI PROMPT ]</button>
+                <span id="prompt-copy-status" style="color: #0f0; margin-left: 10px; display: none; font-size: 0.8rem; font-weight: bold;">COPIED!</span>
             </div>
-        </div>
-        
-        <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
+            
+            <div class="theme-actions" style="margin-top: 15px;">
+                <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
+                <button class="btn-small" onclick="exportTheme()">[ 💾 EXPORT THEME ]</button>
+                <button class="btn-small" onclick="document.getElementById('import-file').click()">[ 📂 IMPORT THEME ]</button>
+                <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
+            </div>
+
+            <div class="feature-flag-box">
+                <h4>[ SYSTEM_FEATURE_FLAGS ]</h4>
+                <div class="flag-grid">
+                    <label><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()"> CRT SCANLINES</label>
+                    <label><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()"> SOUNDBOARD</label>
+                    <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
+                    <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV NODES</label>
+                    <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
+                    <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
+                    <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
+                </div>
+            </div>
+        </div> <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
         <p id="my-id-display" style="display:none;">Unique Hash: <span class="id-display" id="my-id"></span></p>
         <div id="magic-link-container"></div>
     </div>
@@ -304,10 +308,8 @@ Core UI Elements you can target:
 6. \`.glitch-text\` (headers and important system messages)
 7. \`.wall-post\` (individual messages in the datastream)
 
-Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ]. 
-
+Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ].
 Only output the raw CSS. Do not alter the structural HTML positioning, only colors, borders, shadows, fonts, and backgrounds.`;
-            
             navigator.clipboard.writeText(promptText).then(() => {
                 const status = document.getElementById('prompt-copy-status');
                 if (status) {
@@ -318,10 +320,10 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         }
     </script>
     
-    <script src="config.js?v=52"></script>
-    <script src="media.js?v=52"></script>
-    <script src="ui.js?v=52"></script>
-    <script src="network.js?v=52"></script>
+    <script src="config.js?v=53"></script>
+    <script src="media.js?v=53"></script>
+    <script src="ui.js?v=53"></script>
+    <script src="network.js?v=53"></script>
     
     <script>
       if ('serviceWorker' in navigator) {
