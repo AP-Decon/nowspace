@@ -123,6 +123,10 @@ async function startHosting() {
         currentHostEncryptedPwd = await hashPassword(rawPwd);
 
         const customId = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
+        
+        // Fetch our secure hidden credentials right before spinning up the node
+        await loadSecureConfig();
+        
         peer = customId ? new Peer(customId, peerConfig) : new Peer(peerConfig); 
         
         if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
@@ -199,7 +203,7 @@ async function startHosting() {
     }
 }
 
-function visitFriend() {
+async function visitFriend() { // <-- Added "async" here
     try {
         currentRole = 'VISITOR'; 
         const fId = document.getElementById('friend-id').value.trim(); 
@@ -214,6 +218,9 @@ function visitFriend() {
         globalDisconnectBtn.style.display = 'block';
         
         if (!peer) { 
+            // Fetch our secure hidden credentials right before spinning up the node
+            await loadSecureConfig();
+
             peer = new Peer(peerConfig); 
             if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
             peer.on('open', () => { executeConnection(fId); }); 
