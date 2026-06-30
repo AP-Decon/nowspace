@@ -74,8 +74,36 @@ const MANUAL_DATABASE = [
     { h3: "NETWORK GAMES", p: "Spawn interactive modules directly on the wall:<br><b style='color:#0f0'>/tictactoe</b> : Classic GRID_WARS.EXE.<br><b style='color:#0f0'>/connect4</b> : Advanced gravity mechanics.<br><b style='color:#0f0'>/rps [rock/paper/scissors]</b> : Initiates a blind, secure duel against the next peer to accept." }
 ];
 
-const peerConfig = {};
-  //metered config strip out
+// --- SECURE NETWORK CONFIGURATION ---
+// Your private keys are now hidden inside the Cloudflare Worker!
+const PROXY_URL = "https://nowspace-proxy.alan-parker2.workers.dev/";
+
+let peerConfig = {
+    config: {
+        'iceServers': [
+            // Fallback default STUN servers in case the worker ever blinks
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+    }
+};
+
+// Function to securely load fresh TURN credentials right before connecting
+async function loadSecureConfig() {
+    try {
+        console.log("[ SYSTEM ] Fetching secure routing credentials...");
+        const response = await fetch(PROXY_URL);
+        if (!response.ok) throw new Error("Network response was not ok");
+        
+        const freshIceServers = await response.json();
+        
+        // Update our config with the secure servers from Metered.ca
+        peerConfig.config.iceServers = freshIceServers;
+        console.log("[ SYSTEM ] Secure routing credentials loaded successfully.");
+    } catch (error) {
+        console.warn("[ SYSTEM ] Proxy fetch failed. Falling back to default routing.", error);
+    }
+}
 //---------------------------------------------------------
 // 03. SECURITY, ENCRYPTION & RADAR UTILS
 //---------------------------------------------------------
