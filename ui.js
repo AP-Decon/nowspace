@@ -739,3 +739,40 @@ if (canvas) {
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 }
+//---------------------------------------------------------
+// 09. UI TOGGLES & BACKGROUND SYNC
+//---------------------------------------------------------
+
+// 1. The Collapsible Drawer Logic
+window.toggleHostSettings = function() {
+    const wrapper = document.getElementById('host-settings-wrapper');
+    const btn = document.getElementById('btn-toggle-settings');
+    
+    if (!wrapper || !btn) return;
+
+    if (wrapper.style.display === 'none' || wrapper.style.display === '') {
+        wrapper.style.display = 'block';
+        btn.innerText = '[ - COLLAPSE NODE SETTINGS ]';
+        btn.style.color = "#000";
+        btn.style.backgroundColor = "var(--main-cyan)";
+        btn.style.borderColor = "var(--main-cyan)";
+    } else {
+        wrapper.style.display = 'none';
+        btn.innerText = '[ + EXPAND NODE SETTINGS ]';
+        btn.style.color = "#aaa";
+        btn.style.backgroundColor = "transparent";
+        btn.style.borderColor = "#555";
+    }
+};
+
+// 2. The Giphy Profile Bug Fix
+// This listens for you changing the Memory Slot and updates the background instantly 
+// without us having to find or edit the switchProfile() function!
+document.getElementById('profile-slot')?.addEventListener('change', () => {
+    setTimeout(() => {
+        const newBgUrl = document.getElementById('my-bg-url');
+        if (newBgUrl && typeof applyBackground === "function") {
+            applyBackground(newBgUrl.value);
+        }
+    }, 100); // 100ms delay lets switchProfile finish loading the text first
+});
