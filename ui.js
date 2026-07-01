@@ -744,16 +744,23 @@ function toggleHostSettings() {
     const btn = document.getElementById('btn-toggle-settings');
     
     if (wrapper.style.display === 'none') {
+        // Expand the settings
         wrapper.style.display = 'block';
         btn.innerText = '[ - COLLAPSE NODE SETTINGS ]';
-        btn.style.color = "var(--main-cyan)";
+        // Sharp contrast: Black text on Cyan background
+        btn.style.color = "#000";
+        btn.style.backgroundColor = "var(--main-cyan)";
         btn.style.borderColor = "var(--main-cyan)";
     } else {
+        // Collapse the settings
         wrapper.style.display = 'none';
         btn.innerText = '[ + EXPAND NODE SETTINGS ]';
-        btn.style.color = "#555";
-        btn.style.borderColor = "#333";
+        // Subtle contrast: Gray text on Transparent background
+        btn.style.color = "#aaa";
+        btn.style.backgroundColor = "transparent";
+        btn.style.borderColor = "#555";
     }
+}
     // --- MODULE PURGE LOGIC ---
     // 1. Completely vaporize the active game and chat memory array
     if (typeof wallData !== 'undefined') {
