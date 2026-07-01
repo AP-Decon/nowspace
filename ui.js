@@ -739,29 +739,3 @@ if (canvas) {
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 }
-
-    // --- MODULE PURGE LOGIC ---
-    // 1. Completely vaporize the active game and chat memory array
-    if (typeof wallData !== 'undefined') {
-        wallData = []; 
-    }
-
-    // 2. Clear the browser's permanent storage arrays
-    if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('nowspace_wall_data');
-    }
-
-    // 3. Force the UI to instantly redraw completely blank
-    if (typeof renderWall === "function") {
-        renderWall(); 
-    }
-
-    // 4. Broadcast the clean slate to any connected visitors
-    if (typeof currentRole !== 'undefined' && currentRole === 'HOST' && typeof broadcastToAll === 'function') {
-        broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
-    }
-    
-    console.log("[ SYSTEM ] Factory reset complete. Modules purged.");
-
-
-
