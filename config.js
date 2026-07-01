@@ -203,19 +203,13 @@ function safeDesktopAlert(title, options) {
 //---------------------------------------------------------
 // 04. PROFILE MULTI-SLOT MEMORY MANAGEMENT
 //---------------------------------------------------------
-// --- FORCE UI REFRESH ---
-//Tell the terminal to actually paintthe newly loaded background URL
-const newBgUrl = document.getElementById('my-bg-url');
-if (newBgUrl && typeof applyBackground === "function") {
-  applyBackground(newBgUrl.value);
+function switchProfile(slotId) {
+    saveLocalData();
+    activeSlot = slotId;
+    localStorage.setItem('nowspace_active_slot', activeSlot);
+    loadLocalData();
 }
 
-//css updater
-const newCss = document.getElementById('my-css');
-const cssStyleTag = document.getElementById('custom-injected-css');
-if (newCss && cssStyleTag) {
-    cssStyleTag.innerText = newCss.value;
-}
 function loadLocalData() {
     let saved = null;
     try {
