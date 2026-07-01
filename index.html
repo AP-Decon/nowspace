@@ -65,9 +65,10 @@
             </select>
         </div>        
 
-        <button id="btn-toggle-settings" onclick="toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: var(--main-cyan); border-color: var(--main-cyan);">[ - COLLAPSE NODE SETTINGS ]</button>
+        <button id="btn-toggle-settings" onclick="window.toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: #aaa; border-color: #555; background-colour: transparent;">[ - COLLAPSE NODE SETTINGS ]</button>
 
-        <div id="host-settings-wrapper">
+        <div id="host-settings-wrapper" style="display:none;">
+            
             <label>System Alias (Display Name):</label>
             <input type="text" id="my-alias" value="NODE-ALPHA">
             <label>Custom Access Hash (For your URL):</label>
