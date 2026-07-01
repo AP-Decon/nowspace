@@ -775,3 +775,4 @@ const cssStyleTag = document.getElementById('custom-injected-css');
 if (newCss && cssStylwTag .innerText = newCss.value;}
 
 }
+}
