@@ -138,13 +138,9 @@ async function startHosting() {
         
         if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
         
-peer.on('open', (id) => {
+        peer.on('open', (id) => {
             statusDisplay.innerText = "[ STATUS: NODE_ACTIVE ]"; 
             globalDisconnectBtn.style.display = 'block';
-            
-
-            // --------------------------------------
-
             document.getElementById('my-id').innerText = id; 
             document.getElementById('my-id-display').style.display = 'block';
             document.getElementById('host-live-wall-panel').style.display = 'block'; 
