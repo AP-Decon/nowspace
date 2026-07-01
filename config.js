@@ -213,7 +213,8 @@ if (newBgUrl && typeof applyBackground === "function") {
 //css updater
 const newCss = document.getElementById('my-css');
 const cssStyleTag = document.getElementById('custom-injected-css');
-if (newCss && cssStylwTag .innerText = newCss.value;}
+if (newCss && cssStyleTag) {
+    cssStyleTag.innerText = newCss.value;
 }
 function loadLocalData() {
     let saved = null;
