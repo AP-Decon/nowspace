@@ -322,10 +322,10 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         }
     </script>
     
-    <script src="config.js?v=55"></script>
-    <script src="media.js?v=55"></script>
-    <script src="ui.js?v=55"></script>
-    <script src="network.js?v=55"></script>
+    <script src="config.js?v=56"></script>
+    <script src="media.js?v=56"></script>
+    <script src="ui.js?v=56"></script>
+    <script src="network.js?v=56"></script>
     
     <script>
       if ('serviceWorker' in navigator) {
@@ -337,6 +337,35 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
           });
         });
       }
+    </script>
+            <script>
+        function toggleHostSettings() {
+            const wrapper = document.getElementById('host-settings-wrapper');
+            const btn = document.getElementById('btn-toggle-settings');
+            
+            if (!wrapper || !btn) {
+                console.warn("[ UI_ERROR ] Settings wrapper or button not found in DOM.");
+                return;
+            }
+
+            // The '===' check sometimes fails if browsers interpret 'none' slightly differently. 
+            // We'll use a broader check to ensure it catches the collapsed state.
+            if (wrapper.style.display === 'none' || wrapper.style.display === '') {
+                // Expand the settings
+                wrapper.style.display = 'block';
+                btn.innerText = '[ - COLLAPSE NODE SETTINGS ]';
+                btn.style.color = "#000";
+                btn.style.backgroundColor = "var(--main-cyan)";
+                btn.style.borderColor = "var(--main-cyan)";
+            } else {
+                // Collapse the settings
+                wrapper.style.display = 'none';
+                btn.innerText = '[ + EXPAND NODE SETTINGS ]';
+                btn.style.color = "#aaa";
+                btn.style.backgroundColor = "transparent";
+                btn.style.borderColor = "#555";
+            }
+        }
     </script>
 </body>
 </html>
