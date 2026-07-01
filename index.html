@@ -1,448 +1,340 @@
-//---------------------------------------------------------
-// 01. GLOBAL SYSTEM VARIABLES & STATE
-//---------------------------------------------------------
-let peer = null;
-let activeConn = null;
-let wallData = [];
-let currentRole = null;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOWSPACE :: TRM_v1.51</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=35">
+</head>
+<body>
+    <div id="crt-scanlines"></div>
 
-let activeSlot = localStorage.getItem('nowspace_active_slot') || '1';
-let top8 = JSON.parse(localStorage.getItem('nowspace_top8')) || [];
-let bannedFingerprints = JSON.parse(localStorage.getItem('nowspace_banned')) || [];
-let peerFingerprintMap = {}; 
-let globalVolume = 0.5;
-let activePoll = null;
+    <input type="file" id="hidden-file-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+    <input type="file" id="hidden-raw-file-input" style="display:none;" onchange="handleRawFileUpload(event)">
+    <input type="file" id="hidden-map-input" accept="image/*" style="display:none;" onchange="handleMapUpload(event)">
 
-let featureToggles = { 
-    scanlines: true, 
-    soundboard: true, 
-    gallery: true, 
-    top8: true, 
-    usernames: true, 
-    voicecomms: true, 
-    polls: true 
-};
+    <div id="system-manual-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" onclick="toggleManual()">[ X CLOSE ]</button>
+            <h2 class="glitch-text" style="color:var(--main-cyan); margin-top:0; border-bottom:1px solid var(--main-cyan); padding-bottom:10px;">// SYSTEM_MANUAL v1.51</h2>
+            <div id="manual-render-target"></div>
+        </div>
+    </div>
 
-// Identity & Security
-let myFingerprint = localStorage.getItem('nowspace_identity_key') || ('TID-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now().toString(36));
-localStorage.setItem('nowspace_identity_key', myFingerprint);
-let currentHostEncryptedPwd = '';
-
-// A/V Comms State
-let localStream = null;
-let activeCalls = [];
-let isMuted = false;
-let isCamOn = false;
-let isScreenSharing = false;
-let currentNetworkPeers = [];
-
-// Hardware & Memory Buffers
-let incomingFiles = {};
-let radarEnabled = false;
-
-//---------------------------------------------------------
-// 02. CONSTANTS & DOM REFERENCES
-//---------------------------------------------------------
-const MSG_TYPE_PROFILE = 'PROFILE_INITIAL_LOAD';
-const MSG_TYPE_WALL_POST = 'NEW_WALL_PACKET';
-const MSG_TYPE_WALL_UPDATE = 'WALL_DATASTREAM_UPDATE';
-const MSG_TYPE_SOUNDBOARD = 'SOUNDBOARD_PLAY'; 
-const MSG_TYPE_FEATURE_UPDATE = 'FEATURE_TOGGLE_UPDATE';
-const MSG_TYPE_POLL_NEW = 'POLL_NEW';
-const MSG_TYPE_POLL_VOTE = 'POLL_VOTE';
-const MSG_TYPE_POLL_UPDATE = 'POLL_UPDATE';
-const MSG_TYPE_USER_LIST = 'ONLINE_USER_LIST';
-const MSG_TYPE_DRAWING = 'SYNC_DRAWING'; 
-const MSG_TYPE_CANVAS_WIPE = 'CANVAS_WIPE';
-const MSG_TYPE_TYPING = 'TYPING_INDICATOR';
-const MSG_TYPE_CANVAS_BG = 'CANVAS_BACKGROUND'; 
-
-const statusDisplay = document.getElementById('connection-status');
-const globalDisconnectBtn = document.getElementById('global-disconnect-btn');
-
-const SOUND_ASSETS = {
-    'airhorn': 'https://www.myinstants.com/media/sounds/mlg-airhorn.mp3',
-    'boom': 'https://www.myinstants.com/media/sounds/vine-boom.mp3',
-    'bruh': 'https://www.myinstants.com/media/sounds/movie_1.mp3',
-    'alert': 'https://www.myinstants.com/media/sounds/efecto-de-sonido-metal-gear-solid-sonido-de-alerta.mp3'
-};
-
-const MANUAL_DATABASE = [
-    { h3: "WHAT IS NOWSPACE?", p: "NOWSPACE is a decentralized, peer-to-peer communication terminal." },
-    { h3: "PRIVACY & LOCAL DATA", p: "<b>We do not use tracking cookies.</b> This terminal is built on a strictly necessary data model." },
-    { h3: "SLASH COMMAND PROTOCOLS", p: "Type these directly into the transmit bar:<br><b style='color:var(--main-cyan)'>/w [Alias] [Msg]</b> : Secure whisper.<br><b style='color:var(--main-cyan)'>/clear</b> : Wipes local screen.<br><b style='color:#ff0055'>/burn [sec] [Msg]</b> : Self-destructing packet.<br><b style='color:var(--main-cyan)'>/glitch [Msg]</b> : Applies visual distortion.<br><b style='color:var(--main-cyan)'>/vapor [Msg]</b> : ＦＵＬＬＷＩＤＴＨ text.<br><b style='color:#0f0'>/roll [sides]*[count]</b> : RNG generator.<br><b style='color:#0f0'>/8ball [Question]</b> : Consult the oracle." },
-    { h3: "NETWORK GAMES", p: "Spawn interactive modules directly on the wall:<br><b style='color:#0f0'>/tictactoe</b> : Classic GRID_WARS.EXE.<br><b style='color:#0f0'>/connect4</b> : Advanced gravity mechanics.<br><b style='color:#0f0'>/rps [rock/paper/scissors]</b> : Initiates a blind, secure duel against the next peer to accept." }
-];
-
-// --- SECURE NETWORK CONFIGURATION ---
-// Your private keys are now hidden inside the Cloudflare Worker!
-const PROXY_URL = "https://nowspace-proxy.alan-parker2.workers.dev/";
-
-let peerConfig = {
-    config: {
-        'iceServers': [
-            // Fallback default STUN servers in case the worker ever blinks
-            { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-    }
-};
-
-// Function to securely load fresh TURN credentials right before connecting
-async function loadSecureConfig() {
-    try {
-        console.log("[ SYSTEM ] Fetching secure routing credentials...");
-        const response = await fetch(PROXY_URL);
-        if (!response.ok) throw new Error("Network response was not ok");
+    <header style="text-align: center; padding-bottom: 15px; border-bottom: 1px dashed #333; margin-bottom: 20px;">
         
-        const freshIceServers = await response.json();
+        <h1 class="glitch-text" style="margin: 0 0 10px 0; font-size: 2.5rem; letter-spacing: 2px;">// NOWSPACE :: TRM_v1.51</h1>
         
-        // Update our config with the secure servers from Metered.ca
-        peerConfig.config.iceServers = freshIceServers;
-        console.log("[ SYSTEM ] Secure routing credentials loaded successfully.");
-    } catch (error) {
-        console.warn("[ SYSTEM ] Proxy fetch failed. Falling back to default routing.", error);
-    }
-}
-//---------------------------------------------------------
-// 03. SECURITY, ENCRYPTION & RADAR UTILS
-//---------------------------------------------------------
-async function hashPassword(str) {
-    if (!str) return '';
-    if (!window.crypto || !window.crypto.subtle) {
-        console.warn("[ SYSTEM ] Secure context missing. Using fallback encryption.");
-        return btoa(unescape(encodeURIComponent(str))); 
-    }
-    try {
-        const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-    } catch (e) {
-        return btoa(unescape(encodeURIComponent(str)));
-    }
-}
-
-let notificationsEnabled = false;
-
-function toggleNotifications() {
-    if (!("Notification" in window)) {
-        return alert("[ SYSTEM_ERROR ] This browser does not support desktop notifications.");
-    }
-    
-    if (notificationsEnabled) { 
-        notificationsEnabled = false; 
-        updateNotificationUI(); 
-        return; 
-    }
-    
-    if (Notification.permission === "granted") {
-        notificationsEnabled = true; 
-        updateNotificationUI();
-        fireSafeNotification("NOWSPACE Terminal", "Background alerts activated successfully.");
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") { 
-                notificationsEnabled = true; 
-                updateNotificationUI(); 
-                fireSafeNotification("NOWSPACE Terminal", "Background alerts activated successfully.");
-            } else { 
-                alert("[ ACCESS_DENIED ] Notification permission was rejected."); 
-            }
-        });
-    } else {
-        alert("[ ACCESS_DENIED ] Notifications are blocked by your browser settings for this domain.");
-    }
-}
-
-function updateNotificationUI() {
-    const btn = document.getElementById('notification-toggle-btn');
-    if (!btn) return;
-    if (notificationsEnabled) { 
-        btn.innerText = "[ 🔔 NOTIFICATIONS: ON ]"; 
-        btn.classList.add('btn-alert'); 
-    } else { 
-        btn.innerText = "[ 🔔 NOTIFICATIONS: OFF ]"; 
-        btn.classList.remove('btn-alert'); 
-    }
-}
-
-function triggerBackgroundAlert(title, message) {
-    if (notificationsEnabled && document.hidden) {
-        fireSafeNotification(title, message);
-    }
-}
-
-// PWA-Safe Mobile Router
-function fireSafeNotification(title, message) {
-    try {
-        const options = { body: message, icon: '/icon-192.png' };
-        
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistration().then(reg => {
-                if (reg && reg.showNotification) {
-                    reg.showNotification(title, options).catch(e => console.warn("SW Alert Error:", e));
-                } else {
-                    safeDesktopAlert(title, options);
-                }
-            }).catch(() => safeDesktopAlert(title, options));
-        } else {
-            safeDesktopAlert(title, options);
-        }
-    } catch (err) {
-        console.warn("[ SYSTEM_ERROR ] Alert failed entirely.", err);
-    }
-}
-
-// Strictly caught desktop fallback
-function safeDesktopAlert(title, options) {
-    try { 
-        new Notification(title, options); 
-    } catch (e) { 
-        console.warn("[ SYSTEM_ERROR ] Device blocked native notification.", e); 
-    }
-}
-//---------------------------------------------------------
-// 04. PROFILE MULTI-SLOT MEMORY MANAGEMENT
-//---------------------------------------------------------
-function switchProfile(slotId) {
-    saveLocalData();
-    activeSlot = slotId;
-    localStorage.setItem('nowspace_active_slot', activeSlot);
-    loadLocalData();
-}
-
-function loadLocalData() {
-    let saved = null;
-    try {
-        if (activeSlot === '1' && !localStorage.getItem('nowspace_save_1') && localStorage.getItem('nowspace_save')) {
-            saved = JSON.parse(localStorage.getItem('nowspace_save'));
-            localStorage.setItem('nowspace_save_1', localStorage.getItem('nowspace_save'));
-        } else {
-            const savedStr = localStorage.getItem('nowspace_save_' + activeSlot);
-            if (savedStr) saved = JSON.parse(savedStr);
-        }
-    } catch(e) { console.warn("[ SYSTEM ] Local storage cache corrupted."); }
-
-    if (saved) {
-        document.getElementById('my-alias').value = saved.alias || 'NODE-ALPHA'; 
-        document.getElementById('my-custom-id').value = saved.customId || '';
-        document.getElementById('my-bio').value = saved.bio || ''; 
-        document.getElementById('my-audio').value = saved.audio || '';
-        document.getElementById('my-gallery').value = saved.gallery || ''; 
-        document.getElementById('my-top8').value = saved.top8 || ''; 
-        document.getElementById('my-css').value = saved.css || '';
-        document.getElementById('my-custom-sound').value = saved.customSound || ''; 
-        
-        wallData = saved.wall || []; 
-        featureToggles = saved.features || { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
-        
-        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = saved.bgUrl || '';
-        if (document.getElementById('my-password')) document.getElementById('my-password').value = saved.password || '';
-        
-        if (typeof applyBackground === "function") applyBackground(saved.bgUrl || '');
-        if (typeof applyFeatures === "function") {
-            ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
-                const cb = document.getElementById('toggle-' + f); 
-                if (cb) cb.checked = featureToggles[f];
-            });
-            applyFeatures(featureToggles);
-        }
-        if (typeof renderWall === "function") renderWall();
-        
-        const inject = document.getElementById('custom-injected-css'); 
-        if(inject) inject.innerText = saved.css || ''; 
-    } else {
-        // DEFAULT THEMES PER SLOT OVERRIDE
-        let defAlias = '', defBio = '', defAudio = '', defGallery = '', defCss = '', defBgUrl = '';
-
-        if (activeSlot === '1') {
-            defAlias = 'NODE-ALPHA';
-            defBio = 'SYSTEM_STATUS: ONLINE // Mainframe Override.';
-            defAudio = 'https://www.youtube.com/watch?v=hMxlPYStVVY';
-            defGallery = 'https://media.giphy.com/media/LeGnsKiiTcYMl05PCU/giphy.gif';
-            defBgUrl = 'https://media.giphy.com/media/v1.Y2lkPWVjZjA1ZTQ3dHplb2VodG8wcm5sbXVzd3R5NGl2Z3R4c3c4ZnZteW14bmhhb25tMSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/4knozU8q9AXvpod9qy/giphy.gif';
-            defCss = `:root {\n    --bg-color: #020204;\n    --text-color: #00e5ff;\n    --main-cyan: #00e5ff;\n    --alert-red: #ff2a75;\n    --bright-magenta: #d900ff;\n    --dark-magenta: #590066;\n    --panel-bg: rgba(10, 10, 15, 0.85);\n    --text-glow: 0 0 8px rgba(0, 229, 255, 0.6);\n}\nbody { font-family: "Courier New", Courier, monospace; }\n.panel { border: 1px solid var(--main-cyan); box-shadow: inset 0 0 15px rgba(0,229,255,0.05), 0 0 15px rgba(0,229,255,0.1); border-radius: 2px; }\nbutton, .btn-small { background: transparent; color: var(--main-cyan); border: 1px solid var(--main-cyan); text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease-in-out; }\nbutton:hover, .btn-small:hover { background: rgba(0, 229, 255, 0.1); box-shadow: var(--text-glow); }\n.btn-alert { color: var(--alert-red); border-color: var(--alert-red); }\n.btn-alert:hover { background: rgba(255, 42, 117, 0.1); box-shadow: 0 0 8px rgba(255, 42, 117, 0.6); }\ninput, textarea, select { background: rgba(0,0,0,0.8); border: 1px solid #333; color: var(--text-color); font-family: monospace; }\ninput:focus, textarea:focus { border-color: var(--main-cyan); outline: none; box-shadow: var(--text-glow); }`;
-        } else if (activeSlot === '2') {
-            defAlias = 'SPARTAN-117';
-            defBio = 'UNSC SECURE CHANNEL // ENCRYPTION LEVEL: ONYX';
-            defAudio = 'https://www.youtube.com/watch?v=0jXTBAGv9ZQ'; 
-            defGallery = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZTl5Ynh0dHAwZmdvMGI5a2EyYm92bjNmd3dod2RjYmp3Ynk1aG5iMiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/4pNT1cebCSqmk0NAqi/giphy.gif';
-            defBgUrl = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZTl5Ynh0dHAwZmdvMGI5a2EyYm92bjNmd3dod2RjYmp3Ynk1aG5iMiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/NqS20k14f2QEVx9wWX/giphy.gif';
-            defCss = `:root {\n    --bg-color: #0a0d0a;\n    --text-color: #6eb99a;\n    --main-cyan: #74d6a8;\n    --alert-red: #ff9d00;\n    --bright-magenta: #d4a017;\n    --dark-magenta: #5c470a;\n    --panel-bg: rgba(14, 20, 14, 0.95);\n    --text-glow: 0 0 4px rgba(116, 214, 168, 0.4);\n}\nbody { font-family: "Trebuchet MS", sans-serif; text-transform: uppercase; }\n.panel { border: 2px solid #2a3d2a; border-top: 2px solid var(--main-cyan); border-radius: 0; }\nbutton, .btn-small { background: rgba(116, 214, 168, 0.05); color: var(--main-cyan); border: 1px solid #2a3d2a; font-weight: bold; border-radius: 0; }\nbutton:hover, .btn-small:hover { background: rgba(116, 214, 168, 0.2); border-color: var(--main-cyan); }\n.btn-alert { color: var(--alert-red); border-color: rgba(255, 157, 0, 0.3); background: rgba(255, 157, 0, 0.05); }\n.btn-alert:hover { border-color: var(--alert-red); background: rgba(255, 157, 0, 0.2); }\ninput, textarea, select { background: rgba(0,0,0,0.5); border: 1px solid #2a3d2a; color: var(--text-color); }\ninput:focus, textarea:focus { border-color: var(--main-cyan); }\n.glitch-text { text-shadow: 2px 2px 0px #000; letter-spacing: 2px; }\n.wall-post { border-left: 3px solid #2a3d2a; padding-left: 10px; margin-bottom: 8px; background: rgba(0,0,0,0.2); }`;
-        } else {
-            defAlias = 'NIGHT_OWL';
-            defBio = 'chill beats to study/code to...';
-            defAudio = 'https://www.youtube.com/watch?v=jfKfPfyJRdk';
-            defGallery = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzYycDRkMXMzbGNiY3QzZjkzMXN3czc5cmpmb2RhdTRjOWl5MW1lZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/CW16nFVXLSQxSMUEMd/giphy.gif';
-            defBgUrl = 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzYycDRkMXMzbGNiY3QzZjkzMXN3czc5cmpmb2RhdTRjOWl5MW1lZSZlcD12MV9naWZzX3NlYXJjaCZjdD1n/k8kITi9SAwe9JWbUaH/giphy.gif';
-            defCss = `:root {\n    --bg-color: #161625;\n    --text-color: #e2e2cd;\n    --main-cyan: #a8dadc;\n    --alert-red: #ffb5a7;\n    --bright-magenta: #cdb4db;\n    --dark-magenta: #6c5b7b;\n    --panel-bg: rgba(28, 28, 45, 0.7);\n    --text-glow: 0 0 12px rgba(168, 218, 220, 0.3);\n}\nbody { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; color: #f8f9fa; }\n.panel { border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); }\nbutton, .btn-small { background: rgba(255,255,255,0.03); color: var(--main-cyan); border: 1px solid rgba(168, 218, 220, 0.2); border-radius: 8px; font-weight: 500; transition: all 0.3s ease; }\nbutton:hover, .btn-small:hover { background: rgba(168, 218, 220, 0.15); border-color: var(--main-cyan); transform: translateY(-2px); }\n.btn-alert { color: var(--alert-red); border-color: rgba(255, 181, 167, 0.2); }\n.btn-alert:hover { background: rgba(255, 181, 167, 0.15); border-color: var(--alert-red); }\ninput, textarea, select { background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08); border-radius: 6px; color: #fff; padding: 8px; }\ninput:focus, textarea:focus { border-color: var(--bright-magenta); outline: none; box-shadow: 0 0 8px rgba(205, 180, 219, 0.4); }\n.glitch-text { color: var(--bright-magenta); text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }\n.wall-post { background: rgba(255,255,255,0.02); border-radius: 8px; padding: 10px; border: 1px solid rgba(255,255,255,0.03); }`;
-        }
-
-        document.getElementById('my-alias').value = defAlias; 
-        document.getElementById('my-custom-id').value = '';
-        document.getElementById('my-bio').value = defBio; 
-        document.getElementById('my-audio').value = defAudio;
-        document.getElementById('my-gallery').value = defGallery; 
-        document.getElementById('my-top8').value = 'node-alpha\ncyber-deck-2';
-        document.getElementById('my-css').value = defCss;
-        document.getElementById('my-custom-sound').value = ''; 
-        
-        // Populate Background Image URL box
-        if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = defBgUrl;
-        if (document.getElementById('my-password')) document.getElementById('my-password').value = '';
-        
-        wallData = [];
-        featureToggles = { scanlines: true, soundboard: true, gallery: true, top8: true, usernames: true, voicecomms: true, polls: true };
-        
-        // Trigger the background render
-        if (typeof applyBackground === "function") applyBackground(defBgUrl);
-        
-        if (typeof applyFeatures === "function") {
-            ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
-                const cb = document.getElementById('toggle-' + f); 
-                if (cb) cb.checked = true;
-            });
-            applyFeatures(featureToggles);
-        }
-        if (typeof renderWall === "function") renderWall();
-        
-        const inject = document.getElementById('custom-injected-css'); 
-        if(inject) inject.innerText = defCss; 
-        
-        saveLocalData();
-    }
-}
-
-function saveLocalData() {
-    if (currentRole === 'VISITOR') return;
-    
-    const saveData = { 
-        alias: document.getElementById('my-alias').value, 
-        customId: document.getElementById('my-custom-id').value, 
-        bio: document.getElementById('my-bio').value, 
-        audio: document.getElementById('my-audio').value, 
-        gallery: document.getElementById('my-gallery').value, 
-        top8: document.getElementById('my-top8') ? document.getElementById('my-top8').value : '',
-        css: document.getElementById('my-css').value, 
-        customSound: document.getElementById('my-custom-sound').value, 
-        bgUrl: document.getElementById('my-bg-url').value, 
-        wall: wallData, 
-        features: featureToggles, 
-        password: document.getElementById('my-password').value 
-    };
-    
-    localStorage.setItem('nowspace_save_' + activeSlot, JSON.stringify(saveData));
-}
-
-//---------------------------------------------------------
-// 05. EXPORT / IMPORT ENGINE
-//---------------------------------------------------------
-function exportTheme() {
-    saveLocalData(); 
-    const savedStr = localStorage.getItem('nowspace_save_' + activeSlot);
-    if (!savedStr) return;
-    
-    const data = JSON.parse(savedStr);
-    data.identityFingerprint = myFingerprint; 
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement('a'); 
-    link.href = url;
-    link.download = `nowspace_theme_${data.alias.toLowerCase().replace(/\s+/g, '_')}_slot${activeSlot}.json`; 
-    
-    document.body.appendChild(link); link.click(); document.body.removeChild(link); 
-    URL.revokeObjectURL(url);
-}
-
-function importTheme(event) {
-    const inputElement = event.target;
-    const file = inputElement.files[0]; 
-    if (!file) return; 
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const p = JSON.parse(e.target.result);
-            if(p.alias !== undefined) document.getElementById('my-alias').value = p.alias;
-            if(p.customId !== undefined) document.getElementById('my-custom-id').value = p.customId;
-            if(p.bio !== undefined) document.getElementById('my-bio').value = p.bio;
-            if(p.audio !== undefined) document.getElementById('my-audio').value = p.audio;
-            if(p.gallery !== undefined) document.getElementById('my-gallery').value = p.gallery;
-            if(p.top8 !== undefined) document.getElementById('my-top8').value = p.top8;
-            if(p.customSound !== undefined) document.getElementById('my-custom-sound').value = p.customSound;
+        <div class="header-controls" style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 10px; margin-top: 10px;">
+            <button id="notification-toggle-btn" class="btn-small" onclick="toggleNotifications()">[ 🔔 NOTIFICATIONS: OFF ]</button>
+            <button class="btn-small" onclick="toggleCanvas()" style="border-color:var(--main-cyan); color:var(--main-cyan);">[ 🎨 CANVAS ]</button>
+            <button class="btn-small" onclick="toggleManual()" style="border-color:var(--bright-magenta); color:var(--bright-magenta);">[ ? SYSTEM_MANUAL ]</button>
             
-            if(p.bgUrl !== undefined) { 
-                document.getElementById('my-bg-url').value = p.bgUrl; 
-                if(typeof applyBackground === "function") applyBackground(p.bgUrl); 
-            }
-            if(p.css !== undefined) { 
-                document.getElementById('my-css').value = p.css; 
-                const inject = document.getElementById('custom-injected-css');
-                if (inject) inject.innerText = p.css; 
-            }
-            if(p.features) { 
-                featureToggles = p.features; 
-                ['scanlines', 'soundboard', 'gallery', 'top8', 'usernames', 'voicecomms', 'polls'].forEach(f => {
-                    const cb = document.getElementById('toggle-' + f); 
-                    if (cb) cb.checked = featureToggles[f];
-                });
-                if(typeof applyFeatures === "function") applyFeatures(featureToggles); 
-            }
-            saveLocalData(); 
-            alert(`[ SYSTEM ] Profile data successfully imported to Memory Slot ${activeSlot}.`);
-        } catch (err) { alert("[ SYSTEM_ERROR ] Failed to parse theme file."); } 
-        finally { inputElement.value = ''; }
-    }; 
-    reader.onerror = function() { alert("[ SYSTEM_ERROR ] Operating system blocked file read."); inputElement.value = ''; };
-    reader.readAsText(file);
-}
+            <div id="connection-status" style="font-weight: bold; color: var(--main-cyan);">[ STATUS: OFFLINE ]</div>
+            <button id="global-disconnect-btn" class="btn-small btn-alert" onclick="disconnectNode()" style="display:none;">[ X KILL_LINK ]</button>
+        </div>
+    </header>
 
-function copyMagicLink() { 
-    const input = document.getElementById('magic-link-input'); 
-    input.select(); navigator.clipboard.writeText(input.value); 
-}
+    <div class="panel" id="shared-canvas-panel" style="display: none; border-style: dotted; border-color: var(--main-cyan);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin-top:0;">[ SYNCHRONIZED_CANVAS // LIVE ]</h3>
+            <button class="btn-small btn-alert" onclick="toggleCanvas()">[ X CLOSE ]</button>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; align-items: center;">
+            <input type="color" id="brush-color" value="#00ffff" style="background: none; border: 1px solid var(--main-cyan); cursor: pointer; height: 30px;" title="Brush Color">
+            <span style="font-size: 0.8rem; color: var(--main-cyan);">SIZE:</span>
+            <input type="range" id="brush-size" min="1" max="20" value="3" style="width: 100px;" title="Brush Size">
+            <button class="btn-small" onclick="document.getElementById('brush-color').value='#000000'" title="Switch to Eraser">[ 🧽 ERASER ]</button>
+        </div>
+        
+        <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background-color: #000; border: 1px solid #333; cursor: crosshair; touch-action: none; background-size: contain; background-position: center; background-repeat: no-repeat;"></canvas>
+    </div>
 
-function resetDefaultTemplate() { 
-    if(confirm(`Purge Memory Slot ${activeSlot} cache?`)) { 
-        localStorage.removeItem('nowspace_save_' + activeSlot);
-        window.location.reload(); 
-    } 
-}
+    <div class="panel" id="host-setup-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 15px; padding-bottom: 5px;">
+            <h3 style="margin:0;">[ 01 // LOAD_PROFILE_DATA ]</h3>
+            <select id="profile-slot" onchange="switchProfile(this.value)" style="background:#000; color:var(--bright-magenta); border:1px solid var(--bright-magenta); padding:4px; font-family:monospace; cursor:pointer;">
+                <option value="1">MEMORY SLOT 01</option>
+                <option value="2">MEMORY SLOT 02</option>
+                <option value="3">MEMORY SLOT 03</option>
+            </select>
+        </div>        
 
-//---------------------------------------------------------
-// 06. INITIALIZATION (window.onload)
-//---------------------------------------------------------
-window.onload = () => {
-    const slotSelect = document.getElementById('profile-slot');
-    if (slotSelect) slotSelect.value = activeSlot;
+        <button id="btn-toggle-settings" onclick="toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: var(--main-cyan); border-color: var(--main-cyan);">[ - COLLAPSE NODE SETTINGS ]</button>
 
-    const vAlias = localStorage.getItem('nowspace_visitor_alias');
-    if (vAlias && document.getElementById('visitor-alias-input')) {
-        document.getElementById('visitor-alias-input').value = vAlias;
-    }
+        <div id="host-settings-wrapper">
+            <label>System Alias (Display Name):</label>
+            <input type="text" id="my-alias" value="NODE-ALPHA">
+            <label>Custom Access Hash (For your URL):</label>
+            <input type="text" id="my-custom-id" placeholder="Leave blank for random...">
+            <label>Node Access Password (Optional):</label>
+            <input type="password" id="my-password" placeholder="Leave blank for public access...">
+            <label>Profile Datastream:</label>
+            <textarea id="my-bio" rows="2">SYSTEM_STATUS: ONLINE // Currently overriding mainframe.</textarea>
+            <label>Custom Soundboard (MP3 URL):</label>
+            <input type="text" id="my-custom-sound" placeholder="Paste an online MP3 link here...">
+            <label>Profile Soundtrack (Paste a YouTube Link):</label>
+            <input type="text" id="my-audio" value="https://www.youtube.com/watch?v=hMxlPYStVVY">
+            <label>Profile Gallery (URLs, one per line):</label>
+            <textarea id="my-gallery" rows="3">https://media.giphy.com/media/9zExs2Q2h1EHfE4P6G/giphy.gif</textarea>
+            
+            <label>Favourite Nodes (Node IDs, one per line):</label>
+            <textarea id="my-top8" rows="3">node-alpha&#10;cyber-deck-2</textarea>
+        
+            <label>Custom Background (Image URL):</label>
+            <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
+
+            <label>Custom CSS Injection Framework:</label>
+            <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
+            
+            <div style="margin-top: 15px; padding: 10px; border: 1px dashed var(--main-cyan); background: rgba(0, 255, 255, 0.05);">
+                <label>AI Theme Prompt Generator:</label>
+                <p style="font-size: 0.75rem; color: #aaa; margin-bottom: 10px;">Click to copy the architectural blueprint. Paste it into ChatGPT or Claude to generate a custom CSS theme, then paste their code in the box above!</p>
+                <button class="btn-small" onclick="copyThemePrompt()">[ 📋 COPY AI PROMPT ]</button>
+                <span id="prompt-copy-status" style="color: #0f0; margin-left: 10px; display: none; font-size: 0.8rem; font-weight: bold;">COPIED!</span>
+            </div>
+            
+            <div class="theme-actions" style="margin-top: 15px;">
+                <button class="btn-small" onclick="resetDefaultTemplate()">[ FACTORY RESET ]</button>
+                <button class="btn-small" onclick="exportTheme()">[ 💾 EXPORT THEME ]</button>
+                <button class="btn-small" onclick="document.getElementById('import-file').click()">[ 📂 IMPORT THEME ]</button>
+                <input type="file" id="import-file" accept=".json" style="display:none;" onchange="importTheme(event)">
+            </div>
+
+            <div class="feature-flag-box">
+                <h4>[ SYSTEM_FEATURE_FLAGS ]</h4>
+                <div class="flag-grid">
+                    <label><input type="checkbox" id="toggle-scanlines" checked onchange="updateHostFeatures()"> CRT SCANLINES</label>
+                    <label><input type="checkbox" id="toggle-soundboard" checked onchange="updateHostFeatures()"> SOUNDBOARD</label>
+                    <label><input type="checkbox" id="toggle-gallery" checked onchange="updateHostFeatures()"> GALLERY</label>
+                    <label><input type="checkbox" id="toggle-top8" checked onchange="updateHostFeatures()"> FAV NODES</label>
+                    <label><input type="checkbox" id="toggle-usernames" checked onchange="updateHostFeatures()"> USERNAMES</label>
+                    <label><input type="checkbox" id="toggle-voicecomms" checked onchange="updateHostFeatures()"> A/V COMMS</label>
+                    <label><input type="checkbox" id="toggle-polls" checked onchange="updateHostFeatures()"> POLLS</label>
+                </div>
+            </div>
+        </div> <button id="btn-go-online" onclick="startHosting()">>> INITIALIZE_NODE <<</button>
+        <p id="my-id-display" style="display:none;">Unique Hash: <span class="id-display" id="my-id"></span></p>
+        <div id="magic-link-container"></div>
+    </div>
+
+    <div class="panel" id="host-live-wall-panel" style="display: none;">
+        <h3>[ ACTIVE NODE // LIVE_DATASTREAM ]</h3>
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div class="visitor-log-box" style="flex: 1; min-width: 250px;">
+                <h4 style="color: var(--alert-red);">> ACTIVE_CONNECTIONS</h4>
+                <div id="host-active-peers" style="font-size: 0.8rem; margin-bottom: 10px; color: #ccc;">No active peers.</div>
+                <h4 style="color: var(--alert-red);">> BANNED_FINGERPRINTS</h4>
+                <div id="host-banned-list" style="font-size: 0.8rem; color: #ccc;">No active bans.</div>
+            </div>
+        </div>
+
+        <div id="host-poll-module" class="poll-feature-group poll-builder-box">
+            <h4>[ DEPLOY_CONSENSUS_POLL ]</h4>
+            <div id="host-poll-builder">
+                <input type="text" id="poll-q" placeholder="Enter Poll Question...">
+                <div class="poll-options-inputs">
+                    <input type="text" id="poll-o1" placeholder="Option 1">
+                    <input type="text" id="poll-o2" placeholder="Option 2">
+                </div>
+                <button class="btn-small" onclick="deployPoll()">LAUNCH POLL</button>
+            </div>
+            <div id="host-poll-active" style="display:none;">
+                <div id="render-host-poll-results"></div>
+                <button class="btn-small btn-alert" onclick="closePoll()">[ X END POLL ]</button>
+            </div>
+        </div>
+
+        <div class="soundboard-container">
+            <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
+            <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
+            <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
+            <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
+            <div class="vol-slider-wrap">
+                <span>VOLUME:</span>
+                <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
+            </div>
+        </div>
+
+        <div id="host-video-stream-container" class="video-stream-container"></div>
+        <div id="host-datastream-output" class="datastream-output"></div>
+        
+        <div class="emoji-board">
+            <button onclick="insertEmoji('👽')">👽</button>
+            <button onclick="insertEmoji('💀')">💀</button>
+            <button onclick="insertEmoji('👾')">👾</button>
+            <button onclick="insertEmoji('⚡')">⚡</button>
+            <button onclick="insertEmoji('🔥')">🔥</button>
+            <button onclick="insertEmoji('💾')">💾</button>
+        </div>
+        
+        <div id="host-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
+
+        <div class="input-transmit-bar">
+            <input type="text" id="host-wall-input" placeholder="Type /connect4 or /8ball to play...">
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
+            <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 ]</button>
+            <button onclick="hostSendWallPacket()">TRANSMIT</button>
+            <button class="btn-alert" onclick="hostClearWall()">[ WIPE ALL ]</button>
+            
+            <span class="voice-feature-group">
+                <div class="voice-switch-container host-voice-toggle" onclick="toggleVoice()">
+                    <div class="voice-switch-label">COMMS: OFF</div>
+                    <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
+                </div>
+                <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
+                <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
+                <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
+            </span>
+        </div>
+    </div>
+
+    <div class="panel" id="visitor-connect-panel">
+        <h3>[ 02 // ACCESS_EXTERNAL_NODE ]</h3>
+        <input type="text" id="friend-id" placeholder="Paste peer Access Hash here...">
+        <input type="password" id="visitor-password" placeholder="Enter Node Password (if required)...">
+        <button onclick="visitFriend()">>> CONNECT_TO_PEER <<</button>
+        <button class="btn-small btn-alert" onclick="abortAndReturnHome()" style="margin-left: 10px;">[ ABORT / HOME ]</button>
+    </div>
+
+    <div id="visitor-view" style="display: none;">
+        <div id="audio-container"></div>
+        <div id="render-profile-header">
+            <h2 id="render-alias" class="glitch-text"></h2>
+            <p id="datarender-bio"></p>
+        </div>
+        
+        <div class="panel" id="visitor-online-panel" style="margin-top:20px; padding: 10px 15px; border-style: dashed;">
+            <h3 style="margin-top:0;">[ SYSTEM_RADAR // ONLINE_NODES ]</h3>
+            <div id="render-online-users" style="font-size: 0.85rem; color: #ccc;">Scanning for active signals...</div>
+        </div>
+
+        <div class="panel poll-feature-group" id="visitor-poll-panel" style="display: none;">
+            <h3>[ ACTIVE_DATA_QUERY // POLL ]</h3>
+            <div id="render-poll-content"></div>
+        </div>
+
+        <div class="panel" id="visitor-gallery-panel" style="display: none;">
+            <h3>[ HOST_MEDIA_CONTAINER // PICTURE_FRAME ]</h3>
+            <div class="gallery-grid" id="render-gallery-grid"></div>
+        </div>
+
+        <div class="panel" id="visitor-top8-panel" style="display: none;">
+            <h3>[ HOST_BOOKMARKS // FAVOURITE_NODES ]</h3>
+            <div class="top8-grid" id="render-top8-grid"></div>
+        </div>
+
+        <div class="panel" id="datastream-container">
+            <h3>[ 03 // MULTIMEDIA_WALL ]</h3>
+            
+            <div class="soundboard-container">
+                <button class="btn-small sound-btn" onclick="triggerSound('airhorn')">[ 📢 AIRHORN ]</button>
+                <button class="btn-small sound-btn" onclick="triggerSound('boom')">[ 💥 VINE BOOM ]</button>
+                <button class="btn-small sound-btn" onclick="triggerSound('bruh')">[ 💀 BRUH ]</button>
+                <button class="btn-small sound-btn" onclick="triggerSound('alert')">[ 🚨 ALERT ]</button>
+                <div class="vol-slider-wrap">
+                    <span>VOLUME:</span>
+                    <input type="range" min="0" max="1" step="0.05" value="0.5" oninput="updateMasterVolume(this.value)">
+                </div>
+            </div>
+
+            <div id="visitor-video-stream-container" class="video-stream-container"></div>
+            <div id="datastream-output" class="datastream-output"></div>
+            
+            <div class="emoji-board">
+                <button onclick="insertEmoji('👽')">👽</button>
+                <button onclick="insertEmoji('💀')">💀</button>
+                <button onclick="insertEmoji('👾')">👾</button>
+                <button onclick="insertEmoji('⚡')">⚡</button>
+                <button onclick="insertEmoji('🔥')">🔥</button>
+                <button onclick="insertEmoji('💾')">💾</button>
+            </div>
+
+            <div id="visitor-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
+
+            <div class="input-transmit-bar">
+                <input type="text" id="visitor-alias-input" placeholder="Set Alias..." style="max-width: 120px;">
+                <input type="text" id="wall-input-buffer" placeholder="Type /connect4 or /8ball to play..." style="flex-grow: 1;">  
+                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
+                <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 ]</button>
+                <button onclick="visitorSendWallPacket()">TRANSMIT</button>
+                
+                <span class="voice-feature-group">
+                    <div class="voice-switch-container visitor-voice-toggle" onclick="toggleVoice()">
+                        <div class="voice-switch-label">COMMS: OFF</div>
+                        <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
+                    </div>
+                    <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
+                    <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
+                    <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
+                </span>
+            </div>
+            <label class="secure-box-label">
+                <input type="checkbox" id="private-packet-toggle"> [ ENABLE_SECURE_TRANSMISSION // HOST_EYES_ONLY ]
+            </label>
+        </div>
+    </div>
+
+    <style id="custom-injected-css"></style>
     
-    loadLocalData();
+    <script>
+        function copyThemePrompt() {
+            const promptText = `Act as an expert UI/UX designer and CSS developer. I am building a peer-to-peer, cyberpunk-style web application called "NOWSPACE". I want to create a new visual theme for it.
+
+Here is the root CSS architecture of the terminal:
+
+:root {
+    --bg-color: #050505;
+    --text-color: #00ffff;
+    --main-cyan: #00ffff;
+    --alert-red: #ff0055;
+    --bright-magenta: #ff00ff;
+    --dark-magenta: #880088;
+    --panel-bg: #111111;
+    --text-glow: 0 0 5px rgba(0, 255, 255, 0.5);
+}
+
+Core UI Elements you can target:
+1. \`body\` (background color/images, global font)
+2. \`.panel\` (the main modular windows, currently dark gray with cyan borders)
+3. \`button\` and \`.btn-small\` (terminal buttons, normally transparent with cyan text/borders)
+4. \`.btn-alert\` (buttons in an active/warning state, normally red)
+5. \`input\`, \`textarea\`, \`select\` (text boxes and dropdowns)
+6. \`.glitch-text\` (headers and important system messages)
+7. \`.wall-post\` (individual messages in the datastream)
+
+Based on this architecture, please generate a complete block of CSS that I can inject into my stylesheet to completely re-theme the terminal into a [ INSERT DESIRED THEME HERE - e.g., 1980s Retro Synthwave, Fallout Pip-Boy Green, Clean Matrix Terminal, etc. ].
+Only output the raw CSS. Do not alter the structural HTML positioning, only colors, borders, shadows, fonts, and backgrounds.`;
+            navigator.clipboard.writeText(promptText).then(() => {
+                const status = document.getElementById('prompt-copy-status');
+                if (status) {
+                    status.style.display = 'inline';
+                    setTimeout(() => { status.style.display = 'none'; }, 2000);
+                }
+            }).catch(err => console.error("Clipboard write failed:", err));
+        }
+    </script>
     
-    const cssInput = document.getElementById('my-css');
-    if (cssInput) {
-        cssInput.addEventListener('input', (e) => { 
-            const inject = document.getElementById('custom-injected-css'); 
-            if(inject) inject.innerText = e.target.value; 
-            saveLocalData();
+    <script src="config.js?v=54"></script>
+    <script src="media.js?v=54"></script>
+    <script src="ui.js?v=54"></script>
+    <script src="network.js?v=54"></script>
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js').then(registration => {
+            console.log('[ SYSTEM ] Background Service Worker Registered.');
+          }).catch(err => {
+            console.warn('[ SYSTEM_ERROR ] Service Worker Failed:', err);
+          });
         });
-    }
-    
-    const urlNode = new URLSearchParams(window.location.search).get('node'); 
-    if (urlNode) { 
-        document.getElementById('host-setup-panel').style.display = 'none'; 
-        document.getElementById('friend-id').value = urlNode; 
-        document.getElementById('visitor-password').focus(); 
-    }
-
-    // --- AUTO-ENABLE NOTIFICATIONS IF PREVIOUSLY GRANTED ---
-    if ("Notification" in window && Notification.permission === "granted") {
-        notificationsEnabled = true;
-        updateNotificationUI();
-    }
-};
+      }
+    </script>
+</body>
+</html>
