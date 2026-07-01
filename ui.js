@@ -762,17 +762,6 @@ if (canvas) {
     }
     
     console.log("[ SYSTEM ] Factory reset complete. Modules purged.");
-// --- FORCE UI REFRESH ---
-//Tell the terminal to actually paintthe newly loaded background URL
-const newBgUrl = document.getElementById('my-bg-url');
-if (newBgUrl && typeof applyBackground === "function") {
-  applyBackground(newBgUrl.value);
-}
 
-//css updater
-const newCss = document.getElementById('my-css');
-const cssStyleTag = document.getElementById('custom-injected-css');
-if (newCss && cssStylwTag .innerText = newCss.value;}
 
-}
 }
