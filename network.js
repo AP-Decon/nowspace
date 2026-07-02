@@ -563,6 +563,10 @@ peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
             case MSG_TYPE_FEATURE_UPDATE: 
                 if (currentRole === 'VISITOR') { featureToggles = p.features;
                 if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
+                case 'LIVE_BG_UPDATE':
+                if (currentRole === 'VISITOR' && typeof applyBackground === 'function') {
+                    applyBackground(p.bgUrl);
+                } break;
             case MSG_TYPE_POLL_NEW:
             case MSG_TYPE_POLL_UPDATE: 
                 if (currentRole === 'VISITOR') { activePoll = p.poll;
