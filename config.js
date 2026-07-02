@@ -285,6 +285,7 @@ function loadLocalData() {
         document.getElementById('my-top8').value = 'node-alpha\ncyber-deck-2';
         document.getElementById('my-css').value = defCss;
         document.getElementById('my-custom-sound').value = ''; 
+        document.getElementById('my-bg-url').value = defBgUrl;
         
         // Populate Background Image URL box
         if (document.getElementById('my-bg-url')) document.getElementById('my-bg-url').value = defBgUrl;
