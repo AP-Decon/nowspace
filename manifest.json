@@ -3,7 +3,7 @@
   "short_name": "NOWSPACE",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#000000",
+  "background_color": "#050505",
   "theme_color": "#000000",
   "description": "Decentralized P2P Communications Terminal",
 "icons": [
