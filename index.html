@@ -88,7 +88,10 @@
             <textarea id="my-top8" rows="3">node-alpha&#10;cyber-deck-2</textarea>
         
             <label>Custom Background (Image URL):</label>
-            <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background...">
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="text" id="my-bg-url" placeholder="Paste URL to set a global room background..." style="flex-grow: 1; margin-bottom: 0;">
+                <button id="btn-cycle-bg" onclick="window.toggleBgCycle()" class="btn-small" style="margin-bottom: 0; min-width: 120px;">[ CYCLE_BG ]</button>
+            </div>
 
             <label>Custom CSS Injection Framework:</label>
             <textarea id="my-css" rows="6">/* ENTER CUSTOM OVERRIDES HERE */</textarea>
