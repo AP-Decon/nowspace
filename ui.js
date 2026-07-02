@@ -799,7 +799,7 @@ let isBgCycling = false;
 window.toggleBgCycle = function() {
     const btn = document.getElementById('btn-cycle-bg');
     
-    // If running, stop the cycle
+    // If the cycle is currently running, stop it
     if (isBgCycling) {
         clearInterval(bgCycleTimer);
         isBgCycling = false;
@@ -811,7 +811,6 @@ window.toggleBgCycle = function() {
         return;
     }
 
-    // Check if the gallery actually has links
     const galleryInput = document.getElementById('my-gallery');
     if (!galleryInput || !galleryInput.value.trim()) {
         alert("[ SYSTEM_ERROR ] Media Gallery is empty. Please add URLs to cycle.");
@@ -829,13 +828,16 @@ window.toggleBgCycle = function() {
         btn.style.borderColor = "var(--alert-red)";
     }
 
-    // Fire the first visual change immediately
-    bgCycleIndex = 0;
+    // SMART START: Find out what image is currently on the screen
+    const currentBg = document.getElementById('my-bg-url').value.trim();
+    bgCycleIndex = urls.indexOf(currentBg);
+    
+    // Instantly push to the NEXT image in the list
+    bgCycleIndex = (bgCycleIndex + 1) % urls.length;
     window.triggerBgUpdate(urls[bgCycleIndex]);
 
-    // Loop the background every 15 seconds (15000ms)
+    // Loop the background every 15 seconds
     bgCycleTimer = setInterval(() => {
-        // Re-read the input just in case you added/removed a GIF mid-cycle
         urls = galleryInput.value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
         if(urls.length === 0) { window.toggleBgCycle(); return; }
 
@@ -848,10 +850,8 @@ window.triggerBgUpdate = function(url) {
     const bgInput = document.getElementById('my-bg-url');
     if (bgInput) bgInput.value = url;
     
-    // Paint the Host's screen
     if (typeof applyBackground === 'function') applyBackground(url);
 
-    // Broadcast the live shift to the entire room instantly
     if (typeof currentRole !== 'undefined' && currentRole === 'HOST' && typeof broadcastToAll === 'function') {
         broadcastToAll({ type: 'LIVE_BG_UPDATE', bgUrl: url });
     }
