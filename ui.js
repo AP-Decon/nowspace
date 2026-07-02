@@ -33,6 +33,19 @@ function applyBackground(url) {
             p.style.backgroundColor = 'rgba(0, 0, 0, 0.75)';
             p.style.backdropFilter = 'blur(4px)';
         });
+        // --- AUTO-ADD TO GALLERY ---
+        const gallery = document.getElementById('my-gallery');
+        if (gallery && typeof currentRole !== 'undefined' && currentRole === 'HOST') {
+            const rawUrl = url.trim();
+            let existingUrls = gallery.value.split('\n').map(u => u.trim());
+            
+            // If the URL isn't already in the gallery, append it to a new line
+            if (!existingUrls.includes(rawUrl)) {
+                gallery.value = gallery.value + (gallery.value ? '\n' : '') + rawUrl;
+                if (typeof saveLocalData === "function") saveLocalData();
+            }
+        }
+        // ---------------------------
     } else {
         document.body.style.backgroundImage = 'none';
         document.querySelectorAll('.panel').forEach(p => {
