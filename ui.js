@@ -856,3 +856,12 @@ window.triggerBgUpdate = function(url) {
         broadcastToAll({ type: 'LIVE_BG_UPDATE', bgUrl: url });
     }
 };
+// --- AUTO-PAINT BACKGROUND ON BOOT ---
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const bgUrl = document.getElementById('my-bg-url');
+        if (bgUrl && bgUrl.value && typeof applyBackground === 'function') {
+            applyBackground(bgUrl.value);
+        }
+    }, 500); // 500ms delay ensures local storage finishes loading first
+});
