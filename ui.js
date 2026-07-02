@@ -776,3 +776,70 @@ document.getElementById('profile-slot')?.addEventListener('change', () => {
         }
     }, 100); // 100ms delay lets switchProfile finish loading the text first
 });
+//---------------------------------------------------------
+// 10. GLOBAL BACKGROUND CYCLE ENGINE
+//---------------------------------------------------------
+let bgCycleTimer = null;
+let bgCycleIndex = 0;
+let isBgCycling = false;
+
+window.toggleBgCycle = function() {
+    const btn = document.getElementById('btn-cycle-bg');
+    
+    // If running, stop the cycle
+    if (isBgCycling) {
+        clearInterval(bgCycleTimer);
+        isBgCycling = false;
+        if (btn) {
+            btn.innerText = '[ CYCLE_BG ]';
+            btn.style.color = "var(--main-cyan)";
+            btn.style.borderColor = "var(--main-cyan)";
+        }
+        return;
+    }
+
+    // Check if the gallery actually has links
+    const galleryInput = document.getElementById('my-gallery');
+    if (!galleryInput || !galleryInput.value.trim()) {
+        alert("[ SYSTEM_ERROR ] Media Gallery is empty. Please add URLs to cycle.");
+        return;
+    }
+
+    let urls = galleryInput.value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+    if (urls.length === 0) return;
+
+    // Start the cycle!
+    isBgCycling = true;
+    if (btn) {
+        btn.innerText = '[ STOP_CYCLE ]';
+        btn.style.color = "var(--alert-red)";
+        btn.style.borderColor = "var(--alert-red)";
+    }
+
+    // Fire the first visual change immediately
+    bgCycleIndex = 0;
+    window.triggerBgUpdate(urls[bgCycleIndex]);
+
+    // Loop the background every 15 seconds (15000ms)
+    bgCycleTimer = setInterval(() => {
+        // Re-read the input just in case you added/removed a GIF mid-cycle
+        urls = galleryInput.value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+        if(urls.length === 0) { window.toggleBgCycle(); return; }
+
+        bgCycleIndex = (bgCycleIndex + 1) % urls.length;
+        window.triggerBgUpdate(urls[bgCycleIndex]);
+    }, 15000); 
+};
+
+window.triggerBgUpdate = function(url) {
+    const bgInput = document.getElementById('my-bg-url');
+    if (bgInput) bgInput.value = url;
+    
+    // Paint the Host's screen
+    if (typeof applyBackground === 'function') applyBackground(url);
+
+    // Broadcast the live shift to the entire room instantly
+    if (typeof currentRole !== 'undefined' && currentRole === 'HOST' && typeof broadcastToAll === 'function') {
+        broadcastToAll({ type: 'LIVE_BG_UPDATE', bgUrl: url });
+    }
+};
