@@ -873,12 +873,27 @@ document.addEventListener("visibilitychange", () => {
         // 1. Reconnect the main Peer signaling if it dropped
         if (typeof peer !== 'undefined' && peer !== null) {
             if (peer.disconnected && !peer.destroyed) {
-                console.log("[ SYSTEM ] Network suspended. Forcing auto-reconnect...");
+                console.log("[ SYSTEM ] Network suspended. Reconnecting to switchboard...");
                 peer.reconnect();
             }
         }
 
-        // 2. Clear out any stuck typing indicators
+        // 2. If you are a Visitor and the data tunnel collapsed, Auto-Redial
+        setTimeout(() => {
+            if (currentRole === 'VISITOR') {
+                // Check if the connection actually died
+                if (!activeConn || !activeConn.open) {
+                    console.log("[ SYSTEM ] Data tunnel collapsed. Attempting auto-redial...");
+                    const status = document.getElementById('connection-status');
+                    if (status) status.innerHTML = `<span style="color:#ffaa00;">[ AUTO-HEAL: RE-DIALING HOST... ]</span>`;
+                    
+                    // Trigger your standard connection function
+                    if (typeof visitFriend === 'function') visitFriend(); 
+                }
+            }
+        }, 1500); // Wait 1.5s for the switchboard to stabilize before re-dialing
+
+        // 3. Clear out any stuck typing indicators
         if (typeof showTypingIndicator === 'function') {
             activeTypers.clear();
             showTypingIndicator('', false);
