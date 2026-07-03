@@ -865,3 +865,23 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }, 500); // 500ms delay ensures local storage finishes loading first
 });
+// --- AUTO-HEAL NETWORK PROTOCOL (VISIBILITY WAKE-UP) ---
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+        console.log("[ SYSTEM ] Terminal focus restored. Checking network pulse...");
+        
+        // 1. Reconnect the main Peer signaling if it dropped
+        if (typeof peer !== 'undefined' && peer !== null) {
+            if (peer.disconnected && !peer.destroyed) {
+                console.log("[ SYSTEM ] Network suspended. Forcing auto-reconnect...");
+                peer.reconnect();
+            }
+        }
+
+        // 2. Clear out any stuck typing indicators
+        if (typeof showTypingIndicator === 'function') {
+            activeTypers.clear();
+            showTypingIndicator('', false);
+        }
+    }
+});
