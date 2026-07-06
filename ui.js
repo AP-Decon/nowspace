@@ -789,6 +789,32 @@ document.getElementById('profile-slot')?.addEventListener('change', () => {
         }
     }, 100); // 100ms delay lets switchProfile finish loading the text first
 });
+// --- PICTURE-IN-PICTURE (MINI PLAYER) PROTOCOL ---
+window.toggleMiniPlayer = async function(videoId) {
+    const videoElement = document.getElementById(videoId);
+    
+    if (!videoElement) {
+        alert("[ SYSTEM ] No active video stream detected.");
+        return;
+    }
+
+    try {
+        // If already in PiP, bring it back
+        if (document.pictureInPictureElement) {
+            await document.exitPictureInPicture();
+            console.log("[ SYSTEM ] Mini-player docked.");
+        } 
+        // If not in PiP, pop it out
+        else if (document.pictureInPictureEnabled && !videoElement.disablePictureInPicture) {
+            await videoElement.requestPictureInPicture();
+            console.log("[ SYSTEM ] Mini-player deployed.");
+        } else {
+            alert("[ SYSTEM_ERROR ] Mini-player is not supported by this OS/Browser.");
+        }
+    } catch (err) {
+        console.error("[ SYSTEM_ERROR ] Mini-player failure:", err);
+    }
+};
 //---------------------------------------------------------
 // 10. GLOBAL BACKGROUND CYCLE ENGINE
 //---------------------------------------------------------
