@@ -420,7 +420,7 @@ function applyFeatures(features) {
         if (activeCalls.length > 0) { activeCalls.forEach(call => call.close()); activeCalls = []; }
         localStream.getTracks().forEach(t => t.stop()); localStream = null;
         if(typeof updateVoiceTogglesVisuals === "function") updateVoiceTogglesVisuals(false); 
-        document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn').forEach(b => b.style.display = 'none');
+        document.querySelectorAll('.mute-btn, .cam-btn, .screen-btn, .pip-btn').forEach(b => b.style.display = 'none');
         document.getElementById('host-video-stream-container').innerHTML = '';
         document.getElementById('visitor-video-stream-container').innerHTML = '';
     }
