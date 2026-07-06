@@ -926,3 +926,26 @@ document.addEventListener("visibilitychange", () => {
         }
     }
 });
+
+// --- AUTO-HIDE/SHOW MINI PLAYER BUTTONS ---
+window.addEventListener('DOMContentLoaded', () => {
+    // This observer watches the video containers for changes
+    const streamObserver = new MutationObserver(() => {
+        const hostVid = document.getElementById('visitor-video-stream');
+        const visVid = document.getElementById('host-video-stream');
+        
+        const hostBtn = document.getElementById('host-pip-btn');
+        if (hostBtn) hostBtn.style.display = hostVid ? 'inline-block' : 'none';
+        
+        const visBtn = document.getElementById('visitor-pip-btn');
+        if (visBtn) visBtn.style.display = visVid ? 'inline-block' : 'none';
+    });
+
+    const config = { childList: true, subtree: true };
+    const hContainer = document.getElementById('host-video-stream-container');
+    const vContainer = document.getElementById('visitor-video-stream-container');
+    
+    // Attach the observer to both containers
+    if (hContainer) streamObserver.observe(hContainer, config);
+    if (vContainer) streamObserver.observe(vContainer, config);
+});
