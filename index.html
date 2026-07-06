@@ -191,6 +191,7 @@
                     <div class="voice-switch-label">COMMS: OFF</div>
                     <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                 </div>
+                <button class="btn-small pip-btn" onclick="window.toggleMiniPlayer('visitor-video-stream')" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
                 <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
                 <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                 <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
@@ -273,6 +274,7 @@
                         <div class="voice-switch-label">COMMS: OFF</div>
                         <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                     </div>
+                    <button class="btn-small pip-btn" onclick="window.toggleMiniPlayer('host-video-stream')" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
                     <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
                     <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                     <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
@@ -324,10 +326,10 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         }
     </script>
     
-    <script src="config.js?v=65"></script>
-    <script src="media.js?v=65"></script>
-    <script src="ui.js?v=65"></script>
-    <script src="network.js?v=65"></script>
+    <script src="config.js?v=70"></script>
+    <script src="media.js?v=70"></script>
+    <script src="ui.js?v=70"></script>
+    <script src="network.js?v=70"></script>
     
     <script>
       if ('serviceWorker' in navigator) {
