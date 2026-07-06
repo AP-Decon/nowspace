@@ -191,7 +191,7 @@
                     <div class="voice-switch-label">COMMS: OFF</div>
                     <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                 </div>
-                <button class="btn-small pip-btn" onclick="window.toggleMiniPlayer('visitor-video-stream')" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
+                <button id="host-pip-btn" class="btn-small pip-btn" onclick="window.toggleMiniPlayer('visitor-video-stream')" style="display:none; color:#555; border-color:#333;" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
                 <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
                 <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                 <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
@@ -274,7 +274,7 @@
                         <div class="voice-switch-label">COMMS: OFF</div>
                         <div class="voice-switch-track"><div class="voice-switch-handle"></div></div>
                     </div>
-                    <button class="btn-small pip-btn" onclick="window.toggleMiniPlayer('host-video-stream')" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
+                    <button id="visitor-pip-btn" class="btn-small pip-btn" onclick="window.toggleMiniPlayer('host-video-stream')" style="display:none; color:#555; border-color:#333;" title="Pop out video to mini-player">[ 🔲 MINI ]</button>
                     <button class="btn-small mute-btn" onclick="toggleMute()" style="display:none; color:#555; border-color:#333;">[ 🔇 MIC: OFF ]</button>
                     <button class="btn-small cam-btn" onclick="toggleCam()" style="display:none; color:#555; border-color:#333;">[ 📷 CAM: OFF ]</button>
                     <button class="btn-small screen-btn" onclick="toggleScreen()" style="display:none; color:#555; border-color:#333;" title="Broadcast Display">[ 🖥️ SCREEN ]</button>
