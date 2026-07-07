@@ -1273,6 +1273,12 @@ window.bsReceiveFire = function(index) {
     } else {
         bsMyTurn = true;
         updateBattleshipStatus();
+        
+        // --- NEW: Sunk Ship UI Alert (When YOU lose a ship) ---
+        if (sunk) {
+            const statusEl = document.getElementById('battleship-status');
+            statusEl.innerHTML = `<span style="color:var(--alert-red); text-shadow: 0 0 5px var(--alert-red); animation: flash 0.5s 6 alternate;">[ WARNING: YOUR ${sunk} WAS SUNK! ]</span><br><span style="font-size:0.8rem; color:#0f0;">[ YOUR TURN // RETALIATE ]</span>`;
+        }
     }
 };
 
@@ -1285,15 +1291,18 @@ window.bsReceiveResult = function(p) {
         cell.classList.add('bs-miss');
     }
 
-    if (p.sunk) {
-        if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("TARGET DESTROYED", `Enemy ${p.sunk} has been sunk!`);
-    }
-
     if (p.gameOver) {
         document.getElementById('battleship-status').innerText = `[ VICTORY // ENEMY FLEET DESTROYED ]`;
         document.getElementById('battleship-status').style.color = "#0f0";
         document.getElementById('bs-radar-lock').style.display = 'flex';
         document.getElementById('bs-radar-lock').innerHTML = `<span style="color:#0f0; font-size:1.5rem; font-weight:bold;">[ VICTORY ]</span>`;
         if(typeof triggerSound === "function") triggerSound('airhorn');
+    } else {
+        // --- NEW: Sunk Ship UI Alert (When THEY lose a ship) ---
+        if (p.sunk) {
+            if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("TARGET DESTROYED", `Enemy ${p.sunk} has been sunk!`);
+            const statusEl = document.getElementById('battleship-status');
+            statusEl.innerHTML = `<span style="color:#0f0; text-shadow: 0 0 5px #0f0; animation: flash 0.5s 6 alternate;">[ CONFIRMED KILL: ENEMY ${p.sunk} SUNK! ]</span><br><span style="font-size:0.8rem; color:var(--alert-red);">[ ENEMY TURN // AWAITING IMPACT ]</span>`;
+        }
     }
 };
