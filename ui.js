@@ -130,6 +130,10 @@ function parseSlashCommand(text, senderName) {
     }
     
     // ARCADE: MULTIPLAYER MODULES
+    if (cmd === '/battleship') {
+        if (typeof initBattleship === 'function') initBattleship();
+        return { text: '<b style="color:#0f0;">[ SYSTEM: NAVAL_WARFARE.EXE ENGAGED ]</b>', burnSec: null, isGame: null, payload: null };
+    }
     if (cmd === '/tictactoe') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING GRID_WARS.EXE ]</b>', burnSec: null, isGame: 'tictactoe', payload: null };
     if (cmd === '/connect4') return { text: '<b style="color:#0f0;">[ SYSTEM: INITIALIZING CONNECT_4.EXE ]</b>', burnSec: null, isGame: 'connect4', payload: null };
     if (cmd === '/rps') {
@@ -142,7 +146,7 @@ function parseSlashCommand(text, senderName) {
 }
 
 function formatWallMessage(text) {
-    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("INITIALIZING CONNECT_4") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("SECURE DUEL") || text.includes("progress-bar")) return text;
+    if(text.includes("[ CONSENSUS ARCHIVED ]") || text.includes("BURNER PACKET") || text.includes("INITIALIZING GRID_WARS") || text.includes("INITIALIZING CONNECT_4") || text.includes("NAVAL_WARFARE.EXE") || text.includes("CRITICAL OVERLOAD") || text.includes("P2P_TRANSFER") || text.includes("SECURE DUEL") || text.includes("progress-bar")) return text;
     if(text.includes("<img src=\"data:image")) return text; 
     
     return text.replace(/(https?:\/\/[^\s]+)/gi, (url) => {
