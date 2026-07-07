@@ -73,7 +73,7 @@ function unbanFingerprint(fp) {
 }
 
 function disconnectNode() {
-clearTimeout(window.dialTimer);
+    clearTimeout(window.dialTimer);
     if (activeCalls.length > 0) { activeCalls.forEach(c => c.close()); activeCalls = []; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (peer) { peer.destroy(); peer = null; }
@@ -323,21 +323,21 @@ function handleIncomingP2PPacket(p, conn) {
                     }
                     
                     // --- GHOST BUSTER ---
-// Scan the radar for old, broken connections from this exact user and wipe them out
-for (let existingId in peerFingerprintMap) {
-    if (peerFingerprintMap[existingId].fingerprint === p.fingerprint && existingId !== senderId) {
-        console.warn(`[ SYSTEM ] Ghost node detected for ${p.alias}. Wiping old connection...`);
-        // 1. Force close the old sockets
-        if (peer.connections[existingId]) {
-            peer.connections[existingId].forEach(c => { if(c.open) c.close(); });
-        }
-        // 2. Erase the ghost from the radar
-        delete peerFingerprintMap[existingId];
-    }
-}
-// --------------------
+                    // Scan the radar for old, broken connections from this exact user and wipe them out
+                    for (let existingId in peerFingerprintMap) {
+                        if (peerFingerprintMap[existingId].fingerprint === p.fingerprint && existingId !== senderId) {
+                            console.warn(`[ SYSTEM ] Ghost node detected for ${p.alias}. Wiping old connection...`);
+                            // 1. Force close the old sockets
+                            if (peer.connections[existingId]) {
+                                peer.connections[existingId].forEach(c => { if(c.open) c.close(); });
+                            }
+                            // 2. Erase the ghost from the radar
+                            delete peerFingerprintMap[existingId];
+                        }
+                    }
+                    // --------------------
 
-peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
+                    peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                     if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
                     
                     renderActivePeers(); broadcastOnlineUsers();
@@ -360,6 +360,17 @@ peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                         if(typeof handleCallEvent === "function") handleCallEvent(call);
                     }
                 } break;
+
+            // --- ANTI-NAT HEARTBEAT ROUTER ---
+            case 'HEARTBEAT_PING':
+                // The Host received a ping! Bounce it back so the Visitor knows we're alive.
+                if (currentRole === 'HOST' && conn.open) conn.send({ type: 'HEARTBEAT_PONG' });
+                break;
+            case 'HEARTBEAT_PONG':
+                // The Visitor received the bounce! (No action needed, just keeps the port open)
+                break;
+            // ---------------------------------
+            
             case 'AUTH_FAILED':
                 alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
                 disconnectNode(); 
@@ -563,7 +574,7 @@ peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
             case MSG_TYPE_FEATURE_UPDATE: 
                 if (currentRole === 'VISITOR') { featureToggles = p.features;
                 if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
-                case 'LIVE_BG_UPDATE':
+            case 'LIVE_BG_UPDATE':
                 if (currentRole === 'VISITOR' && typeof applyBackground === 'function') {
                     applyBackground(p.bgUrl);
                 } break;
@@ -860,16 +871,29 @@ function handleRawFileUpload(event) {
 }
 
 //---------------------------------------------------------
-// 07. GARBAGE COLLECTION LOOP
+// 07. GARBAGE COLLECTION & NETWORK HEARTBEAT
 //---------------------------------------------------------
+let heartbeatCounter = 0;
+
 setInterval(() => {
-    if (wallData.length === 0) return;
-    let changed = false; const now = Date.now();
-    wallData = wallData.filter(p => { if (p.burnAt && now >= p.burnAt) { changed = true; return false; } return true; });
-    if (changed) {
-        if(typeof renderWall === "function") renderWall();
-        if (currentRole === 'HOST' && peer) { 
-            if(typeof saveLocalData === "function") saveLocalData(); broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+    // 1. Burner Packet Garbage Collection
+    if (wallData.length > 0) {
+        let changed = false; const now = Date.now();
+        wallData = wallData.filter(p => { if (p.burnAt && now >= p.burnAt) { changed = true; return false; } return true; });
+        if (changed) {
+            if(typeof renderWall === "function") renderWall();
+            if (currentRole === 'HOST' && peer) { 
+                if(typeof saveLocalData === "function") saveLocalData(); broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
+            }
+        }
+    }
+
+    // 2. Anti-NAT Firewall Heartbeat (Fires every 10 seconds)
+    heartbeatCounter++;
+    if (heartbeatCounter >= 10) {
+        heartbeatCounter = 0;
+        if (currentRole === 'VISITOR' && activeConn && activeConn.open) {
+            activeConn.send({ type: 'HEARTBEAT_PING' });
         }
     }
 }, 1000);
@@ -879,20 +903,18 @@ setInterval(() => {
 //---------------------------------------------------------
 function abortAndReturnHome() {
     clearTimeout(window.dialTimer);
-try {
-    if (peer){
-        peer.destroy();
-        peer = null;
+    try {
+        if (peer){
+            peer.destroy();
+            peer = null;
+        }
+    } catch (e) {
+        console.warn("[ SYSTEM ] Non-fatal error destroying peer.",e);
     }
-} catch (e) {
-    console.warn("[ SYSTEM ] Non-fatal error destroyng peer.",e);
-}
-  try {
-      window.history.replaceState({}, document.title, window.location.pathname);
-      window.locate.href = window.location.pathname;
-      
-    
-  } catch (e) {
-      window.location.reload();
-}
+    try {
+        window.history.replaceState({}, document.title, window.location.pathname);
+        window.location.href = window.location.pathname;
+    } catch (e) {
+        window.location.reload();
+    }
 }
