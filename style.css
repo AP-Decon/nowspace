@@ -238,3 +238,46 @@ button:hover {
 button:active {
     transform: translateY(1px);
 }
+
+/* --- BATTLESHIP (NAVAL_WARFARE.EXE) --- */
+.battleship-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 2px;
+    background: #111;
+    border: 1px solid var(--main-cyan);
+    padding: 2px;
+    aspect-ratio: 1 / 1;
+}
+
+.bs-cell {
+    background: #000;
+    border: 1px solid #222;
+    cursor: crosshair;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-family: monospace;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+}
+
+.bs-cell:hover {
+    background: rgba(0, 255, 255, 0.2);
+}
+
+/* Disabled grid state for when it's not your turn */
+.disabled-grid {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* Ship Placement Colors */
+.bs-ship-hover { background: rgba(0, 255, 255, 0.4) !important; }
+.bs-ship-invalid { background: rgba(255, 0, 85, 0.4) !important; cursor: not-allowed; }
+.bs-ship-locked { background: var(--main-cyan); border-color: #000; }
+
+/* Hit / Miss Markers */
+.bs-hit { background: var(--alert-red) !important; color: #000; text-shadow: none; }
+.bs-miss { background: #333 !important; color: #aaa; text-shadow: none; }
