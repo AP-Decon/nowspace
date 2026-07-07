@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#000000">
     <link rel="apple-touch-icon" href="icon-192.png">
     <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=72">
 </head>
 <body>
     <div id="crt-scanlines"></div>
@@ -55,6 +55,39 @@
         <canvas id="sync-canvas" width="800" height="400" style="width: 100%; background-color: #000; border: 1px solid #333; cursor: crosshair; touch-action: none; background-size: contain; background-position: center; background-repeat: no-repeat;"></canvas>
     </div>
 
+    <div class="panel modal-overlay" id="battleship-modal" style="display: none; align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal-content" style="max-width: 900px; width: 95%; background: var(--panel-bg); border: 2px solid var(--main-cyan); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--main-cyan); padding-bottom: 10px; margin-bottom: 15px;">
+                <h3 style="margin:0; color: var(--main-cyan);">[ NAVAL_WARFARE.EXE // TACTICAL LINK ]</h3>
+                <button class="btn-small btn-alert" onclick="closeBattleshipModal()">[ X ABORT ]</button>
+            </div>
+            
+            <div id="battleship-status" style="text-align: center; margin-bottom: 15px; font-weight: bold; color: #fff; font-size: 1.1rem; letter-spacing: 1px;">
+                [ AWAITING SHIP DEPLOYMENT ]
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+                <div style="flex: 1; min-width: 300px; max-width: 400px;">
+                    <div style="text-align: center; color: var(--main-cyan); margin-bottom: 5px;">> YOUR FLEET</div>
+                    <div id="bs-ally-grid" class="battleship-grid"></div>
+                    <div style="margin-top: 10px; text-align: center;">
+                        <button id="btn-bs-rotate" class="btn-small" onclick="rotateShip()">[ ROTATE: HORIZONTAL ]</button>
+                        <button id="btn-bs-ready" class="btn-small" style="display:none;" onclick="lockFleet()">[ LOCK FLEET ]</button>
+                    </div>
+                </div>
+
+                <div style="flex: 1; min-width: 300px; max-width: 400px; position: relative;">
+                    <div style="text-align: center; color: var(--alert-red); margin-bottom: 5px;">> ENEMY RADAR</div>
+                    <div id="bs-enemy-grid" class="battleship-grid disabled-grid"></div>
+                    
+                    <div id="bs-radar-lock" style="position: absolute; top: 25px; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 10;">
+                        <span style="color: var(--alert-red); font-weight: bold;">[ SIGNAL LOCKED // DEPLOY FLEET FIRST ]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="panel" id="host-setup-panel">
         <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333; margin-bottom: 15px; padding-bottom: 5px;">
             <h3 style="margin:0;">[ 01 // LOAD_PROFILE_DATA ]</h3>
@@ -65,7 +98,7 @@
             </select>
         </div>        
 
-        <button id="btn-toggle-settings" onclick="window.toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: #aaa; border-color: #555; background-colour: transparent;">[ - COLLAPSE NODE SETTINGS ]</button>
+        <button id="btn-toggle-settings" onclick="window.toggleHostSettings()" class="btn-small" style="width: 100%; margin-bottom: 15px; color: #aaa; border-color: #555; background-color: transparent;">[ - COLLAPSE NODE SETTINGS ]</button>
 
         <div id="host-settings-wrapper" style="display:none;">
             
@@ -180,7 +213,7 @@
         <div id="host-typing-indicator" style="height: 15px; font-size: 0.8rem; color: var(--main-cyan); transition: opacity 0.3s; margin-bottom: 2px;"></div>
 
         <div class="input-transmit-bar">
-            <input type="text" id="host-wall-input" placeholder="Type /connect4 or /8ball to play...">
+            <input type="text" id="host-wall-input" placeholder="Type /battleship or /8ball to play...">
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
             <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="Send Any File">[ 💾 ]</button>
             <button onclick="hostSendWallPacket()">TRANSMIT</button>
@@ -264,7 +297,7 @@
 
             <div class="input-transmit-bar">
                 <input type="text" id="visitor-alias-input" placeholder="Set Alias..." style="max-width: 120px;">
-                <input type="text" id="wall-input-buffer" placeholder="Type /connect4 or /8ball to play..." style="flex-grow: 1;">  
+                <input type="text" id="wall-input-buffer" placeholder="Type /battleship or /8ball to play..." style="flex-grow: 1;">  
                 <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-file-input').click()" title="Send Image">[ 📎 ]</button>
                 <button class="btn-small" style="margin-right:5px;" onclick="document.getElementById('hidden-raw-file-input').click()" title="P2P File Transfer">[ 💾 ]</button>
                 <button onclick="visitorSendWallPacket()">TRANSMIT</button>
@@ -326,10 +359,10 @@ Only output the raw CSS. Do not alter the structural HTML positioning, only colo
         }
     </script>
     
-    <script src="config.js?v=70"></script>
-    <script src="media.js?v=70"></script>
-    <script src="ui.js?v=70"></script>
-    <script src="network.js?v=70"></script>
+    <script src="config.js?v=72"></script>
+    <script src="media.js?v=72"></script>
+    <script src="ui.js?v=72"></script>
+    <script src="network.js?v=72"></script>
     
     <script>
       if ('serviceWorker' in navigator) {
