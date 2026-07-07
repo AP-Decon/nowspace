@@ -73,7 +73,7 @@ function unbanFingerprint(fp) {
 }
 
 function disconnectNode() {
-    clearTimeout(window.dialTimer);
+clearTimeout(window.dialTimer);
     if (activeCalls.length > 0) { activeCalls.forEach(c => c.close()); activeCalls = []; }
     if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
     if (peer) { peer.destroy(); peer = null; }
@@ -363,14 +363,24 @@ function handleIncomingP2PPacket(p, conn) {
 
             // --- ANTI-NAT HEARTBEAT ROUTER ---
             case 'HEARTBEAT_PING':
-                // The Host received a ping! Bounce it back so the Visitor knows we're alive.
                 if (currentRole === 'HOST' && conn.open) conn.send({ type: 'HEARTBEAT_PONG' });
                 break;
             case 'HEARTBEAT_PONG':
-                // The Visitor received the bounce! (No action needed, just keeps the port open)
                 break;
-            // ---------------------------------
-            
+
+            // --- BATTLESHIP (NAVAL_WARFARE.EXE) ROUTERS ---
+            case 'BS_READY':
+                if (typeof window.bsReceiveReady === 'function') window.bsReceiveReady();
+                if (currentRole === 'HOST') broadcastToAll(p); 
+                break;
+            case 'BS_FIRE':
+                if (typeof window.bsReceiveFire === 'function') window.bsReceiveFire(p.index);
+                break;
+            case 'BS_RESULT':
+                if (typeof window.bsReceiveResult === 'function') window.bsReceiveResult(p);
+                if (currentRole === 'HOST') broadcastToAll(p);
+                break;
+
             case 'AUTH_FAILED':
                 alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
                 disconnectNode(); 
@@ -574,7 +584,7 @@ function handleIncomingP2PPacket(p, conn) {
             case MSG_TYPE_FEATURE_UPDATE: 
                 if (currentRole === 'VISITOR') { featureToggles = p.features;
                 if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
-            case 'LIVE_BG_UPDATE':
+                case 'LIVE_BG_UPDATE':
                 if (currentRole === 'VISITOR' && typeof applyBackground === 'function') {
                     applyBackground(p.bgUrl);
                 } break;
