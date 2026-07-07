@@ -1010,3 +1010,47 @@ document.addEventListener('visibilitychange', async () => {
         engageSurvivalMode();
     }
 });
+//---------------------------------------------------------
+// 12. BATTLESHIP (NAVAL_WARFARE.EXE) UI ENGINE
+//---------------------------------------------------------
+function initBattleship() {
+    const modal = document.getElementById('battleship-modal');
+    if (modal) modal.style.display = 'flex';
+    
+    // Draw the fresh 10x10 grids
+    renderBattleshipGrids();
+}
+
+function closeBattleshipModal() {
+    const modal = document.getElementById('battleship-modal');
+    if (modal) modal.style.display = 'none';
+}
+
+function renderBattleshipGrids() {
+    const allyGrid = document.getElementById('bs-ally-grid');
+    const enemyGrid = document.getElementById('bs-enemy-grid');
+    
+    if (!allyGrid || !enemyGrid) return;
+    
+    // Clear out any old game data
+    allyGrid.innerHTML = '';
+    enemyGrid.innerHTML = '';
+    
+    // Draw 100 cells (10x10) for both boards
+    for (let i = 0; i < 100; i++) {
+        // Your Fleet grid
+        const aCell = document.createElement('div');
+        aCell.className = 'bs-cell';
+        aCell.id = `ally-cell-${i}`;
+        // Temporarily put numbers in so we can see them drawing correctly
+        aCell.innerHTML = `<span style="font-size:0.5rem; color:#333;">${i}</span>`;
+        allyGrid.appendChild(aCell);
+        
+        // Enemy Radar grid
+        const eCell = document.createElement('div');
+        eCell.className = 'bs-cell';
+        eCell.id = `enemy-cell-${i}`;
+        eCell.innerHTML = `<span style="font-size:0.5rem; color:#333;">${i}</span>`;
+        enemyGrid.appendChild(eCell);
+    }
+}
