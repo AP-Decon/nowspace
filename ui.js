@@ -819,6 +819,7 @@ window.toggleMiniPlayer = async function(videoId) {
         console.error("[ SYSTEM_ERROR ] Mini-player failure:", err);
     }
 };
+
 //---------------------------------------------------------
 // 10. GLOBAL BACKGROUND CYCLE ENGINE
 //---------------------------------------------------------
@@ -1010,6 +1011,7 @@ document.addEventListener('visibilitychange', async () => {
         engageSurvivalMode();
     }
 });
+
 //---------------------------------------------------------
 // 12. BATTLESHIP (NAVAL_WARFARE.EXE) UI ENGINE
 //---------------------------------------------------------
@@ -1026,7 +1028,6 @@ let bsMyBoard = Array(100).fill(null);
 let bsIsLocked = false;
 
 function initBattleship() {
-    // Reset state for a new game
     bsCurrentShipIndex = 0;
     bsIsHorizontal = true;
     bsMyBoard = Array(100).fill(null);
@@ -1034,6 +1035,7 @@ function initBattleship() {
     
     document.getElementById('btn-bs-rotate').style.display = 'inline-block';
     document.getElementById('btn-bs-ready').style.display = 'none';
+    document.getElementById('btn-bs-reset').style.display = 'none';
     document.getElementById('bs-radar-lock').style.display = 'flex';
     document.getElementById('battleship-status').innerText = `[ DEPLOY: ${bsShips[0].name} (SIZE: ${bsShips[0].size}) ]`;
     document.getElementById('battleship-status').style.color = "var(--main-cyan)";
@@ -1063,7 +1065,6 @@ function renderBattleshipGrids() {
         aCell.className = 'bs-cell';
         aCell.id = `ally-cell-${i}`;
         
-        // Add hover and click listeners for placing ships
         aCell.addEventListener('mouseover', () => handleHover(i));
         aCell.addEventListener('mouseout', clearHover);
         aCell.addEventListener('click', () => placeShip(i));
@@ -1078,29 +1079,27 @@ function renderBattleshipGrids() {
     }
 }
 
-// Toggle horizontal/vertical
 window.rotateShip = function() {
     bsIsHorizontal = !bsIsHorizontal;
     const btn = document.getElementById('btn-bs-rotate');
     if (btn) btn.innerText = bsIsHorizontal ? '[ ROTATE: HORIZONTAL ]' : '[ ROTATE: VERTICAL ]';
 };
 
-// Check if a ship fits at the chosen index
 function checkPlacementValid(startIndex, size) {
     let row = Math.floor(startIndex / 10);
     let col = startIndex % 10;
     let indices = [];
 
     if (bsIsHorizontal) {
-        if (col + size > 10) return null; // Hangs off the right edge
+        if (col + size > 10) return null;
         for (let i = 0; i < size; i++) {
-            if (bsMyBoard[startIndex + i] !== null) return null; // Overlaps another ship
+            if (bsMyBoard[startIndex + i] !== null) return null;
             indices.push(startIndex + i);
         }
     } else {
-        if (row + size > 10) return null; // Hangs off the bottom edge
+        if (row + size > 10) return null;
         for (let i = 0; i < size; i++) {
-            if (bsMyBoard[startIndex + (i * 10)] !== null) return null; // Overlaps another ship
+            if (bsMyBoard[startIndex + (i * 10)] !== null) return null;
             indices.push(startIndex + (i * 10));
         }
     }
@@ -1114,13 +1113,13 @@ function handleHover(index) {
     let validIndices = checkPlacementValid(index, size);
     
     if (validIndices) {
-        // Valid placement -> Paint cyan
         validIndices.forEach(i => {
-            document.getElementById(`ally-cell-${i}`).classList.add('bs-ship-hover');
+            const cell = document.getElementById(`ally-cell-${i}`);
+            if (cell) cell.classList.add('bs-ship-hover');
         });
     } else {
-        // Invalid placement -> Paint red on the root cell
-        document.getElementById(`ally-cell-${index}`).classList.add('bs-ship-invalid');
+        const cell = document.getElementById(`ally-cell-${index}`);
+        if (cell) cell.classList.add('bs-ship-invalid');
     }
 }
 
@@ -1141,21 +1140,20 @@ function placeShip(index) {
     let validIndices = checkPlacementValid(index, size);
     
     if (validIndices) {
-        // Lock the ship into the array
         validIndices.forEach(i => {
             bsMyBoard[i] = bsShips[bsCurrentShipIndex].name;
             let cell = document.getElementById(`ally-cell-${i}`);
-            cell.classList.add('bs-ship-locked');
+            if (cell) cell.classList.add('bs-ship-locked');
         });
         
-        // Move to the next ship
         bsCurrentShipIndex++;
         clearHover();
+        
+        document.getElementById('btn-bs-reset').style.display = 'inline-block';
         
         if (bsCurrentShipIndex < bsShips.length) {
             document.getElementById('battleship-status').innerText = `[ DEPLOY: ${bsShips[bsCurrentShipIndex].name} (SIZE: ${bsShips[bsCurrentShipIndex].size}) ]`;
         } else {
-            // All ships placed!
             document.getElementById('battleship-status').innerText = `[ FLEET FULLY DEPLOYED ]`;
             document.getElementById('battleship-status').style.color = "#0f0";
             document.getElementById('btn-bs-rotate').style.display = 'none';
@@ -1164,12 +1162,40 @@ function placeShip(index) {
     }
 }
 
+window.resetFleet = function() {
+    if (bsIsLocked) return; 
+    
+    bsCurrentShipIndex = 0;
+    bsIsHorizontal = true;
+    bsMyBoard = Array(100).fill(null);
+    
+    for (let i = 0; i < 100; i++) {
+        let cell = document.getElementById(`ally-cell-${i}`);
+        if (cell) {
+            cell.classList.remove('bs-ship-locked');
+            cell.classList.remove('bs-ship-hover');
+            cell.classList.remove('bs-ship-invalid');
+        }
+    }
+    
+    const rotateBtn = document.getElementById('btn-bs-rotate');
+    if (rotateBtn) {
+        rotateBtn.style.display = 'inline-block';
+        rotateBtn.innerText = '[ ROTATE: HORIZONTAL ]';
+    }
+    document.getElementById('btn-bs-reset').style.display = 'none';
+    document.getElementById('btn-bs-ready').style.display = 'none';
+    
+    document.getElementById('battleship-status').innerText = `[ DEPLOY: ${bsShips[0].name} (SIZE: ${bsShips[0].size}) ]`;
+    document.getElementById('battleship-status').style.color = "var(--main-cyan)";
+};
+
 window.lockFleet = function() {
     bsIsLocked = true;
     document.getElementById('btn-bs-ready').style.display = 'none';
+    document.getElementById('btn-bs-reset').style.display = 'none';
     document.getElementById('battleship-status').innerText = `[ TRANSMITTING TACTICAL DATA... WAITING FOR PEER ]`;
     document.getElementById('battleship-status').style.color = "var(--bright-magenta)";
     
-    // We will add the network transmit packet here in the next step!
     console.log("Fleet locked! Board Array:", bsMyBoard);
 };
