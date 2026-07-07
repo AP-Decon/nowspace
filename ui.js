@@ -949,3 +949,60 @@ window.addEventListener('DOMContentLoaded', () => {
     if (hContainer) streamObserver.observe(hContainer, config);
     if (vContainer) streamObserver.observe(vContainer, config);
 });
+
+//---------------------------------------------------------
+// 11. BOMBPROOF SURVIVAL ENGINE (WAKE LOCK & GHOST AUDIO)
+//---------------------------------------------------------
+let wakeLock = null;
+let ghostAudio = null;
+
+async function engageSurvivalMode() {
+    // 1. The Screen Wake Lock (Prevents screen from turning off)
+    if ('wakeLock' in navigator) {
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            console.log('[ SYSTEM ] Screen Wake Lock engaged.');
+            
+            // If the user minimizes and comes back, we have to re-request the lock
+            wakeLock.addEventListener('release', () => {
+                console.log('[ SYSTEM ] Screen Wake Lock released by OS.');
+            });
+        } catch (err) {
+            console.warn('[ SYSTEM ] Wake Lock denied by browser.', err);
+        }
+    }
+
+    // 2. The Ghost Audio Hack (Prevents iOS/Android from pausing JS)
+    if (!ghostAudio) {
+        try {
+            // Generates a 1-second silent audio buffer dynamically
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioContext();
+            const buffer = ctx.createBuffer(1, ctx.sampleRate * 1, ctx.sampleRate);
+            
+            // Loop the silence indefinitely
+            ghostAudio = ctx.createBufferSource();
+            ghostAudio.buffer = buffer;
+            ghostAudio.loop = true;
+            ghostAudio.connect(ctx.destination);
+            ghostAudio.start();
+            console.log('[ SYSTEM ] Ghost Audio Engine engaged.');
+        } catch (e) {
+            console.warn('[ SYSTEM ] Ghost Audio Engine failed to start.', e);
+        }
+    }
+}
+
+// Mobile browsers require a physical tap to allow audio or wake locks.
+// We bind this to the first time they click ANY button on the page!
+document.addEventListener('click', function initSurvivalOnce() {
+    engageSurvivalMode();
+    document.removeEventListener('click', initSurvivalOnce);
+}, { once: true });
+
+// Re-engage wake lock when returning to the tab
+document.addEventListener('visibilitychange', async () => {
+    if (wakeLock !== null && document.visibilityState === 'visible') {
+        engageSurvivalMode();
+    }
+});
