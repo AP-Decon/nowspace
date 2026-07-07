@@ -783,16 +783,15 @@ window.toggleHostSettings = function() {
 };
 
 // 2. The Giphy Profile Bug Fix
-// This listens for you changing the Memory Slot and updates the background instantly 
-// without us having to find or edit the switchProfile() function!
 document.getElementById('profile-slot')?.addEventListener('change', () => {
     setTimeout(() => {
         const newBgUrl = document.getElementById('my-bg-url');
         if (newBgUrl && typeof applyBackground === "function") {
             applyBackground(newBgUrl.value);
         }
-    }, 100); // 100ms delay lets switchProfile finish loading the text first
+    }, 100); 
 });
+
 // --- PICTURE-IN-PICTURE (MINI PLAYER) PROTOCOL ---
 window.toggleMiniPlayer = async function(videoId) {
     const videoElement = document.getElementById(videoId);
@@ -803,12 +802,10 @@ window.toggleMiniPlayer = async function(videoId) {
     }
 
     try {
-        // If already in PiP, bring it back
         if (document.pictureInPictureElement) {
             await document.exitPictureInPicture();
             console.log("[ SYSTEM ] Mini-player docked.");
         } 
-        // If not in PiP, pop it out
         else if (document.pictureInPictureEnabled && !videoElement.disablePictureInPicture) {
             await videoElement.requestPictureInPicture();
             console.log("[ SYSTEM ] Mini-player deployed.");
@@ -830,7 +827,6 @@ let isBgCycling = false;
 window.toggleBgCycle = function() {
     const btn = document.getElementById('btn-cycle-bg');
     
-    // If the cycle is currently running, stop it
     if (isBgCycling) {
         clearInterval(bgCycleTimer);
         isBgCycling = false;
@@ -851,7 +847,6 @@ window.toggleBgCycle = function() {
     let urls = galleryInput.value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
     if (urls.length === 0) return;
 
-    // Start the cycle!
     isBgCycling = true;
     if (btn) {
         btn.innerText = '[ STOP_CYCLE ]';
@@ -859,15 +854,12 @@ window.toggleBgCycle = function() {
         btn.style.borderColor = "var(--alert-red)";
     }
 
-    // SMART START: Find out what image is currently on the screen
     const currentBg = document.getElementById('my-bg-url').value.trim();
     bgCycleIndex = urls.indexOf(currentBg);
     
-    // Instantly push to the NEXT image in the list
     bgCycleIndex = (bgCycleIndex + 1) % urls.length;
     window.triggerBgUpdate(urls[bgCycleIndex]);
 
-    // Loop the background every 15 seconds
     bgCycleTimer = setInterval(() => {
         urls = galleryInput.value.split('\n').map(u => u.trim()).filter(u => u.length > 0);
         if(urls.length === 0) { window.toggleBgCycle(); return; }
@@ -887,21 +879,21 @@ window.triggerBgUpdate = function(url) {
         broadcastToAll({ type: 'LIVE_BG_UPDATE', bgUrl: url });
     }
 };
-// --- AUTO-PAINT BACKGROUND ON BOOT ---
+
 window.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         const bgUrl = document.getElementById('my-bg-url');
         if (bgUrl && bgUrl.value && typeof applyBackground === 'function') {
             applyBackground(bgUrl.value);
         }
-    }, 500); // 500ms delay ensures local storage finishes loading first
+    }, 500);
 });
+
 // --- AUTO-HEAL NETWORK PROTOCOL (VISIBILITY WAKE-UP) ---
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
         console.log("[ SYSTEM ] Terminal focus restored. Checking network pulse...");
         
-        // 1. Reconnect the main Peer signaling if it dropped
         if (typeof peer !== 'undefined' && peer !== null) {
             if (peer.disconnected && !peer.destroyed) {
                 console.log("[ SYSTEM ] Network suspended. Reconnecting to switchboard...");
@@ -909,22 +901,18 @@ document.addEventListener("visibilitychange", () => {
             }
         }
 
-        // 2. If you are a Visitor and the data tunnel collapsed, Auto-Redial
         setTimeout(() => {
             if (currentRole === 'VISITOR') {
-                // Check if the connection actually died
                 if (!activeConn || !activeConn.open) {
                     console.log("[ SYSTEM ] Data tunnel collapsed. Attempting auto-redial...");
                     const status = document.getElementById('connection-status');
                     if (status) status.innerHTML = `<span style="color:#ffaa00;">[ AUTO-HEAL: RE-DIALING HOST... ]</span>`;
                     
-                    // Trigger your standard connection function
                     if (typeof visitFriend === 'function') visitFriend(); 
                 }
             }
-        }, 1500); // Wait 1.5s for the switchboard to stabilize before re-dialing
+        }, 1500);
 
-        // 3. Clear out any stuck typing indicators
         if (typeof showTypingIndicator === 'function') {
             activeTypers.clear();
             showTypingIndicator('', false);
@@ -932,9 +920,7 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
-// --- AUTO-HIDE/SHOW MINI PLAYER BUTTONS ---
 window.addEventListener('DOMContentLoaded', () => {
-    // This observer watches the video containers for changes
     const streamObserver = new MutationObserver(() => {
         const hostVid = document.getElementById('visitor-video-stream');
         const visVid = document.getElementById('host-video-stream');
@@ -950,7 +936,6 @@ window.addEventListener('DOMContentLoaded', () => {
     const hContainer = document.getElementById('host-video-stream-container');
     const vContainer = document.getElementById('visitor-video-stream-container');
     
-    // Attach the observer to both containers
     if (hContainer) streamObserver.observe(hContainer, config);
     if (vContainer) streamObserver.observe(vContainer, config);
 });
@@ -962,13 +947,11 @@ let wakeLock = null;
 let ghostAudio = null;
 
 async function engageSurvivalMode() {
-    // 1. The Screen Wake Lock (Prevents screen from turning off)
     if ('wakeLock' in navigator) {
         try {
             wakeLock = await navigator.wakeLock.request('screen');
             console.log('[ SYSTEM ] Screen Wake Lock engaged.');
             
-            // If the user minimizes and comes back, we have to re-request the lock
             wakeLock.addEventListener('release', () => {
                 console.log('[ SYSTEM ] Screen Wake Lock released by OS.');
             });
@@ -977,15 +960,12 @@ async function engageSurvivalMode() {
         }
     }
 
-    // 2. The Ghost Audio Hack (Prevents iOS/Android from pausing JS)
     if (!ghostAudio) {
         try {
-            // Generates a 1-second silent audio buffer dynamically
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             const ctx = new AudioContext();
             const buffer = ctx.createBuffer(1, ctx.sampleRate * 1, ctx.sampleRate);
             
-            // Loop the silence indefinitely
             ghostAudio = ctx.createBufferSource();
             ghostAudio.buffer = buffer;
             ghostAudio.loop = true;
@@ -998,14 +978,11 @@ async function engageSurvivalMode() {
     }
 }
 
-// Mobile browsers require a physical tap to allow audio or wake locks.
-// We bind this to the first time they click ANY button on the page!
 document.addEventListener('click', function initSurvivalOnce() {
     engageSurvivalMode();
     document.removeEventListener('click', initSurvivalOnce);
 }, { once: true });
 
-// Re-engage wake lock when returning to the tab
 document.addEventListener('visibilitychange', async () => {
     if (wakeLock !== null && document.visibilityState === 'visible') {
         engageSurvivalMode();
@@ -1013,7 +990,7 @@ document.addEventListener('visibilitychange', async () => {
 });
 
 //---------------------------------------------------------
-// 12. BATTLESHIP (NAVAL_WARFARE.EXE) UI ENGINE
+// 12. BATTLESHIP (NAVAL_WARFARE.EXE) ENGINE
 //---------------------------------------------------------
 let bsShips = [
     { name: "CARRIER", size: 5 },
@@ -1026,17 +1003,26 @@ let bsCurrentShipIndex = 0;
 let bsIsHorizontal = true;
 let bsMyBoard = Array(100).fill(null);
 let bsIsLocked = false;
+let bsEnemyReady = false;
+let bsMyTurn = false;
+let bsMyShipHP = {};
 
 function initBattleship() {
     bsCurrentShipIndex = 0;
     bsIsHorizontal = true;
     bsMyBoard = Array(100).fill(null);
     bsIsLocked = false;
+    bsEnemyReady = false;
+    bsMyTurn = false;
+    bsMyShipHP = { "CARRIER": 5, "BATTLESHIP": 4, "CRUISER": 3, "SUBMARINE": 3, "DESTROYER": 2 };
     
     document.getElementById('btn-bs-rotate').style.display = 'inline-block';
     document.getElementById('btn-bs-ready').style.display = 'none';
     document.getElementById('btn-bs-reset').style.display = 'none';
+    
     document.getElementById('bs-radar-lock').style.display = 'flex';
+    document.getElementById('bs-radar-lock').innerHTML = `<span style="color: var(--alert-red); font-weight: bold;">[ SIGNAL LOCKED // DEPLOY FLEET FIRST ]</span>`;
+    
     document.getElementById('battleship-status').innerText = `[ DEPLOY: ${bsShips[0].name} (SIZE: ${bsShips[0].size}) ]`;
     document.getElementById('battleship-status').style.color = "var(--main-cyan)";
     
@@ -1064,17 +1050,16 @@ function renderBattleshipGrids() {
         const aCell = document.createElement('div');
         aCell.className = 'bs-cell';
         aCell.id = `ally-cell-${i}`;
-        
         aCell.addEventListener('mouseover', () => handleHover(i));
         aCell.addEventListener('mouseout', clearHover);
         aCell.addEventListener('click', () => placeShip(i));
-        
         allyGrid.appendChild(aCell);
         
         // --- ENEMY RADAR ---
         const eCell = document.createElement('div');
         eCell.className = 'bs-cell';
         eCell.id = `enemy-cell-${i}`;
+        eCell.addEventListener('click', () => window.bsFireShot(i));
         enemyGrid.appendChild(eCell);
     }
 }
@@ -1108,7 +1093,6 @@ function checkPlacementValid(startIndex, size) {
 
 function handleHover(index) {
     if (bsIsLocked || bsCurrentShipIndex >= bsShips.length) return;
-    
     let size = bsShips[bsCurrentShipIndex].size;
     let validIndices = checkPlacementValid(index, size);
     
@@ -1135,7 +1119,6 @@ function clearHover() {
 
 function placeShip(index) {
     if (bsIsLocked || bsCurrentShipIndex >= bsShips.length) return;
-    
     let size = bsShips[bsCurrentShipIndex].size;
     let validIndices = checkPlacementValid(index, size);
     
@@ -1190,12 +1173,127 @@ window.resetFleet = function() {
     document.getElementById('battleship-status').style.color = "var(--main-cyan)";
 };
 
+// --- NETWORK SYNC LOGIC ---
+
 window.lockFleet = function() {
     bsIsLocked = true;
     document.getElementById('btn-bs-ready').style.display = 'none';
     document.getElementById('btn-bs-reset').style.display = 'none';
-    document.getElementById('battleship-status').innerText = `[ TRANSMITTING TACTICAL DATA... WAITING FOR PEER ]`;
-    document.getElementById('battleship-status').style.color = "var(--bright-magenta)";
     
-    console.log("Fleet locked! Board Array:", bsMyBoard);
+    if (currentRole === 'HOST' && typeof broadcastToAll === 'function') {
+        broadcastToAll({ type: 'BS_READY' });
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        activeConn.send({ type: 'BS_READY' });
+    }
+
+    checkBattleshipStart();
+};
+
+window.bsReceiveReady = function() {
+    bsEnemyReady = true;
+    checkBattleshipStart();
+};
+
+function checkBattleshipStart() {
+    if (bsIsLocked && bsEnemyReady) {
+        document.getElementById('bs-radar-lock').style.display = 'none';
+        bsMyTurn = (currentRole === 'HOST'); // Host always fires first
+        updateBattleshipStatus();
+    } else if (bsIsLocked && !bsEnemyReady) {
+        document.getElementById('battleship-status').innerText = `[ TRANSMITTING TACTICAL DATA... WAITING FOR PEER ]`;
+        document.getElementById('battleship-status').style.color = "var(--bright-magenta)";
+    } else if (!bsIsLocked && bsEnemyReady) {
+        document.getElementById('battleship-status').innerText = `[ ENEMY FLEET DEPLOYED // AWAITING YOUR LOCK ]`;
+        document.getElementById('battleship-status').style.color = "var(--alert-red)";
+    }
+}
+
+function updateBattleshipStatus() {
+    const statusEl = document.getElementById('battleship-status');
+    const enemyGrid = document.getElementById('bs-enemy-grid');
+    if (bsMyTurn) {
+        statusEl.innerText = `[ YOUR TURN // SELECT TARGET ]`;
+        statusEl.style.color = "#0f0";
+        enemyGrid.classList.remove('disabled-grid');
+    } else {
+        statusEl.innerText = `[ ENEMY TURN // AWAITING IMPACT ]`;
+        statusEl.style.color = "var(--alert-red)";
+        enemyGrid.classList.add('disabled-grid');
+    }
+}
+
+window.bsFireShot = function(index) {
+    if (!bsMyTurn) return;
+    const cell = document.getElementById(`enemy-cell-${index}`);
+    if (cell.classList.contains('bs-hit') || cell.classList.contains('bs-miss')) return;
+
+    bsMyTurn = false;
+    updateBattleshipStatus();
+
+    if (currentRole === 'HOST' && typeof broadcastToAll === 'function') {
+        broadcastToAll({ type: 'BS_FIRE', index: index });
+    } else if (currentRole === 'VISITOR' && activeConn) {
+        activeConn.send({ type: 'BS_FIRE', index: index });
+    }
+};
+
+window.bsReceiveFire = function(index) {
+    let result = 'MISS';
+    let sunk = null;
+    let gameOver = false;
+
+    const shipHit = bsMyBoard[index];
+    const cell = document.getElementById(`ally-cell-${index}`);
+
+    if (shipHit) {
+        result = 'HIT';
+        cell.classList.add('bs-hit');
+        cell.classList.remove('bs-ship-locked');
+        bsMyShipHP[shipHit]--;
+        
+        if (bsMyShipHP[shipHit] === 0) {
+            sunk = shipHit;
+            if (Object.values(bsMyShipHP).every(hp => hp === 0)) {
+                gameOver = true;
+            }
+        }
+    } else {
+        cell.classList.add('bs-miss');
+    }
+
+    const p = { type: 'BS_RESULT', index: index, result: result, sunk: sunk, gameOver: gameOver };
+    if (currentRole === 'HOST' && typeof broadcastToAll === 'function') broadcastToAll(p);
+    else if (currentRole === 'VISITOR' && activeConn) activeConn.send(p);
+
+    if (gameOver) {
+        document.getElementById('battleship-status').innerText = `[ CRITICAL FAILURE // FLEET DESTROYED ]`;
+        document.getElementById('battleship-status').style.color = "var(--alert-red)";
+        document.getElementById('bs-radar-lock').style.display = 'flex';
+        document.getElementById('bs-radar-lock').innerHTML = `<span style="color:var(--alert-red); font-size:1.5rem; font-weight:bold;">[ DEFEAT ]</span>`;
+    } else {
+        bsMyTurn = true;
+        updateBattleshipStatus();
+    }
+};
+
+window.bsReceiveResult = function(p) {
+    const cell = document.getElementById(`enemy-cell-${p.index}`);
+    if (p.result === 'HIT') {
+        cell.classList.add('bs-hit');
+        if(typeof triggerSound === "function") triggerSound('boom');
+    } else {
+        cell.classList.add('bs-miss');
+    }
+
+    if (p.sunk) {
+        if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("TARGET DESTROYED", `Enemy ${p.sunk} has been sunk!`);
+    }
+
+    if (p.gameOver) {
+        document.getElementById('battleship-status').innerText = `[ VICTORY // ENEMY FLEET DESTROYED ]`;
+        document.getElementById('battleship-status').style.color = "#0f0";
+        document.getElementById('bs-radar-lock').style.display = 'flex';
+        document.getElementById('bs-radar-lock').innerHTML = `<span style="color:#0f0; font-size:1.5rem; font-weight:bold;">[ VICTORY ]</span>`;
+        if(typeof triggerSound === "function") triggerSound('airhorn');
+    }
 };
