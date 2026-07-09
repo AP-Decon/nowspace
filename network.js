@@ -115,13 +115,11 @@ clearTimeout(window.dialTimer);
 //---------------------------------------------------------
 async function startHosting() {
     try {
-        // --- ZOMBIE HUNTER ---
         if (peer) {
             console.warn("[ SYSTEM ] Destroying old Host peer instance...");
             peer.destroy();
             peer = null;
         }
-        // ---------------------
         currentRole = 'HOST'; 
         document.getElementById('btn-go-online').disabled = true; 
         if(typeof saveLocalData === "function") saveLocalData();
@@ -131,11 +129,8 @@ async function startHosting() {
 
         const customId = document.getElementById('my-custom-id').value.trim().replace(/\s+/g, '-');
         
-        // Fetch our secure hidden credentials right before spinning up the node
         await loadSecureConfig();
-        
         peer = customId ? new Peer(customId, peerConfig) : new Peer(peerConfig); 
-        
         if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
         
         peer.on('open', (id) => {
@@ -160,8 +155,6 @@ async function startHosting() {
         
         peer.on('error', (err) => {
             console.warn("[ PEER_ERROR ]", err.type, err);
-
-            // AUTO-DIALER: If the Host is offline or hasn't booted up yet
             if (err.type === 'peer-unavailable') {
                 if (currentRole === 'VISITOR') {
                     const statusDisplay = document.getElementById('connection-status');
@@ -169,8 +162,6 @@ async function startHosting() {
                         statusDisplay.innerText = "[ HOST OFFLINE // REDIALING IN 3 SECONDS... ]";
                         statusDisplay.style.color = "var(--alert-red)";
                     }
-                    
-                    // Wait 3 seconds and try the connection again
                    window.dialTimer = setTimeout(() => {
                         if (statusDisplay) {
                             statusDisplay.innerText = "[ DIALING HOST... ]";
@@ -179,17 +170,13 @@ async function startHosting() {
                         if (typeof visitFriend === "function") visitFriend();
                     }, 3000);
                 }
-            } 
-            // Handle disconnected network state
-            else if (err.type === 'network' || err.type === 'disconnected') {
+            } else if (err.type === 'network' || err.type === 'disconnected') {
                 const statusDisplay = document.getElementById('connection-status');
                 if (statusDisplay) {
                     statusDisplay.innerText = "[ NETWORK DISCONNECT // CHECK CONNECTION ]";
                     statusDisplay.style.color = "var(--alert-red)";
                 }
-            }
-            // Catch-all for Browser Shields (Opera GX, Brave, Safari Strict)
-            else {
+            } else {
                 alert(`[ FATAL_NODE_ERROR ] ${err.type}\nIf you are using Opera GX, Brave, or strict privacy settings, please disable your Shields/Tracker Blockers for this domain so WebRTC can connect.`);
                 document.getElementById('btn-go-online').disabled = false;
                 if (statusDisplay) {
@@ -224,19 +211,14 @@ async function visitFriend() {
         statusDisplay.innerText = "[ STATUS: WAITING_FOR_DIAL_TONE... ]"; 
         globalDisconnectBtn.style.display = 'block';
         
-        // --- ZOMBIE HUNTER ---
-        // If the peer exists but the mobile network severed the connection, destroy it so we can rebuild.
         if (peer && (peer.disconnected || peer.destroyed)) {
             console.warn("[ SYSTEM ] Mobile disconnect detected. Wiping zombie peer...");
             peer.destroy();
             peer = null;
         }
-        // ---------------------
 
         if (!peer) { 
-            // Fetch our secure hidden credentials right before spinning up the node
             await loadSecureConfig();
-
             peer = new Peer(peerConfig); 
             if(typeof setupPeerCallListener === "function") setupPeerCallListener(); 
             peer.on('open', () => { executeConnection(fId); }); 
@@ -257,15 +239,12 @@ async function visitFriend() {
                         if (typeof visitFriend === "function") visitFriend();
                     }, 3000);
                 } else if (err.type === 'network' || err.type === 'disconnected' || err.type === 'server-error') {
-                    // Mobile drop detected. Force a memory wipe on the next dial attempt.
                     if (peer) { peer.destroy(); peer = null; }
-                    
                     const statusDisplay = document.getElementById('connection-status');
                     if (statusDisplay) {
                         statusDisplay.innerText = "[ NETWORK DISCONNECT // RETRYING... ]";
                         statusDisplay.style.color = "var(--alert-red)";
                     }
-                    // Auto-rebuild the network after 3 seconds instead of failing!
                     window.dialTimer = setTimeout(() => {
                         if (typeof visitFriend === "function") visitFriend();
                     }, 3000);
@@ -276,7 +255,6 @@ async function visitFriend() {
             });
             
         } else { 
-            // If the peer is healthy, just execute the connection!
             executeConnection(fId); 
         }
     } catch(err) { alert("[ CONNECTION_ERROR ] " + err.message); }
@@ -322,20 +300,15 @@ function handleIncomingP2PPacket(p, conn) {
                         setTimeout(() => { conn.close(); }, 500); return;
                     }
                     
-                    // --- GHOST BUSTER ---
-                    // Scan the radar for old, broken connections from this exact user and wipe them out
                     for (let existingId in peerFingerprintMap) {
                         if (peerFingerprintMap[existingId].fingerprint === p.fingerprint && existingId !== senderId) {
                             console.warn(`[ SYSTEM ] Ghost node detected for ${p.alias}. Wiping old connection...`);
-                            // 1. Force close the old sockets
                             if (peer.connections[existingId]) {
                                 peer.connections[existingId].forEach(c => { if(c.open) c.close(); });
                             }
-                            // 2. Erase the ghost from the radar
                             delete peerFingerprintMap[existingId];
                         }
                     }
-                    // --------------------
 
                     peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.alias };
                     if(typeof triggerBackgroundAlert === "function") triggerBackgroundAlert("NOWSPACE Link Established", `Terminal ${p.alias} has connected to your node.`);
@@ -361,7 +334,6 @@ function handleIncomingP2PPacket(p, conn) {
                     }
                 } break;
 
-            // --- ANTI-NAT HEARTBEAT ROUTER ---
             case 'HEARTBEAT_PING':
                 if (currentRole === 'HOST' && conn.open) conn.send({ type: 'HEARTBEAT_PONG' });
                 break;
@@ -369,6 +341,48 @@ function handleIncomingP2PPacket(p, conn) {
                 break;
 
             // --- BATTLESHIP (NAVAL_WARFARE.EXE) ROUTERS ---
+            case 'BS_CHALLENGE':
+                wallData.push({ 
+                    sender: "[SYSTEM]", 
+                    text: `<b style="color:var(--alert-red);">${p.senderAlias} HAS INITIATED NAVAL_WARFARE.EXE</b><br><br><button class="btn-small btn-alert" onclick="window.acceptBattleshipChallenge(this)">[ ACCEPT COMBAT LINK ]</button>`, 
+                    isPrivate: false, 
+                    timestamp: new Date().toLocaleTimeString() 
+                });
+                if(typeof saveLocalData === "function") saveLocalData();
+                if(typeof renderWall === "function") renderWall();
+                if(typeof triggerBackgroundAlert === 'function') triggerBackgroundAlert("NAVAL WARFARE", `${p.senderAlias} challenged you to Battleship!`);
+                break;
+
+            case 'BS_ACCEPT':
+                // Only the Host receives this when a Visitor clicks Accept
+                if (currentRole === 'HOST') {
+                    if (typeof window.initBattleship === 'function') window.initBattleship(true);
+                    if (typeof broadcastToAll === 'function') broadcastToAll({ type: 'BS_INIT' });
+                    
+                    wallData.push({ 
+                        sender: "[SYSTEM]", 
+                        text: `<span style="color:#0f0;">[ TACTICAL LINK ESTABLISHED ]</span>`, 
+                        isPrivate: false, 
+                        timestamp: new Date().toLocaleTimeString() 
+                    });
+                    if(typeof saveLocalData === "function") saveLocalData();
+                    if(typeof renderWall === "function") renderWall();
+                }
+                break;
+
+            case 'BS_INIT':
+                // Only Visitors receive this when the Host officially opens the game
+                if (typeof window.initBattleship === 'function') window.initBattleship(true);
+                wallData.push({ 
+                    sender: "[SYSTEM]", 
+                    text: `<span style="color:#0f0;">[ TACTICAL LINK ESTABLISHED ]</span>`, 
+                    isPrivate: false, 
+                    timestamp: new Date().toLocaleTimeString() 
+                });
+                if(typeof saveLocalData === "function") saveLocalData();
+                if(typeof renderWall === "function") renderWall();
+                break;
+                
             case 'BS_READY':
                 if (typeof window.bsReceiveReady === 'function') window.bsReceiveReady();
                 if (currentRole === 'HOST') broadcastToAll(p); 
@@ -380,7 +394,8 @@ function handleIncomingP2PPacket(p, conn) {
                 if (typeof window.bsReceiveResult === 'function') window.bsReceiveResult(p);
                 if (currentRole === 'HOST') broadcastToAll(p);
                 break;
-
+            // ----------------------------------------------
+            
             case 'AUTH_FAILED':
                 alert("ACCESS DENIED: INCORRECT NODE PASSWORD.");
                 disconnectNode(); 
@@ -469,11 +484,9 @@ function handleIncomingP2PPacket(p, conn) {
                 if (currentRole === 'HOST') {
                     if (bannedFingerprints.includes(p.fingerprint)) return;
                     
-                    // Track the sender for potential banning
                     const senderId = conn ? conn.peer : p.fingerprint;
                     if (senderId) peerFingerprintMap[senderId] = { fingerprint: p.fingerprint, alias: p.sender };
                     
-                    // --- ARCADE: RPS MATCHMAKING ROUTER ---
                     if (p.isGame === 'rps') {
                         let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== p.fingerprint);
                         if (openDuel) {
@@ -488,7 +501,6 @@ function handleIncomingP2PPacket(p, conn) {
                             if(typeof renderWall === "function") renderWall();
                             broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
                             
-                            // NOTIFICATION HOOK: Someone joined a duel!
                             if (typeof triggerBackgroundAlert === 'function') {
                                 triggerBackgroundAlert("Arcade Alert", `${p.sender} answered a duel request!`); 
                             }
@@ -496,7 +508,6 @@ function handleIncomingP2PPacket(p, conn) {
                         }
                     }
 
-                    // Standard message / New Game creation
                     const packet = { 
                         sender: p.sender, 
                         text: p.text, 
@@ -517,7 +528,6 @@ function handleIncomingP2PPacket(p, conn) {
                     if(typeof renderWall === "function") renderWall(); 
                     broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData }); 
                     
-                    // NOTIFICATION HOOK: Standard Message or New Game!
                     if (typeof triggerBackgroundAlert === 'function' && !packet.isLocalWhisper) {
                         let alertText = packet.isGame ? `[ NEW ${packet.isGame.toUpperCase()} MODULE DEPLOYED ]` : packet.text.replace(/<[^>]*>?/gm, '');
                         triggerBackgroundAlert("Incoming Transmission", `${packet.sender}: ${alertText}`); 
@@ -527,7 +537,6 @@ function handleIncomingP2PPacket(p, conn) {
 
             case MSG_TYPE_WALL_UPDATE:
                 if (currentRole === 'VISITOR') { 
-                    // NOTIFICATION HOOK: Check if the newest post was from someone else
                     if (p.updatedWall && p.updatedWall.length > wallData.length) {
                         const newPost = p.updatedWall[p.updatedWall.length - 1];
                         const myAlias = document.getElementById('visitor-alias-input') ? document.getElementById('visitor-alias-input').value.trim() : 'GUEST_NODE';
@@ -584,7 +593,7 @@ function handleIncomingP2PPacket(p, conn) {
             case MSG_TYPE_FEATURE_UPDATE: 
                 if (currentRole === 'VISITOR') { featureToggles = p.features;
                 if(typeof applyFeatures === "function") applyFeatures(featureToggles); } break;
-                case 'LIVE_BG_UPDATE':
+            case 'LIVE_BG_UPDATE':
                 if (currentRole === 'VISITOR' && typeof applyBackground === 'function') {
                     applyBackground(p.bgUrl);
                 } break;
@@ -653,7 +662,6 @@ function hostSendWallPacket() {
     const parsed = parseSlashCommand(rawText, alias);
     if (parsed.text === null) { input.value = ''; return; }
 
-    // --- ARCADE: HOST RPS LOCAL MATCHMAKING ---
     if (parsed.isGame === 'rps') {
         let openDuel = wallData.find(w => w.isGame === 'rps' && !w.winner && w.players.p1.fp !== myFingerprint);
         if (openDuel) {
@@ -728,11 +736,9 @@ function processGameMove(p) {
             broadcastToAll({ type: MSG_TYPE_WALL_UPDATE, updatedWall: wallData });
         }
     } 
-    // --- ARCADE: CONNECT 4 GRAVITY ENGINE ---
     else if (game.isGame === 'connect4') {
         let col = p.cellIndex;
         let placedRow = -1;
-        // Gravity Drop: Find the lowest available slot in the clicked column
         for(let r = 5; r >= 0; r--) {
             if (!game.board[r*7 + col]) { placedRow = r; break; }
         }
@@ -769,13 +775,9 @@ function checkC4Winner(game) {
             let idx = r * 7 + c;
             let t = b[idx];
             if (!t) continue;
-            // horizontal right
             if (c <= 3 && t === b[idx+1] && t === b[idx+2] && t === b[idx+3]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
-            // vertical down
             if (r <= 2 && t === b[idx+7] && t === b[idx+14] && t === b[idx+21]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
-            // diag down-right
             if (r <= 2 && c <= 3 && t === b[idx+8] && t === b[idx+16] && t === b[idx+24]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
-            // diag down-left
             if (r <= 2 && c >= 3 && t === b[idx+6] && t === b[idx+12] && t === b[idx+18]) { game.winner = game.players[t].alias.toUpperCase() + " WINS"; return; } 
         }
     }
