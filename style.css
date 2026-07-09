@@ -279,5 +279,11 @@ button:active {
 .bs-ship-locked { background: var(--main-cyan); border-color: #000; }
 
 /* Hit / Miss Markers */
+/* Hit / Miss Markers */
 .bs-hit { background: var(--alert-red) !important; color: #000; text-shadow: none; }
-.bs-miss { background: #333 !important; color: #aaa; text-shadow: none; }
+.bs-miss { 
+    background-color: #050509 !important; 
+    background-image: radial-gradient(circle, #0088ff 35%, transparent 40%) !important; 
+    color: transparent !important; 
+    box-shadow: inset 0 0 5px rgba(0, 136, 255, 0.2); 
+}
